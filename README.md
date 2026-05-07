@@ -30,7 +30,8 @@ AMA_Project/
     ├── 05-kpis-outcomes.md
     ├── 06-risks-register.md
     ├── 07-governance-rai.md
-    └── 08-demo-on-azure.md   ← deployable demo on the Case Study 33 stack
+    ├── 08-demo-on-azure.md   ← deployable demo on the Case Study 33 stack
+    └── 09-step-by-step-tutorial.md  ← Day-0 → Day-10 hands-on build guide
 ```
 
 ---
@@ -102,6 +103,7 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 - ✅ Specialist agents drafted
 - ✅ Plan documents drafted (charter → governance)
 - ✅ Demo blueprint on Azure ([plan/08-demo-on-azure.md](plan/08-demo-on-azure.md)) using the Case Study 33 services (B2C, APIM, Fabric, AML, Azure OpenAI, AI Search, Content Safety, Purview, Power BI)
+- ✅ Step-by-step build tutorial ([plan/09-step-by-step-tutorial.md](plan/09-step-by-step-tutorial.md)) — from empty subscription to running demo in 10 days
 - ⏳ Phase 0 kickoff pending sponsor approval
 - ⏳ DPIAs per market — owner: DPO
 - ⏳ AI Act Annex IV file skeleton — owner: AI Act CO
