@@ -87,6 +87,10 @@
   .status-panel pre { font-size: 0.72rem; max-height: 180px; overflow: auto; margin: 0.6rem 0 0; }
   nav.top .links a.active { color: var(--orange); position: relative; }
   nav.top .links a.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1.05rem; height: 3px; background: var(--orange); border-radius: 2px 2px 0 0; }
+  #greet { padding: .35rem .75rem; background: rgba(43,180,184,0.12); color: var(--teal); border-radius: 999px; font-weight: 600; letter-spacing: .02em; }
+  #greet.role-admin { background: rgba(242,99,52,0.15); color: var(--orange); }
+  nav.top .cta#logoutBtn { background: var(--navy); }
+  nav.top .cta#logoutBtn:hover { background: var(--orange-dark); }
 </style>
 </head>
 <body>
@@ -108,7 +112,7 @@
           <pre id="health">Loading…</pre>
         </div>
       </div>
-      <a href="#" class="cta">Contact Us</a>
+      <span id="greet" style="font-size:.85rem;color:var(--grey)">…</span><a href="#" class="cta" id="logoutBtn" onclick="logout(event)" style="display:none">Sign out</a>
     </div>
   </div>
 </nav>
@@ -188,6 +192,21 @@ async function chat() {
     out.textContent = JSON.stringify(data, null, 2);
   }
 }
+
+// --- session glue ---
+async function loadMe() {
+  try {
+    const r = await fetch('/api/auth/me', { cache:'no-store' });
+    const d = await r.json();
+    if (!d.user) { location.href = '/login.html'; return; }
+    const g = document.getElementById('greet');
+    g.textContent = `Hi, ${d.user.firstName} · ${d.user.role}`;
+    g.classList.add('role-' + d.user.role);
+    document.getElementById('logoutBtn').style.display = '';
+  } catch (e) { /* ignore */ }
+}
+async function logout(e) { e?.preventDefault(); await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
+window.addEventListener('load', loadMe);
 </script>
 </body>
 </html>
