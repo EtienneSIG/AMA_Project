@@ -13,14 +13,19 @@ Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subj
 ```
 AMA_Project/
 ├── README.md                ← you are here
-├── agents/                  ← 7 specialist Copilot chat modes for this case
+├── agents/                  ← 9 specialist Copilot chat modes for this case
 │   ├── edtech-program-orchestrator.chatmode.md
 │   ├── eu-ai-act-compliance-officer.chatmode.md
 │   ├── gdpr-children-data-specialist.chatmode.md
 │   ├── privacy-preserving-ml-engineer.chatmode.md
 │   ├── learning-sciences-expert.chatmode.md
 │   ├── content-localisation-lead.chatmode.md
-│   └── responsible-ai-evaluator.chatmode.md
+│   ├── responsible-ai-evaluator.chatmode.md
+│   ├── cross-agent-qa-verifier.chatmode.md  ← audits the others' deliverables
+│   └── demo-deployment-agent.chatmode.md   ← deploys the demo end-to-end on your tenant
+├── demo/
+│   ├── .env.template            ← copy to .env.local and fill in your tenant info
+│   └── .gitignore
 └── plan/                    ← end-to-end transformation plan
     ├── 00-program-charter.md
     ├── 01-phases-roadmap.md
@@ -49,6 +54,8 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 | 5 | **Learning Sciences Expert** | Pedagogical validity, ZPD, formative assessment, UDL | Reviewing any AI feature touching learners |
 | 6 | **Multilingual Content Localisation Lead** | 12mo→6w localisation across NL/BE/DE/PL/RO | Content pipeline design, glossary work |
 | 7 | **Responsible AI Evaluator** | Owns the model release gate; fairness/safety/transparency | Every release; quarterly re-evaluation |
+| 8 | **Cross-Agent QA & Verifier** | Independent auditor of every other agent's deliverables | After each specialist output; before any phase gate |
+| 9 | **Demo Deployment Agent** | Autonomous build-and-deploy of the full demo on your tenant (reads `demo/.env.local`) | When you want to actually run the demo end-to-end |
 
 > 💡 The general-purpose chat modes from `AMA/.github/chatmodes/` (Solution Architect, AMA Reviewer, Security & Compliance, FinOps, CxO Challenger, Orchestrator) remain useful for non-EdTech-specific questions.
 

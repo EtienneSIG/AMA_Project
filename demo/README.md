@@ -1,0 +1,92 @@
+# LearnEU Demo
+
+Deployable scaffold of the **Case Study 33** demo — adaptive learning, curriculum localisation, automated assessment — using only Azure services committed in the case study.
+
+> **Status:** scaffold only. No resources are deployed by checking out this folder. Provisioning happens explicitly via `azd up`.
+
+---
+
+## What this folder is
+
+A pragmatic starter that maps 1:1 to [`../plan/08-demo-on-azure.md`](../plan/08-demo-on-azure.md) and the daily steps in [`../plan/09-step-by-step-tutorial.md`](../plan/09-step-by-step-tutorial.md).
+
+Layout:
+
+```
+demo/
+├── azure.yaml                   # azd entrypoint
+├── infra/                       # Bicep — single subscription deployment
+│   ├── main.bicep               # subscription-scope; creates RG + modules
+│   └── modules/
+│       ├── networking.bicep
+│       ├── monitor.bicep
+│       ├── keyvault.bicep
+│       ├── openai.bicep
+│       ├── ai-search.bicep
+│       ├── content-safety.bicep
+│       ├── aml-workspace.bicep
+│       ├── apim.bicep
+│       ├── purview.bicep
+│       └── fabric-capacity.bicep
+├── data/                        # Synthetic personas + curricula + glossaries
+├── ml/                          # Adaptive + assessment models
+├── pipelines/                   # Localisation, content safety, continuous eval
+├── apps/                        # Parent / Teacher / Learner web apps
+└── scripts/                     # seed_curricula, seed_learners, run_demo
+```
+
+Modules marked **`STUB`** in their header are skeletons with the right surface (params/outputs) but minimal implementation — fill in before `azd up`.
+
+---
+
+## Prerequisites
+
+See [`../plan/09-step-by-step-tutorial.md`](../plan/09-step-by-step-tutorial.md#prerequisites--install-once). In short:
+
+- `az`, `azd`, `bicep`, `python`, `node`, `git`, `docker` installed
+- An Azure subscription with **Owner** in an **EU region** (default: `westeurope`)
+- A separate **Entra External ID / B2C tenant** (created manually on Day 2)
+- **Azure OpenAI gpt-5.4-nano quota** in West Europe (request on Day 0; deployment will fail without it). Tier 5/6 subscriptions have default quota; lower tiers require a quota request.
+
+---
+
+## Quick start (scaffold-only path)
+
+```powershell
+# 1. Configure
+Copy-Item .env.template .env.local
+# edit .env.local with your tenant + subscription ids
+
+# 2. Initialise azd
+azd auth login
+azd env new learneu-demo
+
+# 3. Preview only — DOES NOT DEPLOY
+azd provision --preview
+```
+
+`azd provision --preview` runs a what-if and prints the resources that *would* be created. Nothing is provisioned until you run `azd up` explicitly.
+
+---
+
+## Cost guardrails
+
+This scaffold is wired to demo SKUs (Developer APIM, F2 Fabric, gpt-5.4-nano GlobalStandard 50K TPM, etc.). Even so, **a full `azd up` will incur real € on your subscription**. Pause Fabric capacity and delete OpenAI deployments when not demoing. Use `azd down --purge` to fully tear down.
+
+See the cost table in [`../plan/08-demo-on-azure.md`](../plan/08-demo-on-azure.md#demo-cost-guardrails).
+
+---
+
+## Hard rules (enforced by Bicep)
+
+- **EU regions only** — `main.bicep` rejects non-EU `location`.
+- **Public network access disabled** by default on every PaaS.
+- **Customer-managed keys** via Key Vault (Premium SKU; HSM upgrade is a TODO).
+- **No real children's data** — use only `data/synthetic_learners.csv`.
+- **No payload retention** on AML online endpoints.
+
+---
+
+## Acceptance criteria
+
+See [`../plan/08-demo-on-azure.md#acceptance-criteria-for-the-demo`](../plan/08-demo-on-azure.md#acceptance-criteria-for-the-demo). Run `scripts/run_demo.ps1` to walk through them.

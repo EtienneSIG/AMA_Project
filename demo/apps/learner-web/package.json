@@ -1,0 +1,12 @@
+{
+  "name": "learneu-learner-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

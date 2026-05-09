@@ -1,0 +1,24 @@
+{
+  "country": "NL",
+  "framework": "kerndoelen",
+  "grade": 7,
+  "subject": "math",
+  "version": "2024",
+  "competencies": [
+    {
+      "id": "NL-MATH-Y7-FRAC-01",
+      "title": "Begrip van breuken",
+      "description": "De leerling kan eenvoudige breuken benoemen, vergelijken en visualiseren met taart- en strookmodellen."
+    },
+    {
+      "id": "NL-MATH-Y7-FRAC-02",
+      "title": "Optellen en aftrekken van breuken",
+      "description": "De leerling kan breuken met dezelfde noemer optellen en aftrekken."
+    },
+    {
+      "id": "NL-MATH-Y7-FRAC-03",
+      "title": "Equivalente breuken",
+      "description": "De leerling herkent equivalente breuken en kan ze vereenvoudigen."
+    }
+  ]
+}

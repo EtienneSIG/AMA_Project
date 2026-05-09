@@ -1,0 +1,22 @@
+# Local environment files — never commit
+.env.local
+.env.*.local
+
+# Deployment logs
+.deploy/
+
+# Python venv
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# Azure
+.azure/
+*.azurePubxml
+
+# Bicep build artifacts
+*.json.bicepout
