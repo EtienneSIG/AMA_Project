@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — Teacher Console · EdTech Group</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<style>
+  :root {
+    --navy: #0F1B2D;
+    --navy-2: #1a3658;
+    --orange: #F26334;
+    --orange-dark: #D44E22;
+    --teal: #2BB4B8;
+    --grey: #3F4A5A;
+    --line: #E3E7EE;
+    --bg: #F5F7FA;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; font-family: 'Inter', system-ui, sans-serif; color: var(--grey); background: var(--bg); line-height: 1.55; }
+  main { flex: 1 0 auto; }
+  footer { flex-shrink: 0; }
+  h1, h2, h3 { font-family: 'Poppins', sans-serif; color: var(--navy); margin: 0 0 0.5rem; line-height: 1.2; }
+  h1 { font-size: 2.1rem; font-weight: 700; }
+  h2 { font-size: 1.3rem; font-weight: 600; margin-top: 0; }
+  a { color: var(--orange); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  nav.top { background: #fff; border-bottom: 1px solid var(--line); }
+  nav.top .wrap { max-width: 1100px; margin: 0 auto; padding: 0.9rem 1.5rem; display: flex; align-items: center; gap: 1.25rem; }
+  nav.top img { height: 42px; width: auto; }
+  nav.top .links { margin-left: auto; display: flex; gap: 1.5rem; align-items: center; font-weight: 500; font-size: 0.9rem; }
+  nav.top .links a { color: var(--navy); }
+  nav.top .cta { background: var(--orange); color: #fff !important; padding: 0.55rem 1.1rem; border-radius: 999px; font-weight: 600; }
+  nav.top .cta:hover { background: var(--orange-dark); text-decoration: none; }
+  .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff; padding: 3rem 1.5rem 3.5rem; }
+  .hero .wrap { max-width: 1100px; margin: 0 auto; }
+  .hero h1 { color: #fff; max-width: 740px; }
+  .hero p { max-width: 660px; opacity: 0.85; font-size: 1.05rem; margin: 0.75rem 0 0; }
+  .hero .pill { display: inline-block; background: rgba(43,180,184,0.18); color: var(--teal); padding: 0.3rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.9rem; }
+  main { max-width: 1100px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.75rem; box-shadow: 0 4px 24px rgba(15,27,45,0.06); margin-bottom: 1.25rem; }
+  .card p { margin: 0.25rem 0 1rem; }
+  pre { background: #F8FAFC; border: 1px solid var(--line); padding: 1rem; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88rem; white-space: pre-wrap; word-break: break-word; }
+  textarea { width: 100%; min-height: 5rem; padding: 0.75rem; font-family: inherit; font-size: 0.95rem; border: 1px solid var(--line); border-radius: 8px; resize: vertical; color: var(--navy); }
+  textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .btn { background: var(--orange); color: #fff; border: 0; padding: 0.7rem 1.4rem; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 0.95rem; font-family: inherit; transition: background 0.15s; }
+  .btn:hover { background: var(--orange-dark); }
+  .btn.secondary { background: #fff; color: var(--navy); border: 1.5px solid var(--navy); }
+  .btn.secondary:hover { background: var(--navy); color: #fff; }
+  .row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin: 0.75rem 0; }
+  footer { background: var(--navy); color: rgba(255,255,255,0.7); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; }
+  footer a { color: var(--teal); }
+  footer a:hover { color: #fff; }
+  .reply { background: #F8FAFC; border: 1px solid var(--line); padding: 1rem 1.25rem; border-radius: 8px; color: var(--navy); min-height: 2rem; }
+  .reply p { margin: 0.4rem 0; }
+  .reply p:first-child { margin-top: 0; }
+  .reply p:last-child { margin-bottom: 0; }
+  .reply ul, .reply ol { margin: 0.4rem 0 0.4rem 1.25rem; padding: 0; }
+  .reply li { margin: 0.15rem 0; }
+  .reply h1, .reply h2, .reply h3, .reply h4 { margin: 0.6rem 0 0.3rem; color: var(--navy); }
+  .reply code { background: #EEF2F7; padding: 0.1rem 0.35rem; border-radius: 4px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88em; }
+  .reply pre { background: #0F1B2D; color: #E3E7EE; padding: 0.9rem 1rem; border-radius: 8px; overflow-x: auto; }
+  .reply pre code { background: transparent; padding: 0; color: inherit; }
+  .reply blockquote { border-left: 3px solid var(--teal); margin: 0.5rem 0; padding: 0.1rem 0.9rem; color: var(--grey); }
+  .reply table { border-collapse: collapse; margin: 0.5rem 0; }
+  .reply th, .reply td { border: 1px solid var(--line); padding: 0.4rem 0.7rem; text-align: left; }
+  .reply th { background: #EEF2F7; }
+  .meta { margin-top: 0.6rem; font-size: 0.8rem; color: var(--grey); opacity: 0.7; }
+</style>
+</head>
+<body>
+<nav class="top">
+  <div class="wrap">
+    <img src="/logo.svg" alt="EdTech Group" />
+    <div class="links">
+      <a href="#">For Schools</a>
+      <a href="#">For Families</a>
+      <a href="#">For Educators</a>
+      <a href="#" class="cta">Contact Us</a>
+    </div>
+  </div>
+</nav>
+<section class="hero">
+  <div class="wrap">
+    <span class="pill">Teacher Console</span>
+    <h1>Class insights with human oversight at the centre.</h1>
+    <p>Class dashboards, recommended interventions, and a full grade-override audit log — built around EU AI Act Article 14 human oversight obligations.</p>
+  </div>
+</section>
+<main>
+  <div class="card">
+    <h2>System health</h2>
+    <p>Verify the App Service can resolve its Key Vault secret and reach APIM.</p>
+    <div class="row"><button class="btn secondary" onclick="ping()">Check /api/health</button></div>
+    <pre id="health">Click the button to check.</pre>
+  </div>
+  <div class="card">
+    <h2>Pedagogical assistant</h2>
+    <p>Generate quick remediation ideas — gpt-5.4-nano via APIM, hosted in West Europe.</p>
+    <textarea id="prompt">Suggest a 5-minute remediation activity for a learner who confuses 1/2 with 1/4.</textarea>
+    <div class="row"><button class="btn" onclick="chat()">Ask</button></div>
+    <div class="reply" id="reply">No response yet.</div>
+    <div class="meta" id="meta"></div>
+  </div>
+</main>
+<footer>
+  © 2026 EdTech Group · LearnEU EU-region demo · GDPR Art. 8 + EU AI Act Annex III §3 ·
+  <a href="#">Privacy</a> · <a href="#">Cookies</a> · <a href="#">Terms</a>
+</footer>
+<script>
+async function ping() {
+  const r = await fetch('/api/health');
+  document.getElementById('health').textContent = JSON.stringify(await r.json(), null, 2);
+}
+async function chat() {
+  const out = document.getElementById('reply');
+  const meta = document.getElementById('meta');
+  out.textContent = 'Calling APIM…';
+  meta.textContent = '';
+  const r = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: document.getElementById('prompt').value })
+  });
+  const data = await r.json();
+  if (data.answer) {
+    if (window.marked && window.DOMPurify) {
+      marked.setOptions({ breaks: true, gfm: true });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(data.answer));
+    } else {
+      out.textContent = data.answer;
+    }
+    if (data.usage) meta.textContent = `— ${data.usage.total_tokens} tokens · ${data.model || ''}`;
+  } else {
+    out.textContent = JSON.stringify(data, null, 2);
+  }
+}
+</script>
+</body>
+</html>

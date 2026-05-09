@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: learneu-demo
+metadata:
+  template: learneu@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+# Apps deployed via azd to App Service Linux (Node 20).
+# Each app is bound to its Bicep-provisioned site by `resourceName`.
+services:
+  parent-portal:
+    project: ./apps/parent-portal
+    language: js
+    host: appservice
+    resourceName: app-parent-portal-learneu-demo
+  learner-web:
+    project: ./apps/learner-web
+    language: js
+    host: appservice
+    resourceName: app-learner-web-learneu-demo
+  teacher-console:
+    project: ./apps/teacher-console
+    language: js
+    host: appservice
+    resourceName: app-teacher-console-learneu-demo
+
+hooks:
+  preprovision:
+    shell: pwsh
+    run: |
+      Write-Host "Pre-provision check: confirming EU region and synthetic-only data..." -ForegroundColor Cyan
+      $loc = $env:AZURE_LOCATION
+      if ($loc -and $loc -notin @('westeurope','northeurope','francecentral','germanywestcentral','polandcentral','swedencentral')) {
+          throw "AZURE_LOCATION '$loc' is not in the EU allowlist. Aborting."
+      }
+      Write-Host "OK." -ForegroundColor Green
