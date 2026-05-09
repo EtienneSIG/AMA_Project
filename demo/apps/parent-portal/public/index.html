@@ -106,6 +106,7 @@
   .explcol .reply { flex: 1 0 auto; }
   .reply .mermaid { background: #fff; border: 1px dashed var(--line); border-radius: 8px; padding: .65rem; text-align: center; margin: .65rem 0; overflow-x: auto; }
   .reply .mermaid svg { max-width: 100%; height: auto; }
+  .reply > svg, .reply p > svg, .reply svg:not(.mermaid svg) { display: block; max-width: 360px; width: 100%; height: auto; margin: .65rem auto; background: #fff; border: 1px dashed var(--line); border-radius: 8px; padding: .5rem; font-family: sans-serif; }
   .askcol .kbd { font-family: 'JetBrains Mono', ui-monospace, monospace; background: #EEF2F7; border: 1px solid var(--line); padding: .04rem .35rem; border-radius: 4px; font-size: .76rem; color: var(--navy); }
   /* --- Avatar + profile modal --- */
   .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 700; font-family: 'Poppins',sans-serif; font-size: .9rem; border: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: transform .12s, box-shadow .12s; }
@@ -357,7 +358,17 @@ async function chat() {
         wrap.textContent = codeEl.textContent;
         codeEl.parentElement.replaceWith(wrap);
       });
-      if (window.mermaid) { try { await mermaid.run({ querySelector: '.mermaid' }); } catch (e) { console.warn('mermaid:', e); } }
+      if (window.mermaid) {
+        for (const node of out.querySelectorAll('.mermaid')) {
+          const src = node.textContent;
+          try {
+            const { svg } = await mermaid.render(node.id + '_svg', src);
+            node.innerHTML = svg;
+          } catch (e) {
+            node.innerHTML = '<div style="font-size:.8rem;color:#a31616;margin-bottom:.4rem;">Diagram could not render (mermaid syntax error). Showing source:</div><pre style="background:#f5f7fa;color:#0f172a;padding:.6rem;border-radius:6px;overflow-x:auto;font-size:.78rem;">' + src.replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])) + '</pre>';
+          }
+        }
+      }
     } else { out.textContent = data.answer; }
     if (data.usage) meta.textContent = `${data.usage.total_tokens} tokens · ${data.model || ''}`;
   } catch (err) { out.textContent = String(err); }

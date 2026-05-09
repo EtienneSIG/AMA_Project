@@ -177,4 +177,14 @@ function gateMiddleware(allowedRoles) {
   };
 }
 
-module.exports = { mountAuth, gateMiddleware, publicProfile };
+module.exports = { mountAuth, gateMiddleware, publicProfile, getStats };
+
+function getStats() {
+  let sheetCount = 0;
+  const users = [];
+  for (const u of userMap.values()) {
+    users.push({ email: u.email, role: u.role, language: u.language || 'en', sheets: (u.sheets || []).length });
+    sheetCount += (u.sheets || []).length;
+  }
+  return { users, sheetCount, total: userMap.size };
+}

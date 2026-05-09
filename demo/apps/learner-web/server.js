@@ -21,13 +21,15 @@ const DEP  = process.env.AOAI_DEPLOYMENT_NAME || 'gpt-5.4-nano';
 auth.mountAuth(app, { allowedRoles: ALLOWED });
 
 app.get('/api/health', (_req, res) => {
+  const stats = (typeof auth.getStats === 'function') ? auth.getStats() : { users: [], sheetCount: 0, total: 0 };
   res.json({
     status: 'ok',
     role: APP_ROLE,
     apimConfigured: Boolean(APIM),
     keyConfigured: Boolean(KEY) && !KEY.startsWith('@Microsoft.KeyVault'),
     deployment: DEP,
-    region: process.env.REGION_NAME || 'westeurope'
+    region: process.env.REGION_NAME || 'westeurope',
+    stats
   });
 });
 
@@ -35,7 +37,23 @@ app.use(auth.gateMiddleware(ALLOWED));
 app.use(express.static(path.join(__dirname, 'public')));
 
 function buildSystemPrompt(u) {
-  const base = `You are LearnEU, an EU-compliant assistant deployed in West Europe. Respond in ${u.language || 'en'} unless the user writes in another language. Use concise markdown. If a math/process/structure diagram would clarify, include a fenced \`\`\`mermaid block (flowchart TD or graph LR — keep nodes to ASCII so it renders).`;
+  const base = `You are LearnEU, an EU-compliant assistant deployed in West Europe. Respond in ${u.language || 'en'} unless the user writes in another language. Use concise markdown.
+
+Visual aids — pick the RIGHT tool:
+- For PROCESS / FLOW / RELATIONSHIP / TREE diagrams use a fenced \`\`\`mermaid block. STRICT RULES:
+  * First line MUST be exactly \`flowchart TD\` (or \`flowchart LR\`).
+  * Every node label MUST be ASCII-only and DOUBLE-QUOTED, e.g. \`A["Checkpoint A - plan use"]\`. NO umlauts (ä,ö,ü,ß), NO smart quotes (« » „ "), NO parentheses, brackets or commas inside labels — replace them with \` - \`.
+  * Edges only as \`A --> B\` or \`A -->|"label"| B\`. No styling, no classDef, no subgraphs unless trivially short.
+  * Keep diagrams under 12 nodes. If you cannot satisfy these rules, output a numbered markdown list instead of a diagram.
+- For GEOMETRIC SHAPES (triangles, squares, circles, angles, graphs, axes, vectors, fractions of a pie, etc.) DO NOT use mermaid. Emit ONE inline \`<svg>\` with EXACTLY these rules:
+  * Root: \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" font-family="sans-serif" font-size="12">\`.
+  * Use \`<polygon>\`/\`<polyline>\`/\`<line>\`/\`<circle>\`/\`<path>\` with \`stroke="#0a2540" stroke-width="1.5" fill="#eef2f7"\` (or \`fill="none"\` for lines).
+  * Labels: \`<text font-size="12" fill="#0a2540" text-anchor="middle">\` placed 6–10 px outside vertices/edges; never overlap shape strokes.
+  * Do NOT put a title inside the \`<svg>\`; put any heading in the surrounding markdown instead.
+  * Stay inside the 320×240 viewBox; leave 20 px padding for labels.
+  * No \`<script>\`, no \`<foreignObject>\`, no external href, no CSS \`@import\`, no \`width="100%"\`.
+- For tables, use markdown tables.
+- Never mix mermaid and svg in the same diagram. At most one diagram per answer unless strictly needed.`;
   switch (u.role) {
     case 'student':
       return `${base}\nYou tutor ${u.firstName}, age ${u.age}. Adapt vocabulary to that age. Encourage, give one worked example, then a tiny check-question. Never request personal information.`;

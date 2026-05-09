@@ -132,5 +132,59 @@ app.get('/api/admin/whoami', (req, res) => {
   });
 });
 
+// --- Users panel: canonical seed users from local auth lib ---
+app.get('/api/admin/users', (_req, res) => {
+  if (typeof auth.getStats !== 'function') return res.json({ users: [], note: 'auth.getStats not available' });
+  const local = auth.getStats();
+  res.json({
+    source: 'admin-local-auth',
+    note: 'Seed user catalog (in-memory, identical across all 4 apps). Sheet counts here are admin-only and always 0.',
+    users: local.users
+  });
+});
+
+// --- Items panel: aggregate per-site sheet counts via /api/health ---
+app.get('/api/admin/items', async (_req, res) => {
+  const sites = await Promise.all(MANAGED_SITES.map(async name => {
+    try {
+      const r = await fetch(`https://${name}.azurewebsites.net/api/health`, { signal: AbortSignal.timeout(8000) });
+      const j = await r.json();
+      return {
+        name,
+        role: j.role,
+        sheetCount: j.stats?.sheetCount ?? 0,
+        users: j.stats?.users || [],
+        userCount: j.stats?.total ?? 0
+      };
+    } catch (e) {
+      return { name, error: String(e.message || e) };
+    }
+  }));
+  const totalSheets = sites.reduce((acc, s) => acc + (s.sheetCount || 0), 0);
+  res.json({ sites, totalSheets });
+});
+
+// --- Logs panel: ARM deployments per managed site ---
+app.get('/api/admin/deployments/:name', async (req, res) => {
+  const name = req.params.name;
+  if (!MANAGED_SITES.includes(name)) return res.status(400).json({ error: 'site not managed' });
+  try {
+    const data = await arm('GET', `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.Web/sites/${name}/deployments?api-version=2023-12-01`);
+    const items = (data.value || []).slice(0, 8).map(d => ({
+      id: d.id,
+      status: d.properties?.status,
+      statusText: d.properties?.status_text,
+      author: d.properties?.author,
+      message: d.properties?.message,
+      startTime: d.properties?.start_time,
+      endTime: d.properties?.end_time,
+      active: d.properties?.active
+    }));
+    res.json({ name, count: items.length, deployments: items });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: 'deployments fetch failed', detail: e.body?.error?.message || e.message });
+  }
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));

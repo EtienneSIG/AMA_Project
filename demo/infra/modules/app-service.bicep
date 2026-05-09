@@ -43,6 +43,13 @@ var appNames = [
   'admin'
 ]
 var adminIndex = 3
+// Map app name -> auth role (must match SEED_USERS roles in apps/_shared/auth.js).
+var appRoles = {
+  'parent-portal':   'parent'
+  'learner-web':     'student'
+  'teacher-console': 'teacher'
+  'admin':           'admin'
+}
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = {
   name: keyVaultName
@@ -73,7 +80,7 @@ resource apps 'Microsoft.Web/sites@2023-12-01' = [for (n, i) in appNames: {
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
         { name: 'APIM_GATEWAY_URL', value: apimGatewayUrl }
         { name: 'AOAI_DEPLOYMENT_NAME', value: aoaiDeploymentName }
-        { name: 'APP_ROLE', value: n }
+        { name: 'APP_ROLE', value: appRoles[n] }
         {
           name: 'APIM_SUBSCRIPTION_KEY'
           value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${subscriptionKeySecretName})'

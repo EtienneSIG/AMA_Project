@@ -93,61 +93,55 @@ All Azure OpenAI / Foundry deployments use the **EU Data Boundary**; verify per-
 
 ---
 
-## Diagram skeleton (Mermaid)
+## Diagram skeleton (Mermaid — `architecture-beta`)
+
+> Uses Mermaid's [`architecture`](https://mermaid.js.org/syntax/architecture.html) diagram type (Mermaid ≥ 10.9). Icons use the built-in set (`cloud`, `database`, `disk`, `internet`, `server`); swap for `logos:azure-*` once an Iconify pack is registered.
 
 ```mermaid
-flowchart LR
-  subgraph SRC["📥 Sources"]
-    SIS["School Info Systems"]
-    AUTH["Authoring (Markdown + LRMI)"]
-    CURR["National Curricula"]
-    DEV["Learner Devices"]
-  end
+architecture-beta
+  group sources(internet)[Sources]
+  service sis(server)[School Info Systems] in sources
+  service auth(disk)[Authoring Markdown LRMI] in sources
+  service curr(disk)[National Curricula] in sources
+  service dev(internet)[Learner Devices] in sources
 
-  subgraph ING["🔌 Ingestion"]
-    APIM["Azure API Management"]
-    EH["Event Hubs"]
-    ADF["Azure Data Factory"]
-  end
+  group platform(cloud)[EU Azure Platform]
+  service apim(cloud)[API Management] in platform
+  service eh(cloud)[Event Hubs] in platform
+  service onelake(database)[OneLake Bronze Silver Gold] in platform
+  service ais(server)[AI Search] in platform
+  service aoai(server)[Azure OpenAI Foundry] in platform
+  service cs(server)[Content Safety] in platform
+  service aml(server)[Azure ML Federated DP] in platform
+  service hsm(disk)[Key Vault Managed HSM] in platform
 
-  subgraph STO["🗄️ Storage (EU regions)"]
-    OL["OneLake (Fabric) — Bronze/Silver/Gold"]
-    FS["Azure ML Feature Store"]
-    LOGS["Immutable Audit Storage"]
-    HSM["Key Vault Managed HSM"]
-  end
+  group serving(cloud)[Serving]
+  service edge(internet)[On device ONNX] in serving
+  service tc(internet)[Teacher Console] in serving
+  service pp(internet)[Parent Portal] in serving
+  service pbi(cloud)[Power BI Embedded] in serving
 
-  subgraph PRC["⚙️ Processing"]
-    AML["Azure ML — Federated + DP"]
-    AOAI["Azure OpenAI / Foundry"]
-    AIS["Azure AI Search"]
-    CS["Content Safety"]
-    NB["Fabric Notebooks/Spark"]
-  end
+  group governance(cloud)[Governance and Security]
+  service pur(cloud)[Purview] in governance
+  service eid(cloud)[Entra ID B2C] in governance
+  service def(cloud)[Defender for Cloud] in governance
 
-  subgraph SRV["📊 Serving"]
-    EDGE["On-device ONNX (Learner Model)"]
-    ENDP["AML Online Endpoints (no retention)"]
-    PBI["Power BI (Fabric embedded)"]
-    TC["Teacher Console"]
-    PP["Parent Portal"]
-  end
+  sis:B --> T:apim
+  dev:B --> T:eh
+  auth:B --> T:onelake
+  curr:B --> T:ais
 
-  subgraph GOV["🛡️ Governance & Security (cross-cutting)"]
-    PUR["Microsoft Purview"]
-    EID["Entra ID + AAD B2C"]
-    DEF["Defender for Cloud"]
-    POL["Azure Policy + Blueprints"]
-  end
+  apim:B --> T:onelake
+  eh:B --> T:onelake
+  onelake:B --> T:aml
+  onelake:R --> L:ais
+  ais:B --> T:aoai
+  aoai:R --> L:cs
 
-  SIS --> APIM --> OL
-  DEV --> EH --> OL
-  AUTH --> NB --> AIS
-  CURR --> AIS
-  OL --> AML --> EDGE
-  AML --> ENDP --> TC
-  AIS --> AOAI --> CS --> OL
-  OL --> NB --> PBI --> TC
-  PP -. consent/rights .-> PUR
-  GOV -. governs .- ING & STO & PRC & SRV
+  aml:B --> T:edge
+  aml:B --> T:tc
+  onelake:B --> T:pbi
+  pbi:R --> L:tc
+  pp:T --> B:pur
+  hsm:T --> B:eid
 ```

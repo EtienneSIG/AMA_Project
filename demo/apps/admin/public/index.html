@@ -26,12 +26,12 @@
   .nav-icon { background:transparent; border:1.5px solid var(--line); color:var(--navy); border-radius:999px; padding:.35rem .85rem; font-weight:600; cursor:pointer; font-size:.82rem; }
   .nav-icon:hover { border-color:var(--navy); background:#fff; }
   .avatar { width:38px; height:38px; border-radius:50%; background:var(--orange); color:#fff; font-weight:700; font-family:'Poppins',sans-serif; font-size:.9rem; border:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
-  .hero { background: linear-gradient(135deg,var(--navy) 0%, var(--navy-2) 100%); color:#fff; padding: 2.4rem 1.5rem 3rem; }
+  .hero { background: linear-gradient(135deg,var(--navy) 0%, var(--navy-2) 100%); color:#fff; padding: 2.4rem 1.5rem 4.5rem; }
   .hero .wrap { max-width:1200px; margin:0 auto; }
   .hero h1 { color:#fff; }
   .hero p { max-width:740px; opacity:.85; font-size:1rem; margin:.5rem 0 0; }
   .hero .pill { display:inline-block; background:rgba(242,99,52,0.22); color:#FFB89B; padding:.3rem .85rem; border-radius:999px; font-size:.78rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:.7rem; }
-  .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; margin-top: -2rem; }
+  .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; margin-top: 0; }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.4rem 1.5rem; box-shadow:0 4px 24px rgba(15,27,45,0.06); display:flex; flex-direction:column; gap:.5rem; }
   .card h3 { margin:0; font-size:1.05rem; }
@@ -55,6 +55,17 @@
   .toast.show { opacity:1; }
   .toast.err { background:#E53E3E; }
   .toast.ok  { background:#1FB779; }
+  table.adm { width:100%; border-collapse:collapse; font-size:.85rem; }
+  table.adm th, table.adm td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid var(--line); }
+  table.adm th { color:var(--navy); font-weight:600; background:#fafbfd; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; }
+  table.adm tr:hover td { background:#fafbfd; }
+  .badge { display:inline-block; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; background:#eef2f7; color:var(--navy); }
+  .badge.admin { background:#fde7f1; color:#a4135f; }
+  .badge.teacher { background:#fff7e6; color:#a16207; }
+  .badge.parent { background:#e6f0ff; color:#0a4ca0; }
+  .badge.student { background:#e7f7ff; color:#0369a1; }
+  .badge.ok { background:#e6f7ee; color:#1f7a3a; }
+  .badge.err { background:#fde7e7; color:#a31616; }
 </style>
 </head>
 <body>
@@ -82,6 +93,34 @@
     <div class="card"><em>Loading…</em></div>
     <div class="card"><em>Loading…</em></div>
     <div class="card"><em>Loading…</em></div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Users <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/users</span></h2>
+      <button class="btn secondary" onclick="loadUsers()">Reload</button>
+    </div>
+    <div id="users-table">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Items per portal <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/items · live aggregate from sibling /api/health</span></h2>
+      <button class="btn secondary" onclick="loadItems()">Reload</button>
+    </div>
+    <div id="items-table">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Recent deployments <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/deployments/:name · ARM</span></h2>
+      <select id="dep-site" onchange="loadDeployments()" style="padding:.45rem .7rem;border-radius:8px;border:1px solid var(--line);font-family:inherit;">
+        <option value="app-learner-web-learneu-demo">Learner Web</option>
+        <option value="app-parent-portal-learneu-demo">Parent Portal</option>
+        <option value="app-teacher-console-learneu-demo">Teacher Console</option>
+      </select>
+    </div>
+    <div id="dep-table">Loading…</div>
   </div>
 
   <div class="panel">
@@ -174,8 +213,65 @@ async function restartSite(btn) {
   }
 }
 
-async function refreshAll() { toast('Refreshing…'); loadCards(); }
+async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); }
 async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
+
+async function loadUsers() {
+  const el = document.getElementById('users-table');
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/users', { cache:'no-store' })).json();
+    const rows = (j.users || []).map(u => `
+      <tr>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span class="badge ${escapeHtml(u.role)}">${escapeHtml(u.role)}</span></td>
+        <td>${escapeHtml(u.language || '-')}</td>
+        <td style="text-align:right;color:var(--grey);">${u.sheets ?? 0}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>Email</th><th>Role</th><th>Language</th><th style="text-align:right;">Sheets (admin local)</th></tr></thead><tbody>${rows}</tbody></table>
+      <p style="font-size:.78rem;color:var(--grey);margin:.6rem 0 0;">${escapeHtml(j.note || '')}</p>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadItems() {
+  const el = document.getElementById('items-table');
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/items', { cache:'no-store' })).json();
+    const rows = (j.sites || []).map(s => {
+      if (s.error) return `<tr><td>${escapeHtml(s.name)}</td><td colspan="3"><span class="badge err">${escapeHtml(s.error)}</span></td></tr>`;
+      const usersInline = (s.users || []).map(u => `<span class="badge ${escapeHtml(u.role)}" title="${escapeHtml(u.email)}">${escapeHtml(u.role)}·${u.sheets||0}</span>`).join(' ');
+      return `<tr>
+        <td>${escapeHtml(LABELS[s.name] || s.name)}</td>
+        <td><span class="badge ${escapeHtml(s.role||'')}">${escapeHtml(s.role||'-')}</span></td>
+        <td style="text-align:right;font-weight:600;color:var(--navy);">${s.sheetCount}</td>
+        <td>${usersInline}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>Portal</th><th>Role</th><th style="text-align:right;">Sheets</th><th>Per-user (role · count)</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><th colspan="2" style="text-align:right;">Total study sheets</th><th style="text-align:right;">${j.totalSheets}</th><th></th></tr></tfoot></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadDeployments() {
+  const el = document.getElementById('dep-table');
+  const name = document.getElementById('dep-site').value;
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/deployments/'+encodeURIComponent(name), { cache:'no-store' })).json();
+    if (j.error) { el.innerHTML = '<span class="badge err">'+escapeHtml(j.detail||j.error)+'</span>'; return; }
+    if (!j.deployments || !j.deployments.length) { el.innerHTML = '<em>No deployments returned.</em>'; return; }
+    const rows = j.deployments.map(d => `
+      <tr>
+        <td>${d.endTime ? new Date(d.endTime).toLocaleString() : '-'}</td>
+        <td>${d.active ? '<span class="badge ok">active</span>' : ''}</td>
+        <td>${escapeHtml(d.author||'-')}</td>
+        <td>${escapeHtml(d.statusText||String(d.status))}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--grey);">${escapeHtml((d.message||'').slice(0,140))}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>End time</th><th>Active</th><th>Author</th><th>Status</th><th>Message</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
 
 (async () => {
   try {
@@ -183,7 +279,10 @@ async function logout() { await fetch('/api/auth/logout', { method:'POST' }); lo
     if (!me.user) { location.href = '/login.html'; return; }
   } catch (e) { location.href = '/login.html'; return; }
   loadCards();
-  setInterval(loadCards, 30000);
+  loadUsers();
+  loadItems();
+  loadDeployments();
+  setInterval(() => { loadCards(); loadItems(); }, 30000);
 })();
 </script>
 </body>
