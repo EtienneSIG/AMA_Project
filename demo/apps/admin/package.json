@@ -1,0 +1,13 @@
+{
+  "name": "learneu-admin",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": "22.x" },
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.21.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "@azure/identity": "^4.4.1"
+  }
+}

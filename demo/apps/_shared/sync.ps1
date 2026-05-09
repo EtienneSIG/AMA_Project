@@ -2,7 +2,7 @@
 # Usage: pwsh ./sync.ps1
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
-$apps = 'learner-web','parent-portal','teacher-console'
+$apps = 'learner-web','parent-portal','teacher-console','admin'
 foreach ($a in $apps) {
     $appDir = Join-Path (Split-Path $here -Parent) $a
     if (-not (Test-Path $appDir)) { Write-Host "skip $a (not found)" -ForegroundColor Yellow; continue }

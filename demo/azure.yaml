@@ -27,6 +27,11 @@ services:
     language: js
     host: appservice
     resourceName: app-teacher-console-learneu-demo
+  admin:
+    project: ./apps/admin
+    language: js
+    host: appservice
+    resourceName: app-admin-learneu-demo
 
 hooks:
   preprovision:

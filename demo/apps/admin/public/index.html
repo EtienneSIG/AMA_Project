@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — Admin Console · EdTech Group</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --navy:#0F1B2D; --navy-2:#1a3658; --orange:#F26334; --orange-dark:#D44E22; --teal:#2BB4B8; --grey:#3F4A5A; --line:#E3E7EE; --bg:#F5F7FA; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin:0; min-height:100vh; display:flex; flex-direction:column; font-family:'Inter',system-ui,sans-serif; color:var(--grey); background:var(--bg); line-height:1.55; }
+  main { flex: 1 0 auto; max-width: 1200px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  h1, h2, h3 { font-family:'Poppins',sans-serif; color:var(--navy); margin:0 0 .5rem; line-height:1.2; }
+  h1 { font-size:2.1rem; font-weight:700; }
+  h2 { font-size:1.25rem; font-weight:600; }
+  a { color:var(--orange); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  nav.top { background:#fff; border-bottom:1px solid var(--line); }
+  nav.top .wrap { max-width:1200px; margin:0 auto; padding:.9rem 1.5rem; display:flex; align-items:center; gap:1.25rem; }
+  nav.top img { height:42px; }
+  nav.top .links { margin-left:auto; display:flex; gap:1rem; align-items:center; font-weight:500; font-size:.9rem; }
+  nav.top .links a { color:var(--navy); }
+  nav.top .links a.active { color:var(--orange); }
+  .nav-icon { background:transparent; border:1.5px solid var(--line); color:var(--navy); border-radius:999px; padding:.35rem .85rem; font-weight:600; cursor:pointer; font-size:.82rem; }
+  .nav-icon:hover { border-color:var(--navy); background:#fff; }
+  .avatar { width:38px; height:38px; border-radius:50%; background:var(--orange); color:#fff; font-weight:700; font-family:'Poppins',sans-serif; font-size:.9rem; border:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+  .hero { background: linear-gradient(135deg,var(--navy) 0%, var(--navy-2) 100%); color:#fff; padding: 2.4rem 1.5rem 3rem; }
+  .hero .wrap { max-width:1200px; margin:0 auto; }
+  .hero h1 { color:#fff; }
+  .hero p { max-width:740px; opacity:.85; font-size:1rem; margin:.5rem 0 0; }
+  .hero .pill { display:inline-block; background:rgba(242,99,52,0.22); color:#FFB89B; padding:.3rem .85rem; border-radius:999px; font-size:.78rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:.7rem; }
+  .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; margin-top: -2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.4rem 1.5rem; box-shadow:0 4px 24px rgba(15,27,45,0.06); display:flex; flex-direction:column; gap:.5rem; }
+  .card h3 { margin:0; font-size:1.05rem; }
+  .card .sub { font-size:.78rem; color:var(--grey); opacity:.75; word-break:break-all; }
+  .stat-row { display:flex; justify-content:space-between; font-size:.85rem; padding:.3rem 0; border-bottom:1px dashed var(--line); }
+  .stat-row:last-of-type { border-bottom:0; }
+  .stat-row span:last-child { color:var(--navy); font-weight:600; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#B0B7C3; margin-right:.4rem; }
+  .dot.ok { background:#1FB779; } .dot.warn { background:#F2A03A; } .dot.err { background:#E53E3E; }
+  .actions { display:flex; gap:.5rem; margin-top:.6rem; flex-wrap:wrap; }
+  .btn { background:var(--orange); color:#fff; border:0; padding:.5rem 1rem; border-radius:999px; cursor:pointer; font-weight:600; font-size:.85rem; font-family:inherit; }
+  .btn:hover { background:var(--orange-dark); }
+  .btn.secondary { background:#fff; color:var(--navy); border:1.5px solid var(--navy); }
+  .btn.secondary:hover { background:var(--navy); color:#fff; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.5rem 1.7rem; box-shadow:0 4px 24px rgba(15,27,45,0.06); margin-top:1.5rem; }
+  pre { background:#0F1B2D; color:#E3E7EE; padding:1rem; border-radius:8px; overflow-x:auto; font-size:.78rem; font-family:'JetBrains Mono',ui-monospace,monospace; }
+  footer { background:var(--navy); color:rgba(255,255,255,0.7); padding:2rem 1.5rem; text-align:center; font-size:.85rem; }
+  footer a { color:var(--teal); }
+  .toast { position:fixed; bottom:1.2rem; right:1.2rem; background:var(--navy); color:#fff; padding:.7rem 1.1rem; border-radius:8px; font-size:.85rem; box-shadow:0 8px 24px rgba(0,0,0,0.25); opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .toast.err { background:#E53E3E; }
+  .toast.ok  { background:#1FB779; }
+</style>
+</head>
+<body>
+<nav class="top">
+  <div class="wrap">
+    <img src="/logo.svg" alt="EdTech Group" onerror="this.style.display='none'" />
+    <span style="font-family:'Poppins',sans-serif;font-weight:700;color:var(--navy);font-size:1.05rem">LearnEU · Admin</span>
+    <div class="links">
+      <a href="https://app-learner-web-learneu-demo.azurewebsites.net" target="_blank">Learner</a>
+      <a href="https://app-parent-portal-learneu-demo.azurewebsites.net" target="_blank">Parents</a>
+      <a href="https://app-teacher-console-learneu-demo.azurewebsites.net" target="_blank">Teachers</a>
+      <button class="avatar" id="avatarBtn" onclick="logout()" title="Sign out">··</button>
+    </div>
+  </div>
+</nav>
+<section class="hero">
+  <div class="wrap">
+    <span class="pill">For Admins · Operations</span>
+    <h1>LearnEU Admin Console</h1>
+    <p>Live state of the three role-gated portals. Restart on demand. All actions performed via the admin app's managed identity (Website Contributor on each site, scoped to <code style="background:rgba(255,255,255,.12);padding:.1rem .35rem;border-radius:4px;color:#fff">rg-learneu-demo</code>).</p>
+  </div>
+</section>
+<main>
+  <div class="grid" id="cards">
+    <div class="card"><em>Loading…</em></div>
+    <div class="card"><em>Loading…</em></div>
+    <div class="card"><em>Loading…</em></div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
+      <div>
+        <button class="btn secondary" onclick="refreshAll()">Refresh all</button>
+      </div>
+    </div>
+    <pre id="raw">…</pre>
+  </div>
+</main>
+<footer>
+  © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+const SITES = ['app-learner-web-learneu-demo','app-parent-portal-learneu-demo','app-teacher-console-learneu-demo'];
+const LABELS = {
+  'app-learner-web-learneu-demo':    'Learner Web (students)',
+  'app-parent-portal-learneu-demo':  'Parent Portal (families)',
+  'app-teacher-console-learneu-demo':'Teacher Console (educators)'
+};
+
+function toast(msg, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + (kind||'');
+  setTimeout(() => t.className = 'toast', 2400);
+}
+
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+async function loadCards() {
+  const cards = document.getElementById('cards');
+  const raw = document.getElementById('raw');
+  try {
+    const [sitesR, healthR] = await Promise.all([
+      fetch('/api/admin/sites', { cache:'no-store' }).then(r=>r.json()),
+      fetch('/api/admin/health', { cache:'no-store' }).then(r=>r.json())
+    ]);
+    raw.textContent = JSON.stringify(sitesR, null, 2);
+    const byName = {};
+    for (const s of (sitesR.sites||[])) byName[s.name] = s;
+    const checkByName = {};
+    for (const c of (healthR.checks||[])) checkByName[c.name] = c;
+    cards.innerHTML = '';
+    for (const name of SITES) {
+      const s = byName[name] || {};
+      const h = checkByName[name] || {};
+      const armOk = !s.error && (s.state||'').toLowerCase() === 'running';
+      const httpOk = h.status === 200 && h.payload && h.payload.status === 'ok';
+      const dotClass = armOk && httpOk ? 'ok' : (armOk || httpOk ? 'warn' : 'err');
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `
+        <h3><span class="dot ${dotClass}"></span>${escapeHtml(LABELS[name] || name)}</h3>
+        <div class="sub">${escapeHtml(s.hostname || name + '.azurewebsites.net')}</div>
+        <div class="stat-row"><span>ARM state</span><span>${escapeHtml(s.state || (s.error ? 'ERR' : '—'))}</span></div>
+        <div class="stat-row"><span>HTTP /api/health</span><span>${h.status || 'n/a'}${h.ms ? ' · ' + h.ms + ' ms' : ''}</span></div>
+        <div class="stat-row"><span>Role configured</span><span>${escapeHtml(h.payload?.role || '—')}</span></div>
+        <div class="stat-row"><span>KV key</span><span>${h.payload?.keyConfigured ? 'OK' : '—'}</span></div>
+        <div class="stat-row"><span>Last modified</span><span>${s.lastModifiedTimeUtc ? new Date(s.lastModifiedTimeUtc).toLocaleString() : '—'}</span></div>
+        <div class="actions">
+          <a class="btn secondary" href="https://${escapeHtml(s.hostname || name + '.azurewebsites.net')}" target="_blank">Open</a>
+          <button class="btn" data-name="${escapeHtml(name)}" onclick="restartSite(this)">Restart</button>
+        </div>`;
+      cards.appendChild(div);
+    }
+  } catch (e) {
+    raw.textContent = String(e);
+    toast('Load failed: ' + e, 'err');
+  }
+}
+
+async function restartSite(btn) {
+  const name = btn.getAttribute('data-name');
+  if (!confirm('Restart ' + name + '?')) return;
+  btn.disabled = true; btn.textContent = 'Restarting…';
+  try {
+    const r = await fetch('/api/admin/restart/' + encodeURIComponent(name), { method:'POST' });
+    const j = await r.json();
+    if (!r.ok) { toast(j.detail || 'restart failed', 'err'); btn.disabled = false; btn.textContent = 'Restart'; return; }
+    toast('Restart requested for ' + name, 'ok');
+    setTimeout(loadCards, 6000);
+    btn.textContent = 'Requested ✓';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Restart'; }, 8000);
+  } catch (e) {
+    toast('Error: ' + e, 'err');
+    btn.disabled = false; btn.textContent = 'Restart';
+  }
+}
+
+async function refreshAll() { toast('Refreshing…'); loadCards(); }
+async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
+
+(async () => {
+  try {
+    const me = await (await fetch('/api/auth/me', { cache:'no-store' })).json();
+    if (!me.user) { location.href = '/login.html'; return; }
+  } catch (e) { location.href = '/login.html'; return; }
+  loadCards();
+  setInterval(loadCards, 30000);
+})();
+</script>
+</body>
+</html>

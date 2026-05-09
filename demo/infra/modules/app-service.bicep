@@ -40,14 +40,16 @@ var appNames = [
   'parent-portal'
   'learner-web'
   'teacher-console'
+  'admin'
 ]
+var adminIndex = 3
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = {
   name: keyVaultName
 }
 
 @batchSize(1)
-resource apps 'Microsoft.Web/sites@2023-12-01' = [for n in appNames: {
+resource apps 'Microsoft.Web/sites@2023-12-01' = [for (n, i) in appNames: {
   name: 'app-${n}-${envName}'
   location: location
   tags: tags
@@ -65,7 +67,7 @@ resource apps 'Microsoft.Web/sites@2023-12-01' = [for n in appNames: {
       minTlsVersion: '1.2'
       http20Enabled: true
       vnetRouteAllEnabled: true
-      appSettings: [
+      appSettings: concat([
         { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
         { name: 'ENABLE_ORYX_BUILD', value: 'true' }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
@@ -76,8 +78,25 @@ resource apps 'Microsoft.Web/sites@2023-12-01' = [for n in appNames: {
           name: 'APIM_SUBSCRIPTION_KEY'
           value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${subscriptionKeySecretName})'
         }
-      ]
+      ], n == 'admin' ? [
+        { name: 'AZURE_SUBSCRIPTION_ID', value: subscription().subscriptionId }
+        { name: 'AZURE_RESOURCE_GROUP', value: resourceGroup().name }
+        { name: 'ENV_NAME', value: envName }
+      ] : [])
     }
+  }
+}]
+
+// Grant the admin app's MI Website Contributor on each of the 3 user-facing sites.
+// Built-in role: de139f84-1756-47ae-9be6-808fbbe84772.
+@batchSize(1)
+resource adminWebsiteContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, 3): {
+  scope: apps[i]
+  name: guid(apps[i].id, apps[adminIndex].id, 'website-contributor')
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
+    principalId: apps[adminIndex].identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }]
 

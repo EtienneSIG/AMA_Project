@@ -68,7 +68,7 @@ resource kvZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
 
 resource kvZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: kvZone
-  name: 'vnet-link'
+  name: 'link-vnet-kv'
   location: 'global'
   tags: tags
   properties: {
