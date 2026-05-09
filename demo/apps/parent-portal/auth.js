@@ -68,6 +68,33 @@ function mountAuth(app, options = {}) {
 
   app.get('/api/auth/me', (req, res) => res.json({ user: publicProfile(req.user), allowedRoles }));
 
+  // PATCH /api/auth/me — update mutable profile fields (firstName, lastName, age, social, language).
+  // Demo-grade: writes only to in-memory userMap (persists until app restart).
+  app.patch('/api/auth/me', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'not authenticated' });
+    const allowed = ['firstName', 'lastName', 'age', 'social', 'language'];
+    const supportedLangs = new Set(['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']);
+    const patch = {};
+    for (const k of allowed) {
+      if (req.body && Object.prototype.hasOwnProperty.call(req.body, k)) {
+        let v = req.body[k];
+        if (k === 'age') {
+          v = parseInt(v, 10);
+          if (!Number.isFinite(v) || v < 4 || v > 120) return res.status(400).json({ error: 'age must be 4-120' });
+        } else {
+          v = String(v).trim().slice(0, 80);
+          if (k === 'language') {
+            v = v.toLowerCase();
+            if (!supportedLangs.has(v)) return res.status(400).json({ error: 'language must be one of: ' + [...supportedLangs].join(', ') });
+          }
+        }
+        patch[k] = v;
+      }
+    }
+    Object.assign(req.user, patch);
+    res.json({ user: publicProfile(req.user) });
+  });
+
   app.post('/api/auth/login', async (req, res) => {
     if (!ready) return res.status(503).json({ error: 'auth not ready, retry in 1s' });
     const { email, password } = req.body || {};
@@ -85,6 +112,51 @@ function mountAuth(app, options = {}) {
 
   app.post('/api/auth/logout', (_req, res) => {
     res.clearCookie(COOKIE);
+    res.json({ ok: true });
+  });
+
+  // --- Study sheets (in-memory, per-user, demo-grade) ---
+  // Each sheet: { id, title, prompt, answer (markdown), createdAt }
+  const MAX_SHEETS = 50;
+  function getSheets(u) { if (!u.sheets) u.sheets = []; return u.sheets; }
+
+  app.get('/api/sheets', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'not authenticated' });
+    const list = getSheets(req.user).map(s => ({ id: s.id, title: s.title, createdAt: s.createdAt }));
+    res.json({ sheets: list });
+  });
+
+  app.get('/api/sheets/:id', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'not authenticated' });
+    const s = getSheets(req.user).find(x => x.id === req.params.id);
+    if (!s) return res.status(404).json({ error: 'not found' });
+    res.json({ sheet: s });
+  });
+
+  app.post('/api/sheets', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'not authenticated' });
+    const { title, prompt, answer } = req.body || {};
+    const a = String(answer || '').trim();
+    if (!a) return res.status(400).json({ error: 'answer required' });
+    const sheets = getSheets(req.user);
+    if (sheets.length >= MAX_SHEETS) sheets.shift();
+    const sheet = {
+      id: crypto.randomBytes(8).toString('hex'),
+      title: String(title || '').trim().slice(0, 120) || (String(prompt || '').trim().slice(0, 80) || 'Untitled sheet'),
+      prompt: String(prompt || '').slice(0, 2000),
+      answer: a.slice(0, 20000),
+      createdAt: new Date().toISOString()
+    };
+    sheets.push(sheet);
+    res.json({ sheet });
+  });
+
+  app.delete('/api/sheets/:id', (req, res) => {
+    if (!req.user) return res.status(401).json({ error: 'not authenticated' });
+    const sheets = getSheets(req.user);
+    const i = sheets.findIndex(x => x.id === req.params.id);
+    if (i < 0) return res.status(404).json({ error: 'not found' });
+    sheets.splice(i, 1);
     res.json({ ok: true });
   });
 }

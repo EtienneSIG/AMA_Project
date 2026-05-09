@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
   :root {
     --navy: #0F1B2D;
@@ -91,6 +93,60 @@
   #greet.role-admin { background: rgba(242,99,52,0.15); color: var(--orange); }
   nav.top .cta#logoutBtn { background: var(--navy); }
   nav.top .cta#logoutBtn:hover { background: var(--orange-dark); }
+  /* --- Lot 2: 2-column layout + mermaid --- */
+  main.grid2 { display: grid; grid-template-columns: 0.8fr 2fr; gap: 1.25rem; align-items: start; max-width: 1320px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  @media (max-width: 900px) { main.grid2 { grid-template-columns: 1fr; } }
+  .askcol .sub { margin: 0 0 .5rem; opacity: .75; font-size: .85rem; }
+  .askcol textarea { min-height: 8.5rem; }
+  .askcol .suggested { margin-top: .9rem; font-size: .82rem; color: var(--grey); line-height: 1.7; }
+  .askcol .suggested strong { color: var(--navy); margin-right: .35rem; }
+  .askcol .suggested a { display: inline-block; margin: .15rem .25rem .15rem 0; padding: .2rem .65rem; background: #EEF2F7; border-radius: 999px; color: var(--navy); font-weight: 500; }
+  .askcol .suggested a:hover { background: var(--teal); color: #fff; text-decoration: none; }
+  .explcol { min-height: 36rem; display: flex; flex-direction: column; }
+  .explcol .reply { flex: 1 0 auto; }
+  .reply .mermaid { background: #fff; border: 1px dashed var(--line); border-radius: 8px; padding: .65rem; text-align: center; margin: .65rem 0; overflow-x: auto; }
+  .reply .mermaid svg { max-width: 100%; height: auto; }
+  .askcol .kbd { font-family: 'JetBrains Mono', ui-monospace, monospace; background: #EEF2F7; border: 1px solid var(--line); padding: .04rem .35rem; border-radius: 4px; font-size: .76rem; color: var(--navy); }
+  /* --- Avatar + profile modal --- */
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 700; font-family: 'Poppins',sans-serif; font-size: .9rem; border: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: transform .12s, box-shadow .12s; }
+  .avatar:hover { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(43,180,184,0.18); }
+  .avatar.role-admin   { background: var(--orange); }
+  .avatar.role-teacher { background: var(--navy); }
+  .avatar.role-parent  { background: #6B5BFF; }
+  .avatar.role-student { background: var(--teal); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(15,27,45,0.55); display: none; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; width: 460px; max-width: 100%; padding: 1.6rem 1.7rem; box-shadow: 0 18px 48px rgba(0,0,0,0.28); }
+  .modal h2 { margin: 0 0 .25rem; font-size: 1.2rem; }
+  .modal .role-line { color: var(--grey); font-size: .82rem; margin: 0 0 1rem; }
+  .modal .role-line code { background: #EEF2F7; padding: .05rem .35rem; border-radius: 4px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .modal label { display: block; font-size: .72rem; color: var(--grey); margin: .55rem 0 .2rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .modal input, .modal select { width: 100%; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; font-size: .92rem; box-sizing: border-box; color: var(--navy); background: #fff; }
+  .modal input:focus, .modal select:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .modal .grid2cols { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+  .modal .actions { display: flex; gap: .5rem; margin-top: 1.2rem; justify-content: flex-end; }
+  .modal .saved { color: #1FB779; font-size: .82rem; margin-right: auto; align-self: center; opacity: 0; transition: opacity .25s; }
+  .modal .saved.show { opacity: 1; }
+  .modal .btn.ghost { background: transparent; color: var(--navy); border: 1.5px solid var(--line); }
+  .modal .btn.ghost:hover { border-color: var(--navy); background: #fff; }
+  /* --- Study sheets --- */
+  .explhead { display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-bottom:.4rem; }
+  .explhead h2 { margin:0; }
+  .btn.btn-sm { padding:.35rem .8rem; font-size:.82rem; }
+  .btn.btn-sm:disabled { opacity:.45; cursor:not-allowed; }
+  .nav-icon { background:transparent; border:1.5px solid var(--line); color:var(--navy); border-radius:999px; padding:.35rem .85rem; font-weight:600; cursor:pointer; font-size:.82rem; }
+  .nav-icon:hover { border-color: var(--navy); background:#fff; }
+  .modal.lg { max-width: 720px; }
+  .sheets-list { display:flex; flex-direction:column; gap:.4rem; max-height:50vh; overflow-y:auto; margin:.6rem 0; }
+  .sheet-row { display:flex; align-items:center; gap:.6rem; padding:.55rem .75rem; border:1px solid var(--line); border-radius:8px; background:#F8FAFC; }
+  .sheet-row:hover { border-color: var(--teal); }
+  .sheet-row .sheet-title { flex:1; cursor:pointer; color:var(--navy); font-weight:600; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sheet-row .sheet-date { color:var(--grey); font-size:.75rem; }
+  .sheet-row .sheet-del { background:transparent; border:none; color:var(--grey); cursor:pointer; font-size:1.1rem; line-height:1; padding:.1rem .35rem; border-radius:4px; }
+  .sheet-row .sheet-del:hover { color:var(--orange); background:#FEEBE0; }
+  .sheet-empty { color:var(--grey); font-style:italic; padding:1rem; text-align:center; }
+  .saved-badge { display:inline-block; background:#E8F5EE; color:#1F8A5C; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; margin-left:.4rem; opacity:0; transition:opacity .25s; }
+  .saved-badge.show { opacity:1; }
 </style>
 </head>
 <body>
@@ -112,7 +168,8 @@
           <pre id="health">Loading…</pre>
         </div>
       </div>
-      <span id="greet" style="font-size:.85rem;color:var(--grey)">…</span><a href="#" class="cta" id="logoutBtn" onclick="logout(event)" style="display:none">Sign out</a>
+      <button class="nav-icon" id="sheetsBtn" onclick="openSheets()" title="Study sheets" aria-label="Study sheets">Sheets</button>
+      <button class="avatar" id="avatarBtn" onclick="openProfile()" title="Open profile" aria-label="Open profile">··</button>
     </div>
   </div>
 </nav>
@@ -123,21 +180,82 @@
     <p>EU-region inference, GDPR Art. 8 minimisation, and a child-safe interface — powered by ONNX Runtime Web and the EdTech Group LearnEU stack.</p>
   </div>
 </section>
-<main>
-  <div class="card">
-    <h2>Practice probe</h2>
-    <p>Ask a question and get an explanation tailored to a Year-7 learner.</p>
+<main class="grid2">
+  <div class="card askcol">
+    <h2>Ask</h2>
+    <p class="sub">Ask a question about your homework. Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to send.</p>
     <textarea id="prompt">Explain fractions to a 12-year-old in two short sentences.</textarea>
-    <div class="row"><button class="btn" onclick="chat()">Ask</button></div>
-    <div class="reply" id="reply">No response yet.</div>
+    <div class="row">
+      <button class="btn" onclick="chat()">Ask</button>
+      <button class="btn secondary" onclick="document.getElementById('prompt').value=''">Clear</button>
+    </div>
+    <div class="suggested">
+      <strong>Try:</strong>
+      <a href="#" onclick="setPrompt(event, this.textContent)">Explain fractions to a 12-year-old in two short sentences.</a>
+      <a href="#" onclick="setPrompt(event, this.textContent)">Why do we need a common denominator? Show me with a small diagram.</a>
+      <a href="#" onclick="setPrompt(event, this.textContent)">Draw a triangle with its three angles labelled and tell me their sum.</a>
+    </div>
+  </div>
+  <div class="card explcol">
+    <div class="explhead">
+      <h2>Explanation<span class="saved-badge" id="sheetSaved">Saved to sheets</span></h2>
+      <button class="btn btn-sm" id="saveSheetBtn" onclick="saveSheet()" disabled title="Save current explanation as a Study sheet">Save to Study sheet</button>
+    </div>
+    <div class="reply" id="reply">Ask a question to see the explanation here. Diagrams and worked examples will appear inline.</div>
     <div class="meta" id="meta"></div>
   </div>
 </main>
+<div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
+  <div class="modal lg" role="dialog" aria-label="Study sheets">
+    <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
+    <p class="sub">Click a sheet title to load it into the Explanation panel. Sheets are kept for the demo session.</p>
+    <div class="sheets-list" id="sheetsList"><div class="sheet-empty">Loading…</div></div>
+    <div class="actions">
+      <button class="btn ghost" onclick="closeSheets()">Close</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="profileModal" onclick="if(event.target.id==='profileModal')closeProfile()">
+  <div class="modal" role="dialog" aria-label="Edit profile">
+    <h2>Your profile</h2>
+    <p class="role-line">Signed in as <code id="pmEmail">—</code> · role <code id="pmRole">—</code></p>
+    <div class="grid2cols">
+      <div><label>First name</label><input id="pmFirst" maxlength="40" /></div>
+      <div><label>Last name</label><input id="pmLast" maxlength="40" /></div>
+    </div>
+    <div class="grid2cols">
+      <div><label>Age</label><input id="pmAge" type="number" min="4" max="120" /></div>
+      <div><label>Social handle</label><input id="pmSocial" maxlength="40" placeholder="@handle" /></div>
+    </div>
+    <label>Preferred language (drives assistant response)</label>
+    <select id="pmLang">
+      <option value="en">English (en)</option>
+      <option value="fr">Français (fr)</option>
+      <option value="de">Deutsch (de)</option>
+      <option value="nl">Nederlands (nl)</option>
+      <option value="es">Español (es)</option>
+      <option value="it">Italiano (it)</option>
+      <option value="pt">Português (pt)</option>
+    </select>
+    <div class="actions">
+      <span class="saved" id="pmSaved">Saved</span>
+      <button class="btn ghost" onclick="signOut(event)">Sign out</button>
+      <button class="btn ghost" onclick="closeProfile()">Close</button>
+      <button class="btn" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
 <footer>
   © 2026 EdTech Group · LearnEU EU-region demo · GDPR Art. 8 + EU AI Act Annex III §3 ·
   <a href="#">Privacy</a> · <a href="#">Cookies</a> · <a href="#">Terms</a>
 </footer>
 <script>
+let currentUser = null;
+let lastAnswer = '';
+let lastPrompt = '';
+function initials(u) { return ((u?.firstName?.[0] || '') + (u?.lastName?.[0] || '')).toUpperCase() || '··'; }
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
 async function refreshStatus() {
   const dot = document.getElementById('statusDot');
   const label = document.getElementById('statusLabel');
@@ -160,53 +278,162 @@ async function refreshStatus() {
     pre.textContent = String(e);
   }
 }
-function toggleStatus(e) {
-  if (e) e.stopPropagation();
-  document.getElementById('statusPanel').classList.toggle('open');
-}
+function toggleStatus(e) { if (e) e.stopPropagation(); document.getElementById('statusPanel').classList.toggle('open'); }
 document.addEventListener('click', (e) => {
   const w = document.querySelector('.status-wrap');
   if (w && !w.contains(e.target)) document.getElementById('statusPanel').classList.remove('open');
 });
-window.addEventListener('load', refreshStatus);
-async function chat() {
-  const out = document.getElementById('reply');
-  const meta = document.getElementById('meta');
-  out.textContent = 'Thinking…';
-  meta.textContent = '';
-  const r = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: document.getElementById('prompt').value })
-  });
-  const data = await r.json();
-  if (data.answer) {
-    if (window.marked && window.DOMPurify) {
-      marked.setOptions({ breaks: true, gfm: true });
-      out.innerHTML = DOMPurify.sanitize(marked.parse(data.answer));
-    } else {
-      out.textContent = data.answer;
-    }
-    if (data.usage) meta.textContent = `${data.usage.total_tokens} tokens`;
-  } else {
-    out.textContent = JSON.stringify(data, null, 2);
-  }
-}
 
-// --- session glue ---
+// --- Session + profile ---
 async function loadMe() {
   try {
     const r = await fetch('/api/auth/me', { cache:'no-store' });
     const d = await r.json();
     if (!d.user) { location.href = '/login.html'; return; }
-    const g = document.getElementById('greet');
-    g.textContent = `Hi, ${d.user.firstName} · ${d.user.role}`;
-    g.classList.add('role-' + d.user.role);
-    document.getElementById('logoutBtn').style.display = '';
+    currentUser = d.user;
+    const a = document.getElementById('avatarBtn');
+    a.textContent = initials(d.user);
+    a.classList.add('role-' + d.user.role);
+    a.title = `${d.user.firstName} ${d.user.lastName} — ${d.user.role} — lang ${d.user.language || 'en'}`;
   } catch (e) { /* ignore */ }
 }
-async function logout(e) { e?.preventDefault(); await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
-window.addEventListener('load', loadMe);
+function openProfile() {
+  if (!currentUser) return;
+  document.getElementById('pmEmail').textContent = currentUser.email;
+  document.getElementById('pmRole').textContent = currentUser.role;
+  document.getElementById('pmFirst').value = currentUser.firstName || '';
+  document.getElementById('pmLast').value = currentUser.lastName || '';
+  document.getElementById('pmAge').value = currentUser.age || '';
+  document.getElementById('pmSocial').value = currentUser.social || '';
+  document.getElementById('pmLang').value = currentUser.language || 'en';
+  document.getElementById('pmSaved').classList.remove('show');
+  document.getElementById('profileModal').classList.add('open');
+}
+function closeProfile() { document.getElementById('profileModal').classList.remove('open'); }
+async function saveProfile() {
+  const payload = {
+    firstName: document.getElementById('pmFirst').value,
+    lastName:  document.getElementById('pmLast').value,
+    age:       document.getElementById('pmAge').value,
+    social:    document.getElementById('pmSocial').value,
+    language:  document.getElementById('pmLang').value
+  };
+  try {
+    const r = await fetch('/api/auth/me', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const j = await r.json();
+    if (!r.ok) { alert(j.error || 'save failed'); return; }
+    currentUser = j.user;
+    const a = document.getElementById('avatarBtn');
+    a.textContent = initials(j.user);
+    a.title = `${j.user.firstName} ${j.user.lastName} — ${j.user.role} — lang ${j.user.language || 'en'}`;
+    const s = document.getElementById('pmSaved'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 1800);
+  } catch (e) { alert(String(e)); }
+}
+async function signOut(e) { e?.preventDefault(); await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
+
+// --- Chat (mermaid-aware) ---
+async function chat() {
+  const out = document.getElementById('reply');
+  const meta = document.getElementById('meta');
+  const saveBtn = document.getElementById('saveSheetBtn');
+  out.innerHTML = '<em>Thinking…</em>';
+  meta.textContent = '';
+  if (saveBtn) saveBtn.disabled = true;
+  lastAnswer = '';
+  lastPrompt = document.getElementById('prompt').value;
+  try {
+    const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: lastPrompt }) });
+    const data = await r.json();
+    if (!data.answer) { out.textContent = JSON.stringify(data, null, 2); return; }
+    lastAnswer = data.answer;
+    if (saveBtn) saveBtn.disabled = false;
+    if (window.marked && window.DOMPurify) {
+      marked.setOptions({ breaks: true, gfm: true });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(data.answer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'mermaid';
+        wrap.id = 'm' + Date.now() + '_' + idx;
+        wrap.textContent = codeEl.textContent;
+        codeEl.parentElement.replaceWith(wrap);
+      });
+      if (window.mermaid) { try { await mermaid.run({ querySelector: '.mermaid' }); } catch (e) { console.warn('mermaid:', e); } }
+    } else { out.textContent = data.answer; }
+    if (data.usage) meta.textContent = `${data.usage.total_tokens} tokens · ${data.model || ''}`;
+  } catch (err) { out.textContent = String(err); }
+}
+function setPrompt(e, text) { e.preventDefault(); document.getElementById('prompt').value = text; document.getElementById('prompt').focus(); }
+
+// --- Study sheets ---
+async function saveSheet() {
+  if (!lastAnswer) return;
+  const btn = document.getElementById('saveSheetBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const title = (lastPrompt || '').trim().slice(0, 80) || 'Untitled sheet';
+    const r = await fetch('/api/sheets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title, prompt: lastPrompt, answer: lastAnswer }) });
+    if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.error || 'Save failed'); if (btn) btn.disabled = false; return; }
+    const badge = document.getElementById('sheetSaved');
+    if (badge) { badge.classList.add('show'); setTimeout(()=>badge.classList.remove('show'), 1800); }
+  } catch (e) { alert(String(e)); if (btn) btn.disabled = false; }
+}
+function openSheets() { document.getElementById('sheetsModal').classList.add('open'); refreshSheets(); }
+function closeSheets() { document.getElementById('sheetsModal').classList.remove('open'); }
+async function refreshSheets() {
+  const list = document.getElementById('sheetsList');
+  const cnt = document.getElementById('sheetsCount');
+  list.innerHTML = '<div class="sheet-empty">Loading…</div>';
+  try {
+    const r = await fetch('/api/sheets', { cache:'no-store' });
+    const j = await r.json();
+    const sheets = (j.sheets || []).slice().reverse();
+    if (cnt) cnt.textContent = sheets.length ? `(${sheets.length})` : '';
+    if (!sheets.length) { list.innerHTML = '<div class="sheet-empty">No saved sheets yet. Ask a question, then click “Save to Study sheet”.</div>'; return; }
+    list.innerHTML = '';
+    for (const s of sheets) {
+      const row = document.createElement('div'); row.className = 'sheet-row';
+      const t = document.createElement('div'); t.className = 'sheet-title'; t.textContent = s.title; t.title = s.title; t.onclick = () => loadSheet(s.id);
+      const d = document.createElement('div'); d.className = 'sheet-date'; d.textContent = new Date(s.createdAt).toLocaleString();
+      const x = document.createElement('button'); x.className = 'sheet-del'; x.textContent = '×'; x.title = 'Delete'; x.setAttribute('aria-label','Delete sheet'); x.onclick = (ev) => { ev.stopPropagation(); deleteSheet(s.id); };
+      row.appendChild(t); row.appendChild(d); row.appendChild(x); list.appendChild(row);
+    }
+  } catch (e) { list.innerHTML = '<div class="sheet-empty">Error: ' + escapeHtml(String(e)) + '</div>'; }
+}
+async function loadSheet(id) {
+  try {
+    const r = await fetch('/api/sheets/' + encodeURIComponent(id));
+    const j = await r.json();
+    if (!r.ok || !j.sheet) { alert(j.error || 'Load failed'); return; }
+    lastPrompt = j.sheet.prompt || '';
+    lastAnswer = j.sheet.answer || '';
+    if (lastPrompt) document.getElementById('prompt').value = lastPrompt;
+    const out = document.getElementById('reply');
+    if (window.marked && window.DOMPurify) {
+      marked.setOptions({ breaks:true, gfm:true });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(lastAnswer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
+        const wrap = document.createElement('div'); wrap.className = 'mermaid'; wrap.id = 'm' + Date.now() + '_' + idx; wrap.textContent = codeEl.textContent; codeEl.parentElement.replaceWith(wrap);
+      });
+      if (window.mermaid) { try { await mermaid.run({ querySelector: '.mermaid' }); } catch (e) {} }
+    } else { out.textContent = lastAnswer; }
+    document.getElementById('meta').textContent = 'Loaded sheet · ' + new Date(j.sheet.createdAt).toLocaleString();
+    const sb = document.getElementById('saveSheetBtn'); if (sb) sb.disabled = true;
+    closeSheets();
+  } catch (e) { alert(String(e)); }
+}
+async function deleteSheet(id) {
+  if (!confirm('Delete this sheet?')) return;
+  try { await fetch('/api/sheets/' + encodeURIComponent(id), { method:'DELETE' }); refreshSheets(); } catch (e) { alert(String(e)); }
+}
+
+window.addEventListener('load', () => {
+  if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+  const ta = document.getElementById('prompt');
+  if (ta) ta.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); chat(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); } });
+  refreshStatus();
+  loadMe();
+});
 </script>
 </body>
 </html>
