@@ -14,5 +14,21 @@ foreach ($a in $apps) {
     $publicDir = Join-Path $appDir 'public'
     if (-not (Test-Path $publicDir)) { New-Item -ItemType Directory -Force -Path $publicDir | Out-Null }
     Copy-Item -Force -Path (Join-Path $here 'login.html') -Destination (Join-Path $publicDir 'login.html')
+    # Sync the shared db client (Postgres helpers + schema.sql)
+    $dbDest = Join-Path $appDir 'db'
+    if (-not (Test-Path $dbDest)) { New-Item -ItemType Directory -Force -Path $dbDest | Out-Null }
+    Copy-Item -Force -Path (Join-Path $here 'db/index.js')   -Destination (Join-Path $dbDest 'index.js')
+    Copy-Item -Force -Path (Join-Path $here 'db/schema.sql') -Destination (Join-Path $dbDest 'schema.sql')
+    # Content Safety client (used by both shared server and admin server)
+    Copy-Item -Force -Path (Join-Path $here 'contentSafety.js') -Destination (Join-Path $appDir 'contentSafety.js')
+    # Reference data (curricula JSON, glossary CSV, synthetic learners) — required for db.init seed
+    $dataDest = Join-Path $appDir 'data'
+    if (-not (Test-Path $dataDest)) { New-Item -ItemType Directory -Force -Path $dataDest | Out-Null }
+    foreach ($sub in 'curricula','glossaries') {
+        $sd = Join-Path $dataDest $sub
+        if (-not (Test-Path $sd)) { New-Item -ItemType Directory -Force -Path $sd | Out-Null }
+        Get-ChildItem (Join-Path $here ('data/' + $sub)) -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $sd $_.Name) }
+    }
+    Copy-Item -Force -Path (Join-Path $here 'data/synthetic_learners.csv') -Destination (Join-Path $dataDest 'synthetic_learners.csv')
     Write-Host "synced -> $a" -ForegroundColor Green
 }

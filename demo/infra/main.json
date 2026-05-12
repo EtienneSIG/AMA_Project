@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "5237924310576347681"
+      "templateHash": "5583486157419333740"
     }
   },
   "parameters": {
@@ -66,6 +66,13 @@
       "metadata": {
         "description": "Deploy Microsoft Fabric capacity. Disabled by default: requires at least one Fabric admin member configured upfront (Power BI/Fabric admin), and is not on the critical path for Case Study 33 acceptance."
       }
+    },
+    "postgresAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "[format('{0}aZ9!{1}', toUpper(uniqueString(subscription().id, 'pg', newGuid())), uniqueString(newGuid()))]",
+      "metadata": {
+        "description": "PostgreSQL admin password. Defaults to a strong random value generated at deploy time and persisted to Key Vault under secret name \"pg-admin-password\" (consumed by App Services via @Microsoft.KeyVault references). Override only when re-deploying onto an existing server."
+      }
     }
   },
   "resources": [
@@ -104,7 +111,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "17658508899555157053"
+              "templateHash": "6598016766718029504"
             }
           },
           "parameters": {
@@ -234,6 +241,20 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "name": "snet-fabric-gw",
+                    "properties": {
+                      "addressPrefix": "10.42.9.0/27",
+                      "delegations": [
+                        {
+                          "name": "fabric-vnet-dg",
+                          "properties": {
+                            "serviceName": "Microsoft.PowerPlatform/vnetaccesslinks"
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               },
@@ -266,6 +287,10 @@
             "appsSubnetId": {
               "type": "string",
               "value": "[format('{0}/subnets/snet-apps', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "fabricGwSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/snet-fabric-gw', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
             }
           }
         }
@@ -399,7 +424,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "17036832516054054101"
+              "templateHash": "18305806291642571434"
             }
           },
           "parameters": {
@@ -484,6 +509,75 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', 'azure-api.net')]"
               ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.postgres.database.azure.com",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.postgres.database.azure.com', 'vnet-link')]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.vaultcore.azure.net",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', 'link-vnet-kv')]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.cognitiveservices.azure.com",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.cognitiveservices.azure.com', 'link-vnet-cs')]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
+              ]
             }
           ],
           "outputs": {
@@ -494,6 +588,18 @@
             "apimZoneId": {
               "type": "string",
               "value": "[resourceId('Microsoft.Network/privateDnsZones', 'azure-api.net')]"
+            },
+            "kvZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+            },
+            "pgZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+            },
+            "csZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
             }
           }
         }
@@ -1071,6 +1177,9 @@
           },
           "logAnalyticsId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'monitor'), '2025-04-01').outputs.logAnalyticsId.value]"
+          },
+          "csPrivateDnsZoneId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'private-dns'), '2025-04-01').outputs.csZoneId.value]"
           }
         },
         "template": {
@@ -1080,7 +1189,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "8734194363681731068"
+              "templateHash": "15056697458385285508"
             }
           },
           "parameters": {
@@ -1098,6 +1207,12 @@
             },
             "logAnalyticsId": {
               "type": "string"
+            },
+            "csPrivateDnsZoneId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the privatelink.cognitiveservices.azure.com private DNS zone."
+              }
             }
           },
           "variables": {
@@ -1150,6 +1265,24 @@
               ]
             },
             {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', variables('name')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "cs",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('csPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', variables('name')))]"
+              ]
+            },
+            {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('name'))]",
@@ -1182,6 +1315,10 @@
             "id": {
               "type": "string",
               "value": "[resourceId('Microsoft.CognitiveServices/accounts', variables('name'))]"
+            },
+            "accountName": {
+              "type": "string",
+              "value": "[variables('name')]"
             }
           }
         }
@@ -1189,6 +1326,7 @@
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'monitor')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'networking')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'private-dns')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('envName')))]"
       ]
     },
@@ -1793,6 +1931,24 @@
           },
           "aoaiDeploymentName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'openai'), '2025-04-01').outputs.deploymentName.value]"
+          },
+          "pgFqdn": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.fqdn.value]"
+          },
+          "pgDatabase": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.databaseName.value]"
+          },
+          "pgAdminLogin": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.adminLogin.value]"
+          },
+          "pgPasswordSecretName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.passwordSecretName.value]"
+          },
+          "contentSafetyEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'contentsafety'), '2025-04-01').outputs.endpoint.value]"
+          },
+          "contentSafetyAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'contentsafety'), '2025-04-01').outputs.accountName.value]"
           }
         },
         "template": {
@@ -1802,7 +1958,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "709877838658397703"
+              "templateHash": "8598871631718433455"
             }
           },
           "parameters": {
@@ -1847,6 +2003,42 @@
               "metadata": {
                 "description": "AOAI deployment name (path segment for chat completions)."
               }
+            },
+            "pgFqdn": {
+              "type": "string",
+              "metadata": {
+                "description": "PostgreSQL Flexible Server FQDN (e.g. pg-learneu-demo.postgres.database.azure.com)."
+              }
+            },
+            "pgDatabase": {
+              "type": "string",
+              "metadata": {
+                "description": "PostgreSQL database name."
+              }
+            },
+            "pgAdminLogin": {
+              "type": "string",
+              "metadata": {
+                "description": "PostgreSQL admin login."
+              }
+            },
+            "pgPasswordSecretName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault secret name holding the PostgreSQL admin password."
+              }
+            },
+            "contentSafetyEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AI Content Safety endpoint (https://cs-*.cognitiveservices.azure.com/)."
+              }
+            },
+            "contentSafetyAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure AI Content Safety account name (for role assignment scoping)."
+              }
             }
           },
           "variables": {
@@ -1854,8 +2046,16 @@
             "appNames": [
               "parent-portal",
               "learner-web",
-              "teacher-console"
-            ]
+              "teacher-console",
+              "admin"
+            ],
+            "adminIndex": 3,
+            "appRoles": {
+              "parent-portal": "parent",
+              "learner-web": "student",
+              "teacher-console": "teacher",
+              "admin": "admin"
+            }
           },
           "resources": [
             {
@@ -1902,40 +2102,34 @@
                   "minTlsVersion": "1.2",
                   "http20Enabled": true,
                   "vnetRouteAllEnabled": true,
-                  "appSettings": [
-                    {
-                      "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
-                      "value": "true"
-                    },
-                    {
-                      "name": "ENABLE_ORYX_BUILD",
-                      "value": "true"
-                    },
-                    {
-                      "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                      "value": "[parameters('appInsightsConnectionString')]"
-                    },
-                    {
-                      "name": "APIM_GATEWAY_URL",
-                      "value": "[parameters('apimGatewayUrl')]"
-                    },
-                    {
-                      "name": "AOAI_DEPLOYMENT_NAME",
-                      "value": "[parameters('aoaiDeploymentName')]"
-                    },
-                    {
-                      "name": "APP_ROLE",
-                      "value": "[variables('appNames')[copyIndex()]]"
-                    },
-                    {
-                      "name": "APIM_SUBSCRIPTION_KEY",
-                      "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', parameters('keyVaultName'), parameters('subscriptionKeySecretName'))]"
-                    }
-                  ]
+                  "appSettings": "[concat(createArray(createObject('name', 'SCM_DO_BUILD_DURING_DEPLOYMENT', 'value', 'true'), createObject('name', 'ENABLE_ORYX_BUILD', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', parameters('appInsightsConnectionString')), createObject('name', 'APIM_GATEWAY_URL', 'value', parameters('apimGatewayUrl')), createObject('name', 'AOAI_DEPLOYMENT_NAME', 'value', parameters('aoaiDeploymentName')), createObject('name', 'APP_ROLE', 'value', variables('appRoles')[variables('appNames')[copyIndex()]]), createObject('name', 'APIM_SUBSCRIPTION_KEY', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', parameters('keyVaultName'), parameters('subscriptionKeySecretName'))), createObject('name', 'PG_HOST', 'value', parameters('pgFqdn')), createObject('name', 'PG_PORT', 'value', '5432'), createObject('name', 'PG_DATABASE', 'value', parameters('pgDatabase')), createObject('name', 'PG_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'PG_SSL', 'value', 'require'), createObject('name', 'PG_PASSWORD', 'value', format('@Microsoft.KeyVault(VaultName={0};SecretName={1})', parameters('keyVaultName'), parameters('pgPasswordSecretName'))), createObject('name', 'CONTENT_SAFETY_ENDPOINT', 'value', parameters('contentSafetyEndpoint')), createObject('name', 'CONTENT_SAFETY_ENABLED', 'value', 'true')), if(equals(variables('appNames')[copyIndex()], 'admin'), createArray(createObject('name', 'AZURE_SUBSCRIPTION_ID', 'value', subscription().subscriptionId), createObject('name', 'AZURE_RESOURCE_GROUP', 'value', resourceGroup().name), createObject('name', 'ENV_NAME', 'value', parameters('envName'))), createArray()))]"
                 }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "adminWebsiteContrib",
+                "count": "[length(range(0, 3))]",
+                "mode": "serial",
+                "batchSize": 1
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[range(0, 3)[copyIndex()]], parameters('envName')))]",
+              "name": "[guid(resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[range(0, 3)[copyIndex()]], parameters('envName'))), resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[variables('adminIndex')], parameters('envName'))), 'website-contributor')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[variables('adminIndex')], parameters('envName'))), '2023-12-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[variables('adminIndex')], parameters('envName')))]",
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[range(0, 3)[copyIndex()]], parameters('envName')))]",
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[variables('adminIndex')], parameters('envName')))]",
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[range(0, 3)[copyIndex()]], parameters('envName')))]"
               ]
             },
             {
@@ -1951,6 +2145,27 @@
               "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName'))), 'kv-secrets-user')]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName'))), '2023-12-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName')))]",
+                "[resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName')))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "csRole",
+                "count": "[length(variables('appNames'))]",
+                "mode": "serial",
+                "batchSize": 1
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('contentSafetyAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('contentSafetyAccountName')), resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName'))), 'cognitive-services-user')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
                 "principalId": "[reference(resourceId('Microsoft.Web/sites', format('app-{0}-{1}', variables('appNames')[copyIndex()], parameters('envName'))), '2023-12-01', 'full').identity.principalId]",
                 "principalType": "ServicePrincipal"
               },
@@ -2049,10 +2264,370 @@
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'apim')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'apim-aoai')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'contentsafety')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'monitor')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'networking')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'openai')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('envName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "postgres",
+      "resourceGroup": "[format('rg-{0}', parameters('envName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "envName": {
+            "value": "[parameters('envName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "peSubnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'networking'), '2025-04-01').outputs.peSubnetId.value]"
+          },
+          "logAnalyticsId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'monitor'), '2025-04-01').outputs.logAnalyticsId.value]"
+          },
+          "pgPrivateDnsZoneId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'private-dns'), '2025-04-01').outputs.pgZoneId.value]"
+          },
+          "keyVaultName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.keyVaultName.value]"
+          },
+          "adminPassword": {
+            "value": "[parameters('postgresAdminPassword')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "8210182244327575538"
+            }
+          },
+          "parameters": {
+            "envName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "peSubnetId": {
+              "type": "string"
+            },
+            "logAnalyticsId": {
+              "type": "string"
+            },
+            "pgPrivateDnsZoneId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource id of the privatelink.postgres.database.azure.com private DNS zone (from private-dns module)."
+              }
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault name (RBAC) where the admin password secret is written."
+              }
+            },
+            "adminLogin": {
+              "type": "string",
+              "defaultValue": "learneu_admin",
+              "metadata": {
+                "description": "PostgreSQL admin login name."
+              }
+            },
+            "adminPassword": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Generated password (passed from main.bicep using newGuid()). Min 8 chars, mixed case + digits enforced server-side."
+              }
+            },
+            "databaseName": {
+              "type": "string",
+              "defaultValue": "learneu",
+              "metadata": {
+                "description": "Database name created on the server."
+              }
+            },
+            "fabricMirroringReady": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "When true, provisions a SKU/configuration compatible with Microsoft Fabric mirroring (GeneralPurpose, SAMI, logical WAL, azure_cdc). When false, falls back to a cheap Burstable B1ms."
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "[if(parameters('fabricMirroringReady'), 'Standard_D2ds_v5', 'Standard_B1ms')]",
+              "metadata": {
+                "description": "Server SKU. Defaults follow fabricMirroringReady (GP D2ds_v5 vs Burstable B1ms)."
+              }
+            },
+            "skuTier": {
+              "type": "string",
+              "defaultValue": "[if(parameters('fabricMirroringReady'), 'GeneralPurpose', 'Burstable')]",
+              "metadata": {
+                "description": "Server compute tier."
+              }
+            },
+            "maxMirroredDatabases": {
+              "type": "int",
+              "defaultValue": 3,
+              "minValue": 1,
+              "maxValue": 6,
+              "metadata": {
+                "description": "Maximum number of databases that can be mirrored concurrently to Fabric."
+              }
+            },
+            "storageGB": {
+              "type": "int",
+              "defaultValue": 32,
+              "minValue": 32,
+              "maxValue": 2048,
+              "metadata": {
+                "description": "Storage in GB. Min 32 for Flexible Server."
+              }
+            },
+            "postgresVersion": {
+              "type": "string",
+              "defaultValue": "16",
+              "allowedValues": [
+                "14",
+                "15",
+                "16"
+              ],
+              "metadata": {
+                "description": "PostgreSQL major version."
+              }
+            }
+          },
+          "variables": {
+            "serverName": "[format('pg-{0}', parameters('envName'))]",
+            "workerProcesses": "[add(8, mul(3, parameters('maxMirroredDatabases')))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2024-08-01",
+              "name": "[variables('serverName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]"
+              },
+              "properties": {
+                "version": "[parameters('postgresVersion')]",
+                "administratorLogin": "[parameters('adminLogin')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "storage": {
+                  "storageSizeGB": "[parameters('storageGB')]",
+                  "autoGrow": "Enabled"
+                },
+                "backup": {
+                  "backupRetentionDays": 7,
+                  "geoRedundantBackup": "Disabled"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                },
+                "network": {
+                  "publicNetworkAccess": "Disabled"
+                },
+                "authConfig": {
+                  "activeDirectoryAuth": "Enabled",
+                  "passwordAuth": "Enabled",
+                  "tenantId": "[subscription().tenantId]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', variables('serverName'), 'require_secure_transport')]",
+              "properties": {
+                "value": "on",
+                "source": "user-override"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('fabricMirroringReady')]",
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', variables('serverName'), 'wal_level')]",
+              "properties": {
+                "value": "logical",
+                "source": "user-override"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('fabricMirroringReady')]",
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/configurations",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', variables('serverName'), 'max_worker_processes')]",
+              "properties": {
+                "value": "[string(variables('workerProcesses'))]",
+                "source": "user-override"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]",
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers/configurations', variables('serverName'), 'wal_level')]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2024-08-01",
+              "name": "[format('{0}/{1}', variables('serverName'), parameters('databaseName'))]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-01-01",
+              "name": "[format('pe-{0}', variables('serverName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('peSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "pg",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]",
+                      "groupIds": [
+                        "postgresqlServer"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-01-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', variables('serverName')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "pg",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('pgPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', variables('serverName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]",
+              "name": "to-law",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsId')]",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2024-04-01-preview",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'pg-admin-password')]",
+              "properties": {
+                "value": "[parameters('adminPassword')]",
+                "contentType": "text/plain"
+              }
+            }
+          ],
+          "outputs": {
+            "serverName": {
+              "type": "string",
+              "value": "[variables('serverName')]"
+            },
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName')), '2024-08-01').fullyQualifiedDomainName]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "adminLogin": {
+              "type": "string",
+              "value": "[parameters('adminLogin')]"
+            },
+            "fabricMirroringReady": {
+              "type": "bool",
+              "value": "[parameters('fabricMirroringReady')]"
+            },
+            "sami": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('serverName')), '2024-08-01', 'full').identity.principalId]"
+            },
+            "passwordSecretName": {
+              "type": "string",
+              "value": "pg-admin-password"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'keyvault')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'monitor')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'networking')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'private-dns')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}', parameters('envName')))]"
       ]
     },
@@ -2264,6 +2839,22 @@
     "keyVaultName": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.keyVaultName.value]"
+    },
+    "postgresFqdn": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.fqdn.value]"
+    },
+    "postgresDatabase": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.databaseName.value]"
+    },
+    "postgresAdminLogin": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.adminLogin.value]"
+    },
+    "postgresPasswordSecretName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}', parameters('envName'))), 'Microsoft.Resources/deployments', 'postgres'), '2025-04-01').outputs.passwordSecretName.value]"
     }
   }
 }

@@ -45,6 +45,10 @@ param deployPurview bool = false
 @description('Deploy Microsoft Fabric capacity. Disabled by default: requires at least one Fabric admin member configured upfront (Power BI/Fabric admin), and is not on the critical path for Case Study 33 acceptance.')
 param deployFabric bool = false
 
+@description('PostgreSQL admin password. Defaults to a strong random value generated at deploy time and persisted to Key Vault under secret name "pg-admin-password" (consumed by App Services via @Microsoft.KeyVault references). Override only when re-deploying onto an existing server.')
+@secure()
+param postgresAdminPassword string = '${toUpper(uniqueString(subscription().id, 'pg', newGuid()))}aZ9!${uniqueString(newGuid())}'
+
 // -----------------------------
 // Resource group
 // -----------------------------
@@ -136,6 +140,7 @@ module contentSafety 'modules/content-safety.bicep' = {
     tags: tags
     peSubnetId: networking.outputs.peSubnetId
     logAnalyticsId: monitor.outputs.logAnalyticsId
+    csPrivateDnsZoneId: privateDns.outputs.csZoneId
   }
 }
 
@@ -191,6 +196,27 @@ module appService 'modules/app-service.bicep' = {
     subscriptionKeySecretName: apimAoai.outputs.subscriptionKeySecretName
     apimGatewayUrl: apim.outputs.gatewayUrl
     aoaiDeploymentName: openai.outputs.deploymentName
+    pgFqdn: postgres.outputs.fqdn
+    pgDatabase: postgres.outputs.databaseName
+    pgAdminLogin: postgres.outputs.adminLogin
+    pgPasswordSecretName: postgres.outputs.passwordSecretName
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
+    contentSafetyAccountName: contentSafety.outputs.accountName
+  }
+}
+
+module postgres 'modules/postgres.bicep' = {
+  scope: rg
+  name: 'postgres'
+  params: {
+    envName: envName
+    location: location
+    tags: tags
+    peSubnetId: networking.outputs.peSubnetId
+    logAnalyticsId: monitor.outputs.logAnalyticsId
+    pgPrivateDnsZoneId: privateDns.outputs.pgZoneId
+    keyVaultName: keyvault.outputs.keyVaultName
+    adminPassword: postgresAdminPassword
   }
 }
 
@@ -229,3 +255,8 @@ output apimAoaiApiPath string = apimAoai.outputs.apiPath
 output apimAoaiProductName string = apimAoai.outputs.productName
 output appHostnames array = appService.outputs.appHostnames
 output keyVaultName string = keyvault.outputs.keyVaultName
+output postgresFqdn string = postgres.outputs.fqdn
+output postgresDatabase string = postgres.outputs.databaseName
+output postgresAdminLogin string = postgres.outputs.adminLogin
+#disable-next-line outputs-should-not-contain-secrets
+output postgresPasswordSecretName string = postgres.outputs.passwordSecretName

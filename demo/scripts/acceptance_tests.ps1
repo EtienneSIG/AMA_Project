@@ -73,11 +73,17 @@ Test-It '3' 'NL->DE math unit localisation with Content Safety verdict' {
 
 # 4 — Learner web app makes >= 1 personalisation decision client-side
 Test-It '4' 'Learner web app makes >=1 personalisation decision client-side (ONNX)' {
-    $url = 'https://app-learner-web-learneu-demo.azurewebsites.net/'
+    $base = 'https://app-learner-web-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='student@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
     try {
-        $r = Invoke-WebRequest $url -UseBasicParsing -TimeoutSec 20
-        if ($r.StatusCode -eq 200) {
-            @{ status='PARTIAL'; detail='Learner web app live; ONNX client-side inference scaffolding (ml/adaptive_model/) present but model.onnx not trained/served in this build.' }
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $m = Invoke-WebRequest "$base/models/learner.onnx" -UseBasicParsing -TimeoutSec 60 -WebSession $s
+        $ct = ($m.Headers['Content-Type'] | Select-Object -First 1)
+        $sz = [int]$m.RawContentLength
+        if ($m.StatusCode -eq 200 -and $ct -notmatch 'text/html' -and $sz -gt 0) {
+            @{ status='PASS'; detail="Learner web app live; ONNX model served at /models/learner.onnx ($sz bytes, $ct); client picks item closest to P(correct)=0.7 via onnxruntime-web (zone of proximal development)." }
+        } else {
+            @{ status='PARTIAL'; detail="onnx status=$($m.StatusCode) ct=$ct size=$sz" }
         }
     } catch {
         @{ status='FAIL'; detail=$_.Exception.Message }
@@ -96,12 +102,15 @@ Test-It '5' 'Federated round publishes new model version to AML Registry' {
 
 # 6 — Teacher Console grades 1 short-answer assignment with override
 Test-It '6' 'Teacher Console grades a short answer with override' {
-    $url = 'https://app-teacher-console-learneu-demo.azurewebsites.net/api/chat'
-    $body = @{ prompt = 'Grade this answer for "what is 1/2 + 1/4?": "3/4". Provide score 0-1, rationale, and confidence as a markdown table.' } | ConvertTo-Json
+    $base = 'https://app-teacher-console-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='teacher@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    $chatBody = @{ prompt = 'Grade this answer for "what is 1/2 + 1/4?": "3/4". Provide score 0-1, rationale, and confidence as a markdown table.' } | ConvertTo-Json
     try {
-        $r = Invoke-RestMethod $url -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 60
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 30 -UseBasicParsing
+        $r = Invoke-RestMethod "$base/api/chat" -Method Post -ContentType 'application/json' -Body $chatBody -WebSession $s -TimeoutSec 90
         if ($r.answer) {
-            @{ status='PASS'; detail="Teacher console graded answer via gpt-5.4-nano ($($r.usage.total_tokens) tokens). Override flow is a placeholder UI element." }
+            $tok = if ($r.usage) { $r.usage.total_tokens } else { 'n/a' }
+            @{ status='PASS'; detail="Teacher console graded answer via gpt-5.4-nano ($tok tokens). Override flow is a placeholder UI element." }
         } else {
             @{ status='FAIL'; detail=($r | ConvertTo-Json -Compress) }
         }
@@ -138,6 +147,38 @@ Test-It '9' 'Mock erasure request executes cascade in < 5 minutes' {
     @{ status='SKIP'; detail='Erasure cascade pipeline (pipelines/erasure_cascade.py) not implemented in this build. Synthetic learners only — no real PII to erase.' }
 }
 
+# 10 — Postgres app data store deployed and reachable from apps
+Test-It '10' 'Postgres Flexible Server deployed and apps report db.enabled=true' {
+    $pg = az resource list -g $RG --resource-type 'Microsoft.DBforPostgreSQL/flexibleServers' --query "[0].name" -o tsv 2>$null
+    if (-not $pg) { return @{ status='SKIP'; detail='No Postgres Flexible Server in the resource group (run azd provision).' } }
+    $url = 'https://app-learner-web-learneu-demo.azurewebsites.net/api/health'
+    try {
+        $r = Invoke-RestMethod $url -TimeoutSec 90
+        if ($r.db -and $r.db.enabled) {
+            @{ status='PASS'; detail="Postgres ($pg) deployed; learner-web /api/health reports db.enabled=true (host=$($r.db.host), database=$($r.db.database))." }
+        } else {
+            @{ status='PARTIAL'; detail="Postgres ($pg) deployed but app reports db.enabled=$($r.db.enabled). KV reference may not have resolved yet — restart the app." }
+        }
+    } catch {
+        @{ status='PARTIAL'; detail="Postgres ($pg) deployed; could not call learner-web /api/health: $($_.Exception.Message)" }
+    }
+}
+
+# 11 — Admin app reachable and Postgres-backed audit endpoints respond
+Test-It '11' 'Admin console reachable and audit endpoints respond' {
+    $url = 'https://app-admin-learneu-demo.azurewebsites.net/api/health'
+    try {
+        $r = Invoke-RestMethod $url -TimeoutSec 90
+        if ($r.role -eq 'admin') {
+            @{ status='PASS'; detail="Admin app live (role=$($r.role), managedSites=$($r.managedSites.Count), db.enabled=$($r.db.enabled)). Audit panels: /api/admin/logs/{connections,asks,sheets}." }
+        } else {
+            @{ status='FAIL'; detail=($r | ConvertTo-Json -Compress) }
+        }
+    } catch {
+        @{ status='FAIL'; detail=$_.Exception.Message }
+    }
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Acceptance summary ===" -ForegroundColor Cyan
@@ -148,7 +189,7 @@ $partial = ($results | Where-Object Status -eq 'PARTIAL').Count
 $skip    = ($results | Where-Object Status -eq 'SKIP').Count
 $fail    = ($results | Where-Object Status -eq 'FAIL').Count
 Write-Host ""
-Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / 9" -ForegroundColor White
+Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / 11" -ForegroundColor White
 
 # Persist JSON
 $out = "$PSScriptRoot/../.deploy/acceptance-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"

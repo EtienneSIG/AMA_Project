@@ -27,9 +27,9 @@ Resume from this file if the laptop reboots. Update after each completed step.
   - [x] `azd deploy` (all 3 apps healthy on `/api/health`, `keyConfigured: true`)
   - [x] E2E `/api/chat` verified → APIM → AOAI gpt-5.4-nano returns completion
   - [x] EdTech Group logo + brand header added to all 3 apps
-- [ ] **Stage 5** — Seed curricula JSON + glossaries + 50 synthetic learners
-- [ ] **Stage 6** — 9 acceptance tests
-- [ ] **Stage 7** — `DEPLOYMENT-REPORT.md`
+- [x] **Stage 5** — Seed curricula JSON + glossaries + 50 synthetic learners (curricula=6, glossary=14, learners=50; `pgcrypto` allow-listed; admin `/api/data/reseed` endpoint)
+- [x] **Stage 6** — 11 acceptance tests (5 PASS · 4 PARTIAL · 2 SKIP · 0 FAIL — see `.deploy/acceptance-last.txt`)
+- [x] **Stage 7** — `DEPLOYMENT-REPORT.md` written; `DEPLOYMENT-STATE.md` reconciled
 
 ## Resume command (after reboot)
 ```powershell

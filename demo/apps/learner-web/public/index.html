@@ -94,7 +94,8 @@
   nav.top .cta#logoutBtn { background: var(--navy); }
   nav.top .cta#logoutBtn:hover { background: var(--orange-dark); }
   /* --- Lot 2: 2-column layout + mermaid --- */
-  main.grid2 { display: grid; grid-template-columns: 0.8fr 2fr; gap: 1.25rem; align-items: start; max-width: 1320px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  main.grid2 { display: grid; grid-template-columns: 0.8fr 2fr; gap: 1.25rem; align-items: stretch; max-width: 1320px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  main.grid2 > .card { display: flex; flex-direction: column; height: 100%; }
   @media (max-width: 900px) { main.grid2 { grid-template-columns: 1fr; } }
   .askcol .sub { margin: 0 0 .5rem; opacity: .75; font-size: .85rem; }
   .askcol textarea { min-height: 8.5rem; }
@@ -148,6 +149,22 @@
   .sheet-empty { color:var(--grey); font-style:italic; padding:1rem; text-align:center; }
   .saved-badge { display:inline-block; background:#E8F5EE; color:#1F8A5C; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; margin-left:.4rem; opacity:0; transition:opacity .25s; }
   .saved-badge.show { opacity:1; }
+  /* --- Adaptive item picker: 2-column "example | your answer" --- */
+  .ai-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem; }
+  @media (max-width: 780px) { .ai-grid { grid-template-columns: 1fr; } }
+  .ai-col { background:#F8FAFC; border:1px solid var(--line); border-radius:10px; padding:1rem 1.1rem; display:flex; flex-direction:column; }
+  .ai-col .ai-step { display:inline-block; background:var(--teal); color:#fff; font-size:.7rem; font-weight:700; padding:.15rem .55rem; border-radius:999px; letter-spacing:.05em; text-transform:uppercase; margin-bottom:.5rem; align-self:flex-start; }
+  .ai-col h3 { font-size:1rem; margin:0 0 .25rem; }
+  .ai-col .ai-hint { font-size:.78rem; color:var(--grey); margin:0 0 .7rem; }
+  .ai-col .ai-question { font-size:1.15rem; color:var(--navy); font-weight:600; margin:.3rem 0 .55rem; line-height:1.4; min-height:2.6rem; }
+  .ai-col .ai-meta { font-size:.74rem; color:var(--grey); margin-top:auto; padding-top:.55rem; border-top:1px dashed var(--line); }
+  .ai-col .ai-meta code { background:#EEF2F7; padding:.05rem .3rem; border-radius:4px; font-size:.72rem; }
+  .ai-col input.ai-answer { width:100%; padding:.7rem .85rem; font-family:inherit; font-size:1rem; border:1.5px solid var(--line); border-radius:8px; color:var(--navy); background:#fff; box-sizing:border-box; }
+  .ai-col input.ai-answer:focus { outline:2px solid var(--teal); outline-offset:1px; border-color:var(--teal); }
+  .ai-col .ai-actions { display:flex; gap:.5rem; margin-top:.7rem; flex-wrap:wrap; }
+  .ai-col .ai-actions .btn { flex:1; min-width:120px; padding:.6rem 1rem; }
+  .ai-help { font-size:.85rem; color:var(--navy); background:#EEF7F7; border:1px solid #C4E5E6; border-radius:8px; padding:.6rem .85rem; margin-top:.8rem; }
+  .ai-help strong { color:var(--teal); }
 </style>
 </head>
 <body>
@@ -206,6 +223,169 @@
     <div class="meta" id="meta"></div>
   </div>
 </main>
+
+<section style="max-width:1320px;margin:1rem auto 3rem;padding:0 1.5rem;">
+  <div class="card" id="adaptiveCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">
+      <div>
+        <h2 style="margin:0;">Adaptive item picker <span id="adaptiveBadge" style="font-size:.72rem;background:var(--teal);color:#fff;padding:.15rem .5rem;border-radius:999px;font-weight:600;vertical-align:middle;">ONNX · client-side</span></h2>
+        <p class="sub" style="margin:.3rem 0 0;">A small AI model picks one math question matched to your level. <strong>Solve it on paper</strong>, type your answer on the right, then tell us if you got it. Everything runs in your browser — your work never leaves the device until you click a button.</p>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn secondary" onclick="adaptive.next()" title="Skip this question and pick a new one">Skip · Next item</button>
+      </div>
+    </div>
+    <div id="adaptiveStatus" style="margin-top:.6rem;font-size:.85rem;color:var(--grey);">Loading model…</div>
+    <div id="adaptiveItem" style="display:none;">
+      <div class="ai-grid">
+        <div class="ai-col">
+          <span class="ai-step">1 · Example</span>
+          <h3>Solve this question</h3>
+          <p class="ai-hint">Work it out on paper or in your head. There’s no time limit.</p>
+          <div class="ai-question" id="aiQuestion">…</div>
+          <div class="ai-meta">Item <code id="aiItemId">—</code> · difficulty <code id="aiItemDiff">—</code> · model thinks you’ll succeed with <code id="aiItemPred">—</code> probability</div>
+        </div>
+        <div class="ai-col">
+          <span class="ai-step">2 · Your answer</span>
+          <h3>Type your answer</h3>
+          <p class="ai-hint">Then mark whether you got it. The model uses your feedback to pick the next item.</p>
+          <input type="text" class="ai-answer" id="aiAnswer" placeholder="e.g. 3/4   or   1.25" autocomplete="off" />
+          <div class="ai-actions">
+            <button class="btn" onclick="adaptive.answer(true)">I got it ✓</button>
+            <button class="btn secondary" onclick="adaptive.answer(false)">Not yet ✗</button>
+          </div>
+          <p class="ai-help"><strong>Tip:</strong> Don’t worry about perfect formatting — just be honest. “I got it” teaches the model to try a slightly harder one next; “Not yet” asks for an easier review.</p>
+        </div>
+      </div>
+      <div id="aiHistory" style="margin-top:.9rem;font-size:.78rem;color:var(--grey);"></div>
+    </div>
+  </div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script>
+// Adaptive item picker — loads learner.onnx and runs inference client-side.
+// ORT 1.20.x with single-threaded WASM (no SAB / no cross-origin isolation needed).
+// Falls back to a JS replica of the model if WASM inference fails.
+window.adaptive = (function() {
+  const ITEMS = [
+    { id:'FRAC-01', q:'What is 1/2 + 1/4?',                difficulty:0.20, topic:0.10, review:0 },
+    { id:'FRAC-02', q:'Simplify 4/8.',                     difficulty:0.30, topic:0.10, review:0 },
+    { id:'FRAC-03', q:'Which is larger: 2/3 or 3/5?',      difficulty:0.45, topic:0.10, review:0 },
+    { id:'FRAC-04', q:'Compute 3/4 - 1/3 (common denom).', difficulty:0.65, topic:0.10, review:0 },
+    { id:'FRAC-05', q:'Express 0.6 as a fraction in lowest terms.', difficulty:0.55, topic:0.10, review:1 },
+    { id:'FRAC-06', q:'A pizza has 8 slices. You ate 3/8. How much is left?', difficulty:0.25, topic:0.20, review:0 },
+    { id:'FRAC-07', q:'Multiply 2/3 × 9/10.',              difficulty:0.70, topic:0.20, review:0 },
+    { id:'FRAC-08', q:'Convert 7/4 to a mixed number.',    difficulty:0.50, topic:0.20, review:0 }
+  ];
+  // Pure-JS replica of the ONNX graph (sigmoid(W_l·learner + W_i·item + b)).
+  // Mirrors ml/adaptive_model/build_onnx_simple.py weights so the demo never breaks.
+  const W_L = [0.8, -0.4, 1.5, 0.2];
+  const W_I = [-1.6, 0.0, 0.3];
+  const B   = 0.2;
+  const sigmoid = z => 1 / (1 + Math.exp(-z));
+  function predictJs(learnerFeat, itemFeat) {
+    let z = B;
+    for (let i = 0; i < 4; i++) z += W_L[i] * learnerFeat[i];
+    for (let i = 0; i < 3; i++) z += W_I[i] * itemFeat[i];
+    return sigmoid(z);
+  }
+
+  let session = null;
+  let useWasm = true;
+  let currentItem = null;
+  const learner = { decile: 5, sen: 0, prior_correct: 0, prior_attempts: 0 };
+  const history = [];
+
+  async function loadModel() {
+    const status = document.getElementById('adaptiveStatus');
+    try {
+      // Force single-threaded execution to avoid SharedArrayBuffer / cross-origin-isolation
+      // requirements and the "memory access out of bounds" bug seen in some ORT WASM SIMD builds.
+      if (window.ort && ort.env && ort.env.wasm) {
+        ort.env.wasm.numThreads = 1;
+        ort.env.wasm.simd = true;
+        ort.env.wasm.proxy = false;
+      }
+      session = await ort.InferenceSession.create('/models/learner.onnx', { executionProviders: ['wasm'] });
+      // Smoke-test inference once so we can fall back to JS if the WASM runtime is broken.
+      await predict(ITEMS[0]);
+      status.innerHTML = `Model loaded · ${session.inputNames.length} inputs, ${session.outputNames.length} output. Pick the next item to begin.`;
+    } catch (e) {
+      useWasm = false;
+      status.innerHTML = `Model loaded (JS fallback) · running a small linear scoring model in pure JavaScript. Pick the next item to begin.`;
+      console.warn('ONNX WASM unavailable, using JS fallback:', e);
+    }
+    document.getElementById('adaptiveItem').style.display = 'block';
+    next();
+  }
+
+  function buildFeatures(item) {
+    const lFeat = [learner.decile/10, learner.sen, learner.prior_attempts ? learner.prior_correct/learner.prior_attempts : 0.5, Math.min(learner.prior_attempts/20, 1)];
+    const iFeat = [item.difficulty, item.topic, item.review];
+    return { lFeat, iFeat };
+  }
+
+  async function predict(item) {
+    const { lFeat, iFeat } = buildFeatures(item);
+    if (useWasm && session) {
+      try {
+        const learnerT = new ort.Tensor('float32', Float32Array.from(lFeat), [1, 4]);
+        const itemT = new ort.Tensor('float32', Float32Array.from(iFeat), [1, 3]);
+        const out = await session.run({ learner: learnerT, item: itemT });
+        return out.p_correct.data[0];
+      } catch (e) {
+        // First failure → permanently switch to JS path.
+        useWasm = false;
+        console.warn('session.run failed, switching to JS:', e);
+      }
+    }
+    return predictJs(lFeat, iFeat);
+  }
+
+  async function next() {
+    // Score every candidate sequentially (parallel session.run is racy in ORT WASM),
+    // pick the one closest to P=0.7 (zone of proximal development).
+    const scored = [];
+    for (const it of ITEMS) {
+      scored.push({ item: it, p: await predict(it) });
+    }
+    scored.sort((a, b) => Math.abs(a.p - 0.7) - Math.abs(b.p - 0.7));
+    const pick = scored[0];
+    currentItem = { ...pick.item, predicted: pick.p, t0: Date.now() };
+    document.getElementById('aiItemId').textContent = currentItem.id;
+    document.getElementById('aiItemDiff').textContent = currentItem.difficulty.toFixed(2);
+    document.getElementById('aiItemPred').textContent = (currentItem.predicted * 100).toFixed(0) + '%';
+    document.getElementById('aiQuestion').textContent = currentItem.q;
+    const ans = document.getElementById('aiAnswer');
+    if (ans) { ans.value = ''; ans.focus(); }
+  }
+
+  async function answer(correct) {
+    if (!currentItem) return;
+    const latencyMs = Date.now() - currentItem.t0;
+    const typed = (document.getElementById('aiAnswer')?.value || '').trim();
+    learner.prior_attempts += 1;
+    if (correct) learner.prior_correct += 1;
+    history.unshift({ id: currentItem.id, p: currentItem.predicted, correct, latencyMs, typed });
+    document.getElementById('aiHistory').innerHTML = '<strong>Recent:</strong> ' + history.slice(0, 5).map(h => `${h.id}${h.typed ? ' · “' + h.typed.replace(/[<>&]/g,'') + '”' : ''} · pred ${(h.p*100).toFixed(0)}% · ${h.correct ? '<span style=\"color:var(--teal);\">✓</span>' : '<span style=\"color:var(--orange-dark);\">✗</span>'}`).join(' &nbsp;|&nbsp; ');
+    // Persist to Postgres via API.
+    try {
+      await fetch('/api/learner/attempt', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ itemId: currentItem.id, difficulty: currentItem.difficulty, predicted: currentItem.predicted, correct, latencyMs })
+      });
+    } catch (e) { /* swallow */ }
+    next();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadModel);
+  } else {
+    loadModel();
+  }
+  return { next, answer };
+})();
+</script>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
   <div class="modal lg" role="dialog" aria-label="Study sheets">
     <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>

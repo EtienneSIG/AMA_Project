@@ -1,10 +1,18 @@
-// Azure AI Content Safety — gate every generated output.
+// Azure AI Content Safety — gate every generated input/output.
+// PE bound to privatelink.cognitiveservices.azure.com. Local key auth is force-disabled by
+// the subscription Azure Policy (CognitiveServices_LocalAuth_Modify), so the App Service
+// apps authenticate with their system-assigned managed identity
+// (DefaultAzureCredential -> https://cognitiveservices.azure.com/.default) and the
+// "Cognitive Services User" role granted in app-service.bicep.
 
 param envName string
 param location string
 param tags object
 param peSubnetId string
 param logAnalyticsId string
+
+@description('Resource ID of the privatelink.cognitiveservices.azure.com private DNS zone.')
+param csPrivateDnsZoneId string
 
 var name = 'cs-${envName}-${uniqueString(resourceGroup().id)}'
 
@@ -40,6 +48,19 @@ resource pe 'Microsoft.Network/privateEndpoints@2024-01-01' = {
   }
 }
 
+resource peDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-01-01' = {
+  parent: pe
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'cs'
+        properties: { privateDnsZoneId: csPrivateDnsZoneId }
+      }
+    ]
+  }
+}
+
 resource diag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   scope: cs
   name: 'to-law'
@@ -52,3 +73,4 @@ resource diag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 
 output endpoint string = cs.properties.endpoint
 output id string = cs.id
+output accountName string = cs.name

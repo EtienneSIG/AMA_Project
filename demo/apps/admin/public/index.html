@@ -125,6 +125,69 @@
 
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Recent connections <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/connections · Postgres</span></h2>
+      <button class="btn secondary" onclick="loadConnLogs()">Reload</button>
+    </div>
+    <div id="conn-table">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Recent asks <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/asks · Postgres</span></h2>
+      <button class="btn secondary" onclick="loadAskLogs()">Reload</button>
+    </div>
+    <div id="ask-table">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Saved sheets per portal <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/sheets · Postgres</span></h2>
+      <button class="btn secondary" onclick="loadSheetLogs()">Reload</button>
+    </div>
+    <div id="sheet-table">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Content Safety <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/cs/* · Azure AI Content Safety</span></h2>
+      <span id="cs-status" class="badge">…</span>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.5rem 0;">
+      <input id="cs-test-input" placeholder="Type text to scan…" style="flex:1 1 320px;padding:.5rem .7rem;border-radius:8px;border:1px solid var(--line);font-family:inherit;" />
+      <button class="btn" onclick="csTest()">Scan now</button>
+    </div>
+    <pre id="cs-test-result" style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:.6rem;font-size:.78rem;max-height:160px;overflow:auto;">{ }</pre>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Recent verdicts</h3>
+    <div id="cs-recent">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>ONNX adaptive model <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/onnx/* · client-side inference in learner-web</span></h2>
+      <button class="btn secondary" onclick="loadOnnx()">Reload</button>
+    </div>
+    <div id="onnx-status" style="margin:.4rem 0;font-size:.85rem;color:var(--grey);">…</div>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Per-learner accuracy</h3>
+    <div id="onnx-stats">Loading…</div>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Recent attempts</h3>
+    <div id="onnx-attempts">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Reference data <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/data/* · Postgres-backed seed catalogue</span></h2>
+      <button class="btn secondary" onclick="loadDataPanels()">Reload</button>
+    </div>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Curricula</h3>
+    <div id="data-curricula">Loading…</div>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Glossary</h3>
+    <div id="data-glossary">Loading…</div>
+    <h3 style="margin:.8rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Synthetic learners</h3>
+    <div id="data-learners">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
       <div>
         <button class="btn secondary" onclick="refreshAll()">Refresh all</button>
@@ -282,8 +345,172 @@ async function loadDeployments() {
   loadUsers();
   loadItems();
   loadDeployments();
-  setInterval(() => { loadCards(); loadItems(); }, 30000);
+  loadConnLogs();
+  loadAskLogs();
+  loadSheetLogs();
+  loadCs();
+  loadOnnx();
+  loadDataPanels();
+  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); }, 30000);
 })();
+
+// ---- Content Safety panel ---------------------------------------------------
+async function loadCs() {
+  try {
+    const j = await (await fetch('/api/admin/cs/status', { cache:'no-store' })).json();
+    const badge = document.getElementById('cs-status');
+    badge.className = 'badge ' + (j.configured ? 'ok' : 'err');
+    badge.textContent = j.configured ? `enabled · threshold ${j.threshold}` : 'not configured';
+  } catch (e) { /* ignore */ }
+  try {
+    const j = await (await fetch('/api/admin/cs/recent?limit=30', { cache:'no-store' })).json();
+    const el = document.getElementById('cs-recent');
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No verdicts yet.</em>'; return; }
+    const rows = j.rows.map(r => `
+      <tr>
+        <td style="white-space:nowrap;font-size:.78rem;color:var(--grey);">${new Date(r.created_at).toLocaleString()}</td>
+        <td>${escapeHtml(r.app)}</td>
+        <td>${escapeHtml(r.email)}</td>
+        <td>${escapeHtml(r.direction)}</td>
+        <td><span class="badge ${r.blocked?'err':'ok'}">${r.blocked?'BLOCKED':'allowed'}</span></td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;">H${r.hate ?? '-'} · S${r.self_harm ?? '-'} · X${r.sexual ?? '-'} · V${r.violence ?? '-'}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>App</th><th>Email</th><th>Dir</th><th>Verdict</th><th>Severities (Hate · SelfHarm · Sexual · Violence)</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { /* ignore */ }
+}
+async function csTest() {
+  const el = document.getElementById('cs-test-result');
+  const text = document.getElementById('cs-test-input').value;
+  if (!text) { el.textContent = 'Type something first.'; return; }
+  el.textContent = 'Scanning…';
+  try {
+    const r = await fetch('/api/admin/cs/test', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    el.textContent = JSON.stringify(await r.json(), null, 2);
+  } catch (e) { el.textContent = String(e); }
+}
+
+// ---- ONNX panel -------------------------------------------------------------
+async function loadOnnx() {
+  try {
+    const s = await (await fetch('/api/admin/onnx/status', { cache:'no-store' })).json();
+    document.getElementById('onnx-status').innerHTML = `Model URL: <code>${escapeHtml(s.expectedUrl)}</code> &nbsp;·&nbsp; ${escapeHtml(s.note)}`;
+  } catch (e) { /* */ }
+  try {
+    const j = await (await fetch('/api/admin/onnx/stats', { cache:'no-store' })).json();
+    const el = document.getElementById('onnx-stats');
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; }
+    else if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No attempts yet — open the learner-web app and try the adaptive picker.</em>'; }
+    else {
+      const rows = j.rows.map(r => `<tr><td>${escapeHtml(r.email)}</td><td style="text-align:right;">${r.total}</td><td style="text-align:right;">${r.correct}</td><td style="text-align:right;">${r.total ? Math.round(100*r.correct/r.total) : 0}%</td><td style="text-align:right;font-family:ui-monospace,monospace;">${r.avg_predicted ?? '-'}</td></tr>`).join('');
+      el.innerHTML = `<table class="adm"><thead><tr><th>Email</th><th style="text-align:right;">Attempts</th><th style="text-align:right;">Correct</th><th style="text-align:right;">Accuracy</th><th style="text-align:right;">Avg P(correct)</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+  } catch (e) { /* */ }
+  try {
+    const j = await (await fetch('/api/admin/onnx/attempts?limit=30', { cache:'no-store' })).json();
+    const el = document.getElementById('onnx-attempts');
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No attempts yet.</em>'; return; }
+    const rows = j.rows.map(r => `<tr><td style="white-space:nowrap;font-size:.78rem;color:var(--grey);">${new Date(r.created_at).toLocaleString()}</td><td>${escapeHtml(r.email)}</td><td>${escapeHtml(r.item_id)}</td><td style="text-align:right;font-family:ui-monospace,monospace;">${r.difficulty ?? '-'}</td><td style="text-align:right;font-family:ui-monospace,monospace;">${r.predicted ?? '-'}</td><td><span class="badge ${r.correct?'ok':'err'}">${r.correct?'✓':'✗'}</span></td><td style="text-align:right;font-family:ui-monospace,monospace;">${r.latency_ms ?? '-'}\u202fms</td></tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>Email</th><th>Item</th><th style="text-align:right;">Diff</th><th style="text-align:right;">Pred</th><th>Result</th><th style="text-align:right;">Latency</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { /* */ }
+}
+
+// ---- Reference data panels --------------------------------------------------
+async function loadDataPanels() {
+  await Promise.all([
+    loadCurricula(), loadGlossary(), loadLearners()
+  ]);
+}
+async function loadCurricula() {
+  const el = document.getElementById('data-curricula');
+  try {
+    const j = await (await fetch('/api/admin/data/curricula', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    if (!j.rows.length) { el.innerHTML = '<em>No curricula seeded yet.</em>'; return; }
+    const rows = j.rows.map(r => `<tr><td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.country)}</td><td>${escapeHtml(r.framework)}</td><td>${r.grade}</td><td>${escapeHtml(r.title)}</td></tr>`).join('');
+    el.innerHTML = `<div style="font-size:.78rem;color:var(--grey);margin-bottom:.3rem;">${j.count} competencies</div><table class="adm"><thead><tr><th>ID</th><th>Country</th><th>Framework</th><th>Grade</th><th>Title</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+async function loadGlossary() {
+  const el = document.getElementById('data-glossary');
+  try {
+    const j = await (await fetch('/api/admin/data/glossary', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    if (!j.rows.length) { el.innerHTML = '<em>No glossary terms seeded yet.</em>'; return; }
+    const rows = j.rows.slice(0, 50).map(r => `<tr><td>${escapeHtml(r.language)}</td><td>${escapeHtml(r.source)}</td><td>${escapeHtml(r.target)}</td><td style="font-size:.78rem;color:var(--grey);">${escapeHtml(r.context||'')}</td></tr>`).join('');
+    el.innerHTML = `<div style="font-size:.78rem;color:var(--grey);margin-bottom:.3rem;">${j.count} terms (showing 50)</div><table class="adm"><thead><tr><th>Lang</th><th>Source</th><th>Target</th><th>Context</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+async function loadLearners() {
+  const el = document.getElementById('data-learners');
+  try {
+    const j = await (await fetch('/api/admin/data/learners', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    const rows = (j.rows || []).map(r => `<tr><td>${escapeHtml(r.market)}</td><td>${r.grade}</td><td style="text-align:right;">${r.count}</td><td style="text-align:right;">${r.avg_decile}</td><td style="text-align:right;">${r.sen_count}</td></tr>`).join('');
+    el.innerHTML = `<div style="font-size:.78rem;color:var(--grey);margin-bottom:.3rem;">${j.totalLearners} synthetic learners total</div><table class="adm"><thead><tr><th>Market</th><th>Grade</th><th style="text-align:right;">Count</th><th style="text-align:right;">Avg decile</th><th style="text-align:right;">SEN</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadConnLogs() {
+  const el = document.getElementById('conn-table');
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/logs/connections?limit=50', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured (PG_HOST unset).</em>'; return; }
+    if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No events yet.</em>'; return; }
+    const rows = j.rows.map(r => `
+      <tr>
+        <td style="white-space:nowrap;font-size:.78rem;color:var(--grey);">${new Date(r.created_at).toLocaleString()}</td>
+        <td>${escapeHtml(r.app)}</td>
+        <td><span class="badge ${escapeHtml(r.event)==='login_failed'||escapeHtml(r.event)==='forbidden'?'err':'ok'}">${escapeHtml(r.event)}</span></td>
+        <td>${escapeHtml(r.email)}</td>
+        <td>${escapeHtml(r.role)}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--grey);">${escapeHtml(r.ip||'-')}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--grey);">${escapeHtml((r.detail||'').slice(0,80))}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>App</th><th>Event</th><th>Email</th><th>Role</th><th>IP</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadAskLogs() {
+  const el = document.getElementById('ask-table');
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/logs/asks?limit=30', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured (PG_HOST unset).</em>'; return; }
+    if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No asks yet.</em>'; return; }
+    const rows = j.rows.map(r => `
+      <tr>
+        <td style="white-space:nowrap;font-size:.78rem;color:var(--grey);">${new Date(r.created_at).toLocaleString()}</td>
+        <td>${escapeHtml(r.app)}</td>
+        <td>${escapeHtml(r.email)}</td>
+        <td><span class="badge ${r.status===200?'ok':'err'}">${r.status}</span></td>
+        <td style="text-align:right;font-family:ui-monospace,monospace;font-size:.78rem;">${r.total_tokens ?? '-'}</td>
+        <td style="text-align:right;font-family:ui-monospace,monospace;font-size:.78rem;">${r.latency_ms ?? '-'} ms</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--grey);max-width:32rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.prompt_preview||'')}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>App</th><th>Email</th><th>Status</th><th style="text-align:right;">Tokens</th><th style="text-align:right;">Latency</th><th>Prompt preview</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadSheetLogs() {
+  const el = document.getElementById('sheet-table');
+  el.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/logs/sheets', { cache:'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<em>Postgres not configured (PG_HOST unset).</em>'; return; }
+    if (!j.rows || !j.rows.length) { el.innerHTML = '<em>No sheets persisted yet.</em>'; return; }
+    const rows = j.rows.map(r => `
+      <tr>
+        <td>${escapeHtml(r.app)}</td>
+        <td>${escapeHtml(r.role)}</td>
+        <td style="text-align:right;font-family:ui-monospace,monospace;">${r.sheet_count}</td>
+        <td style="font-size:.78rem;color:var(--grey);">${r.last_created ? new Date(r.last_created).toLocaleString() : '-'}</td>
+      </tr>`).join('');
+    el.innerHTML = `<table class="adm"><thead><tr><th>App</th><th>Role</th><th style="text-align:right;">Sheets</th><th>Last created</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
 </script>
 </body>
 </html>

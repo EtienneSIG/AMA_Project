@@ -5,6 +5,8 @@
 const express = require('express');
 const path = require('path');
 const auth = require('./auth');
+const db = require('./db');
+const cs = require('./contentSafety');
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
@@ -12,11 +14,15 @@ app.use(express.json({ limit: '64kb' }));
 const ROLE_INFER = { 'app-learner-web': 'student', 'app-parent-portal': 'parent', 'app-teacher-console': 'teacher', 'app-admin': 'admin' };
 const inferred = Object.entries(ROLE_INFER).find(([k]) => (process.env.WEBSITE_SITE_NAME || '').includes(k));
 const APP_ROLE = process.env.APP_ROLE || (inferred ? inferred[1] : 'student');
+const APP_NAME = process.env.APP_NAME || APP_ROLE;
 const ALLOWED = [APP_ROLE, 'admin'];
 
 const APIM = (process.env.APIM_GATEWAY_URL || '').replace(/\/$/, '');
 const KEY  = process.env.APIM_SUBSCRIPTION_KEY || '';
 const DEP  = process.env.AOAI_DEPLOYMENT_NAME || 'gpt-5.4-nano';
+
+// Fire-and-forget DB schema init (non-blocking).
+db.init().then(ok => { if (ok) console.log(`[${APP_ROLE}] db ready`); }).catch(() => {});
 
 auth.mountAuth(app, { allowedRoles: ALLOWED });
 
@@ -29,6 +35,8 @@ app.get('/api/health', (_req, res) => {
     keyConfigured: Boolean(KEY) && !KEY.startsWith('@Microsoft.KeyVault'),
     deployment: DEP,
     region: process.env.REGION_NAME || 'westeurope',
+    db: { enabled: db.enabled, host: process.env.PG_HOST || null, database: process.env.PG_DATABASE || null },
+    contentSafety: { enabled: cs.enabled, threshold: cs.threshold },
     stats
   });
 });
@@ -73,14 +81,24 @@ app.post('/api/chat', async (req, res) => {
   if (KEY.startsWith('@Microsoft.KeyVault')) return res.status(503).json({ error: 'Key Vault reference not yet resolved by App Service. Restart the app.' });
 
   const u = req.user;
+  const userPrompt = String(req.body?.prompt || 'Say hello.');
+
+  // 1. Content Safety on the user prompt (input scan).
+  const inputScan = await cs.analyze(userPrompt);
+  if (inputScan.ran && inputScan.blocked) {
+    db.logContentSafety({ email: u.email, app: APP_NAME, direction: 'input', blocked: true, severities: inputScan.severities, raw: inputScan.raw }).catch(() => {});
+    return res.status(400).json({ error: 'input_blocked', detail: 'Your prompt was flagged by Azure AI Content Safety.', severities: inputScan.severities, threshold: inputScan.threshold });
+  }
+
   const body = {
     messages: [
       { role: 'system', content: buildSystemPrompt(u) },
-      { role: 'user', content: String(req.body?.prompt || 'Say hello.') }
+      { role: 'user', content: userPrompt }
     ],
     max_completion_tokens: Math.min(Number(req.body?.max_tokens) || 500, 1500)
   };
   const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
+  const t0 = Date.now();
   try {
     const r = await fetch(url, {
       method: 'POST',
@@ -88,23 +106,94 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify(body)
     });
     const ct = r.headers.get('content-type') || '';
+    const latency = Date.now() - t0;
     if (!r.ok || !ct.includes('application/json')) {
       const text = await r.text();
+      const askId = await db.logAsk({ email: u.email, role: u.role, app: APP_NAME, prompt: userPrompt, answer: '', model: DEP, usage: null, latencyMs: latency, status: r.status, error: text.slice(0, 500) }).catch(() => null);
+      if (inputScan.ran) db.logContentSafety({ askId, email: u.email, app: APP_NAME, direction: 'input', blocked: false, severities: inputScan.severities, raw: inputScan.raw }).catch(() => {});
       return res.status(r.status).type(ct || 'application/json').send(text);
     }
     const data = await r.json();
+    const answer = data?.choices?.[0]?.message?.content ?? '';
+    const usage = data?.usage && {
+      prompt_tokens: data.usage.prompt_tokens,
+      completion_tokens: data.usage.completion_tokens,
+      total_tokens: data.usage.total_tokens
+    };
+
+    // 2. Content Safety on the model answer (output scan).
+    const outputScan = await cs.analyze(answer);
+    const finalAnswer = outputScan.blocked
+      ? '_(Cette réponse a été bloquée par Azure AI Content Safety. Reformulez votre question.)_'
+      : answer;
+    const status = outputScan.blocked ? 451 : 200;
+
+    const askId = await db.logAsk({ email: u.email, role: u.role, app: APP_NAME, prompt: userPrompt, answer: finalAnswer, model: data?.model || DEP, usage, latencyMs: latency, status }).catch(() => null);
+    if (inputScan.ran) db.logContentSafety({ askId, email: u.email, app: APP_NAME, direction: 'input', blocked: false, severities: inputScan.severities, raw: inputScan.raw }).catch(() => {});
+    if (outputScan.ran) db.logContentSafety({ askId, email: u.email, app: APP_NAME, direction: 'output', blocked: Boolean(outputScan.blocked), severities: outputScan.severities, raw: outputScan.raw }).catch(() => {});
+
     res.json({
-      answer: data?.choices?.[0]?.message?.content ?? '',
+      answer: finalAnswer,
       model: data?.model,
-      usage: data?.usage && {
-        prompt_tokens: data.usage.prompt_tokens,
-        completion_tokens: data.usage.completion_tokens,
-        total_tokens: data.usage.total_tokens
-      }
+      usage,
+      contentSafety: cs.enabled ? {
+        input: { severities: inputScan.severities, blocked: false },
+        output: { severities: outputScan.severities, blocked: Boolean(outputScan.blocked) },
+        threshold: cs.threshold
+      } : null
     });
   } catch (err) {
+    db.logAsk({ email: u && u.email, role: u && u.role, app: APP_NAME, prompt: userPrompt, answer: '', model: DEP, usage: null, latencyMs: Date.now() - t0, status: 502, error: String(err) }).catch(() => {});
     res.status(502).json({ error: 'upstream error', detail: String(err) });
   }
+});
+
+// --- Reference data (read-only, role-gated already by middleware) ----------
+app.get('/api/data/curricula', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listCurricula({ country: req.query.country, subject: req.query.subject });
+  res.json({ enabled: true, rows: rows || [] });
+});
+app.get('/api/data/glossary', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listGlossary({ language: req.query.language });
+  res.json({ enabled: true, rows: rows || [] });
+});
+app.get('/api/data/learners', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.summariseLearners();
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Admin-only: force a re-seed of curricula / glossary / learners from packaged data.
+// Idempotent (uses ON CONFLICT). Returns row counts before and after.
+app.post('/api/data/reseed', async (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  try {
+    const out = await db.reseedReferenceData();
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+  }
+});
+
+// --- Adaptive ONNX feedback loop -------------------------------------------
+// Front-end runs onnxruntime-web, picks an item, asks the user, then POSTs the result here.
+app.post('/api/learner/attempt', async (req, res) => {
+  const u = req.user;
+  const { itemId, difficulty, predicted, correct, latencyMs, pseudonym } = req.body || {};
+  if (!itemId) return res.status(400).json({ error: 'itemId required' });
+  await db.logItemAttempt({ email: u.email, pseudonym, itemId, difficulty: Number(difficulty), predicted: Number(predicted), correct: Boolean(correct), latencyMs: Number(latencyMs) }).catch(() => {});
+  res.json({ ok: true, store: db.enabled ? 'postgres' : 'memory' });
+});
+app.get('/api/learner/attempts', async (req, res) => {
+  const u = req.user;
+  const rows = await db.recentAttempts({ email: u.email, limit: 50 });
+  res.json({ enabled: db.enabled, rows: rows || [] });
+});
+app.get('/api/learner/persona', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, persona: null });
+  const persona = await db.pickRandomLearner({ market: 'DE' });
+  res.json({ enabled: true, persona });
 });
 
 const port = process.env.PORT || 8080;

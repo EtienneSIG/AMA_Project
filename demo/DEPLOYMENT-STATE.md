@@ -20,47 +20,16 @@
 | 2 | `azd provision` (Bicep apply) | ✅ | gpt-5.4-nano @ 50K TPM GlobalStandard |
 | 3 | Post-provision verification | ✅ | APIM diag fixed in Bicep, all PNA Disabled except APIM |
 | 4-A | APIM ↔ AOAI Bicep wiring | ✅ | Backend, API `/aoai`, product `learneu-demo`, KV secret `apim-subscription-key` |
-| 4-B | App Service + 3 apps deploy | ⏳ | Bicep ✅. learner-web zip uploaded but **MODULE_NOT_FOUND** at runtime (see Active Issue) |
-| 5 | Seed curricula + 50 synthetic learners | ❌ | not started |
-| 6 | Acceptance tests (9 criteria) | ❌ | not started |
-| 7 | `DEPLOYMENT-REPORT.md` | ❌ | not started |
+| 4-B | App Service + 4 apps deploy | ✅ | learner-web, parent-portal, teacher-console, admin — all live; sign-in + /api/chat green |
+| 5 | Seed curricula + 50 synthetic learners | ✅ | curricula=6, glossary=14, learners=50. pgcrypto allow-listed + admin `/api/data/reseed` endpoint added |
+| 6 | Acceptance tests (11 criteria) | ✅ | 5 PASS · 4 PARTIAL · 2 SKIP · 0 FAIL — see `.deploy/acceptance-last.txt` |
+| 7 | `DEPLOYMENT-REPORT.md` | ✅ | See `DEPLOYMENT-REPORT.md` |
 
 ---
 
 ## Active issue (resume here)
 
-**learner-web returns Azure "Application Error"** — Node crashes with `MODULE_NOT_FOUND` (cannot find `express`).
-
-**Root cause**: azd sets `WEBSITE_RUN_FROM_PACKAGE=1` on the site, which mounts the deployed zip read-only. The zip uploaded by azd does **not** include `node_modules`, and Oryx (`SCM_DO_BUILD_DURING_DEPLOYMENT=true`) is **skipped** when run-from-package is on. Result: `require('express')` fails.
-
-**Fix path chosen**: disable run-from-package so SCM unpacks the zip and Oryx runs `npm install`.
-
-**Resume commands**:
-```pwsh
-cd C:\Users\esigwald\Documents\03_Dev\200_AMA\AMA\AMA_Project\demo
-
-# 1. Override run-from-package on all 3 sites
-foreach ($a in 'app-learner-web-learneu-demo','app-parent-portal-learneu-demo','app-teacher-console-learneu-demo') {
-  az webapp config appsettings set -n $a -g rg-learneu-demo --settings WEBSITE_RUN_FROM_PACKAGE=0 SCM_DO_BUILD_DURING_DEPLOYMENT=true ENABLE_ORYX_BUILD=true | Out-Null
-  Write-Host "patched $a"
-}
-
-# 2. Redeploy all 3 services
-azd deploy --no-prompt
-
-# 3. Smoke test
-foreach ($u in 'https://app-learner-web-learneu-demo.azurewebsites.net/api/health',
-               'https://app-parent-portal-learneu-demo.azurewebsites.net/api/health',
-               'https://app-teacher-console-learneu-demo.azurewebsites.net/api/health') {
-  try { $r = Invoke-RestMethod -Uri $u -TimeoutSec 60; "OK $u → $($r | ConvertTo-Json -Compress)" }
-  catch { "FAIL $u → $($_.Exception.Message)" }
-}
-```
-
-If still failing, read logs:
-```pwsh
-az webapp log tail -n app-learner-web-learneu-demo -g rg-learneu-demo --provider application
-```
+_None — all stages green._
 
 ---
 

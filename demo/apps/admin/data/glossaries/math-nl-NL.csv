@@ -1,0 +1,8 @@
+source,target,context
+fraction,breuk,nl-NL math
+numerator,teller,nl-NL math
+denominator,noemer,nl-NL math
+equivalent fraction,gelijkwaardige breuk,nl-NL math
+simplify,vereenvoudigen,nl-NL math
+add,optellen,nl-NL math
+subtract,aftrekken,nl-NL math

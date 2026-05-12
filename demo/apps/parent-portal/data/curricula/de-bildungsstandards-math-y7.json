@@ -1,0 +1,24 @@
+{
+  "country": "DE",
+  "framework": "Bildungsstandards",
+  "grade": 7,
+  "subject": "math",
+  "version": "KMK-2022",
+  "competencies": [
+    {
+      "id": "DE-MATH-Y7-BRU-01",
+      "title": "Bruchverständnis",
+      "description": "Die Schülerin / der Schüler benennt Zähler und Nenner und vergleicht einfache Brüche mithilfe von Kreis- und Streifenmodellen."
+    },
+    {
+      "id": "DE-MATH-Y7-BRU-02",
+      "title": "Addition und Subtraktion gleichnamiger Brüche",
+      "description": "Brüche mit gleichem Nenner addieren und subtrahieren."
+    },
+    {
+      "id": "DE-MATH-Y7-BRU-03",
+      "title": "Äquivalente Brüche",
+      "description": "Äquivalente Brüche erkennen und kürzen."
+    }
+  ]
+}

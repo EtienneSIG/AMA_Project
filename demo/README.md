@@ -14,7 +14,7 @@ Layout:
 
 ```
 demo/
-├── azure.yaml                   # azd entrypoint
+├── azure.yaml                   # azd entrypoint (4 services: parent-portal, learner-web, teacher-console, admin)
 ├── infra/                       # Bicep — single subscription deployment
 │   ├── main.bicep               # subscription-scope; creates RG + modules
 │   └── modules/
@@ -26,13 +26,21 @@ demo/
 │       ├── content-safety.bicep
 │       ├── aml-workspace.bicep
 │       ├── apim.bicep
+│       ├── app-service.bicep        # 4 web apps; PG_* env vars + KV refs injected
+│       ├── postgres.bicep           # Postgres Flex B1ms, PE, password -> Key Vault
+│       ├── private-dns.bicep        # azure-api.net + privatelink zones (KV, AOAI, Postgres)
 │       ├── purview.bicep
 │       └── fabric-capacity.bicep
 ├── data/                        # Synthetic personas + curricula + glossaries
 ├── ml/                          # Adaptive + assessment models
 ├── pipelines/                   # Localisation, content safety, continuous eval
-├── apps/                        # Parent / Teacher / Learner web apps
-└── scripts/                     # seed_curricula, seed_learners, run_demo
+├── apps/                        # Parent / Teacher / Learner / Admin web apps
+│   ├── _shared/                 # Canonical auth.js, server.js, login.html, db/{index.js,schema.sql}; sync.ps1 propagates to each app
+│   ├── admin/                   # Operator console (ARM + Postgres-backed audit panels)
+│   ├── learner-web/
+│   ├── parent-portal/
+│   └── teacher-console/
+└── scripts/                     # seed_curricula, seed_learners, run_demo, acceptance_tests
 ```
 
 Modules marked **`STUB`** in their header are skeletons with the right surface (params/outputs) but minimal implementation — fill in before `azd up`.

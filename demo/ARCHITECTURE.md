@@ -16,10 +16,10 @@ architecture-beta
   service tc(internet)[teacher console] in apps
   service adm(internet)[admin] in apps
 
-  group rg(cloud)[RG rg-learneu-demo westeurope]
+  group rg(cloud)[RG learneu demo westeurope]
   service apim(cloud)[APIM internal VNet] in rg
   service kv(disk)[Key Vault] in rg
-  service aoai(server)[Azure OpenAI gpt-5.4-nano] in rg
+  service aoai(server)[Azure OpenAI gpt 5 4 nano] in rg
   service cs(server)[Content Safety] in rg
   service srch(server)[AI Search] in rg
   service aml(database)[Azure ML mlw HBI] in rg
@@ -27,9 +27,10 @@ architecture-beta
   service sa(database)[Storage AML] in rg
   service law(cloud)[Log Analytics] in rg
   service appi(cloud)[App Insights] in rg
-  service vnet(server)[VNet 10.42.0.0 16 PE+APIM+AML subnets] in rg
+  service vnet(server)[VNet 10 42 0 0 16 with PE APIM AML subnets] in rg
+  service pg(database)[Postgres Flex B1ms learneu db] in rg
 
-  group gated(cloud)[NOT DEPLOYED]
+  group gated(cloud)[NOT DEPLOYED group]
   service prv(cloud)[Purview] in gated
   service fab(cloud)[Fabric F2] in gated
 
@@ -57,6 +58,11 @@ architecture-beta
   aml:T --> B:acr
 
   vnet:B --> T:aml
+  lw:R --> L:pg
+  pp:R --> L:pg
+  tc:R --> L:pg
+  adm:R --> L:pg
+  pg:B --> T:law
 ```
 
 ## Notes
@@ -65,6 +71,7 @@ architecture-beta
 - **EU residency:** all resources in `westeurope`. EU-only allowlist enforced in `infra/main.bicep`.
 - **Identity split:** workforce tenant for staff (Teacher), CIAM tenant `learneu` for end users (Learner, Parent), per Case Study 33 §4.3.
 - **Model:** OpenAI `gpt-5.4-nano` version `2026-03-17` (reasoning, 400K context window), GlobalStandard, 50K TPM (Plan B — no PTU available in West Europe at deployment time). Confirmed available in West Europe per Microsoft Learn region table (April 2026).
+- **App data store:** Azure Database for PostgreSQL Flexible Server (`pg-learneu-demo`), Burstable B1ms, PostgreSQL 16, 32 GB, public access disabled, private endpoint in `snet-pe`, TLS required. Three tables: `connection_logs`, `ask_history`, `sheets`. Admin password generated at deploy time and stored in Key Vault as `pg-admin-password` — every App Service consumes it via `@Microsoft.KeyVault` reference. Auto-applied schema lives in `apps/_shared/db/schema.sql`.
 
 ## How to render
 - VS Code with the Mermaid preview extension, or

@@ -107,6 +107,20 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
           ]
         }
       }
+      {
+        // Subnet dédié au Fabric Virtual Network Data Gateway (mirroring Postgres).
+        // Microsoft.PowerPlatform/vnetaccesslinks délégation requise. Min /27.
+        name: 'snet-fabric-gw'
+        properties: {
+          addressPrefix: '10.42.9.0/27'
+          delegations: [
+            {
+              name: 'fabric-vnet-dg'
+              properties: { serviceName: 'Microsoft.PowerPlatform/vnetaccesslinks' }
+            }
+          ]
+        }
+      }
     ]
   }
 }
@@ -117,3 +131,4 @@ output apimSubnetId string = '${vnet.id}/subnets/snet-apim'
 output amlSubnetId string = '${vnet.id}/subnets/snet-aml'
 output aksSubnetId string = '${vnet.id}/subnets/snet-aks'
 output appsSubnetId string = '${vnet.id}/subnets/snet-apps'
+output fabricGwSubnetId string = '${vnet.id}/subnets/snet-fabric-gw'
