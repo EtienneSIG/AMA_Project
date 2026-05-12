@@ -198,6 +198,44 @@
     <p>EU-region inference, GDPR Art. 8 minimisation, and a child-safe interface — powered by ONNX Runtime Web and the EdTech Group LearnEU stack.</p>
   </div>
 </section>
+<section style="max-width:1320px;margin:1rem auto 1rem;padding:0 1.5rem;">
+  <div class="card" id="adaptiveCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">
+      <div>
+        <h2 style="margin:0;">Adaptive item picker <span id="adaptiveBadge" style="font-size:.72rem;background:var(--teal);color:#fff;padding:.15rem .5rem;border-radius:999px;font-weight:600;vertical-align:middle;">ONNX · client-side</span></h2>
+        <p class="sub" style="margin:.3rem 0 0;">A small AI model picks one math question matched to your level. <strong>Solve it on paper</strong>, type your answer on the right, then tell us if you got it. Everything runs in your browser — your work never leaves the device until you click a button.</p>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn secondary" onclick="adaptive.next()" title="Skip this question and pick a new one">Skip · Next item</button>
+      </div>
+    </div>
+    <div id="adaptiveStatus" style="margin-top:.6rem;font-size:.85rem;color:var(--grey);">Loading model…</div>
+    <div id="adaptiveItem" style="display:none;">
+      <div class="ai-grid">
+        <div class="ai-col">
+          <span class="ai-step">1 ·  Solve this question</span>
+          <h3>Solve this question</h3>
+          <p class="ai-hint">Work it out on paper or in your head. There’s no time limit.</p>
+          <div class="ai-question" id="aiQuestion">…</div>
+          <div class="ai-meta">Item <code id="aiItemId">—</code> · difficulty <code id="aiItemDiff">—</code> · model thinks you’ll succeed with <code id="aiItemPred">—</code> probability</div>
+        </div>
+        <div class="ai-col">
+          <span class="ai-step">2 · Your answer</span>
+          <h3>Type your answer</h3>
+          <p class="ai-hint">Then mark whether you got it. The model uses your feedback to pick the next item.</p>
+          <input type="text" class="ai-answer" id="aiAnswer" placeholder="e.g. 3/4   or   1.25" autocomplete="off" />
+          <div class="ai-actions">
+            <button class="btn" onclick="adaptive.answer(true)">I got it ✓</button>
+            <button class="btn secondary" onclick="adaptive.answer(false)">Not yet ✗</button>
+          </div>
+          <p class="ai-help"><strong>Tip:</strong> Don’t worry about perfect formatting — just be honest. “I got it” teaches the model to try a slightly harder one next; “Not yet” asks for an easier review.</p>
+        </div>
+      </div>
+      <div id="aiHistory" style="margin-top:.9rem;font-size:.78rem;color:var(--grey);"></div>
+    </div>
+  </div>
+</section>
+
 <main class="grid2">
   <div class="card askcol">
     <h2>Ask</h2>
@@ -224,43 +262,6 @@
   </div>
 </main>
 
-<section style="max-width:1320px;margin:1rem auto 3rem;padding:0 1.5rem;">
-  <div class="card" id="adaptiveCard">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">
-      <div>
-        <h2 style="margin:0;">Adaptive item picker <span id="adaptiveBadge" style="font-size:.72rem;background:var(--teal);color:#fff;padding:.15rem .5rem;border-radius:999px;font-weight:600;vertical-align:middle;">ONNX · client-side</span></h2>
-        <p class="sub" style="margin:.3rem 0 0;">A small AI model picks one math question matched to your level. <strong>Solve it on paper</strong>, type your answer on the right, then tell us if you got it. Everything runs in your browser — your work never leaves the device until you click a button.</p>
-      </div>
-      <div style="display:flex;gap:.5rem;">
-        <button class="btn secondary" onclick="adaptive.next()" title="Skip this question and pick a new one">Skip · Next item</button>
-      </div>
-    </div>
-    <div id="adaptiveStatus" style="margin-top:.6rem;font-size:.85rem;color:var(--grey);">Loading model…</div>
-    <div id="adaptiveItem" style="display:none;">
-      <div class="ai-grid">
-        <div class="ai-col">
-          <span class="ai-step">1 · Example</span>
-          <h3>Solve this question</h3>
-          <p class="ai-hint">Work it out on paper or in your head. There’s no time limit.</p>
-          <div class="ai-question" id="aiQuestion">…</div>
-          <div class="ai-meta">Item <code id="aiItemId">—</code> · difficulty <code id="aiItemDiff">—</code> · model thinks you’ll succeed with <code id="aiItemPred">—</code> probability</div>
-        </div>
-        <div class="ai-col">
-          <span class="ai-step">2 · Your answer</span>
-          <h3>Type your answer</h3>
-          <p class="ai-hint">Then mark whether you got it. The model uses your feedback to pick the next item.</p>
-          <input type="text" class="ai-answer" id="aiAnswer" placeholder="e.g. 3/4   or   1.25" autocomplete="off" />
-          <div class="ai-actions">
-            <button class="btn" onclick="adaptive.answer(true)">I got it ✓</button>
-            <button class="btn secondary" onclick="adaptive.answer(false)">Not yet ✗</button>
-          </div>
-          <p class="ai-help"><strong>Tip:</strong> Don’t worry about perfect formatting — just be honest. “I got it” teaches the model to try a slightly harder one next; “Not yet” asks for an easier review.</p>
-        </div>
-      </div>
-      <div id="aiHistory" style="margin-top:.9rem;font-size:.78rem;color:var(--grey);"></div>
-    </div>
-  </div>
-</section>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 <script>
 // Adaptive item picker — loads learner.onnx and runs inference client-side.
