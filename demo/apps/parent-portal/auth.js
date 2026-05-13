@@ -213,7 +213,7 @@ function gateMiddleware(allowedRoles) {
   };
 }
 
-module.exports = { mountAuth, gateMiddleware, publicProfile, getStats };
+module.exports = { mountAuth, gateMiddleware, publicProfile, getStats, SEED_USERS };
 
 function getStats() {
   let sheetCount = 0;

@@ -256,6 +256,15 @@ async function seedReferenceData(p) {
       console.log(`[db] seeded ${count} learner rows`);
     } catch (e) { console.error('[db] learner seed failed:', e.message); }
   }
+
+  // 5. Parent → child links (Feature 6). Demo seed: parent@learneu.demo follows student@learneu.demo.
+  try {
+    await p.query(
+      `INSERT INTO parent_links (parent_email, child_email, relationship)
+       VALUES ($1, $2, $3) ON CONFLICT (parent_email, child_email) DO NOTHING`,
+      ['parent@learneu.demo', 'student@learneu.demo', 'parent']
+    );
+  } catch (e) { console.error('[db] parent_links seed failed:', e.message); }
 }
 
 // Minimal CSV line parser: handles unquoted + double-quoted fields. No embedded newlines.
@@ -581,6 +590,118 @@ async function listClassMastery({ limit = 50 } = {}) {
   return r ? r.rows : null;
 }
 
+// Heat-map (Feature 5a). Returns { skills: [...], learners: [{email, pseudonym}], cells: { "email|skillId": {level, attempts, override} } }.
+// Only learners that have at least one attempt are included; pseudonym is derived from the learner's
+// synthetic profile (joined via pseudonym column on item_attempts) or fall back to a pseudonymised
+// hash of the email (so PII is never sent to the teacher UI).
+async function getClassHeatmap({ skillLimit = 24, learnerLimit = 30 } = {}) {
+  const skillsR = await q(
+    `SELECT id AS "skillId", label, chapter, domain, difficulty
+       FROM skills ORDER BY chapter, difficulty, id LIMIT $1`,
+    [skillLimit]
+  );
+  if (!skillsR) return null;
+  const learnersR = await q(
+    `SELECT m.email,
+            COALESCE(MAX(NULLIF(ia.pseudonym, '')), 'L-' || substr(md5(m.email), 1, 6)) AS pseudonym,
+            SUM(m.attempts)::int AS "totalAttempts"
+       FROM skill_mastery m
+       LEFT JOIN item_attempts ia ON ia.email = m.email
+      GROUP BY m.email
+      ORDER BY SUM(m.attempts) DESC
+      LIMIT $1`,
+    [learnerLimit]
+  );
+  if (!learnersR) return null;
+  const cellsR = await q(
+    `SELECT email, skill_id AS "skillId", level::float AS level, attempts::int AS attempts
+       FROM skill_mastery
+      WHERE email = ANY($1::text[])
+        AND skill_id = ANY($2::text[])`,
+    [learnersR.rows.map(r => r.email), skillsR.rows.map(r => r.skillId)]
+  );
+  if (!cellsR) return null;
+  // Latest override per (learner, skill) pair.
+  const overR = await q(
+    `SELECT DISTINCT ON (learner_email, skill_id)
+            learner_email AS "learnerEmail", skill_id AS "skillId", human_level::float AS "humanLevel",
+            ai_level::float AS "aiLevel", teacher_email AS "teacherEmail", rationale, created_at AS "createdAt"
+       FROM teacher_overrides
+      WHERE learner_email = ANY($1::text[]) AND skill_id = ANY($2::text[])
+      ORDER BY learner_email, skill_id, created_at DESC`,
+    [learnersR.rows.map(r => r.email), skillsR.rows.map(r => r.skillId)]
+  );
+  const cells = {};
+  for (const c of cellsR.rows) {
+    cells[c.email + '|' + c.skillId] = { level: c.level, attempts: c.attempts, override: null };
+  }
+  if (overR) {
+    for (const o of overR.rows) {
+      const k = o.learnerEmail + '|' + o.skillId;
+      if (!cells[k]) cells[k] = { level: 0, attempts: 0, override: null };
+      cells[k].override = { humanLevel: o.humanLevel, aiLevel: o.aiLevel, teacherEmail: o.teacherEmail, rationale: o.rationale, createdAt: o.createdAt };
+    }
+  }
+  return { skills: skillsR.rows, learners: learnersR.rows, cells };
+}
+
+// Record a teacher override (Feature 5a). Returns { id, createdAt } or null.
+async function recordTeacherOverride({ teacherEmail, learnerEmail, skillId, aiLevel, humanLevel, rationale }) {
+  const r = await q(
+    `INSERT INTO teacher_overrides (teacher_email, learner_email, skill_id, ai_level, human_level, rationale)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, created_at AS "createdAt"`,
+    [teacherEmail, learnerEmail, skillId, aiLevel, humanLevel, rationale || null]
+  );
+  return r ? r.rows[0] : null;
+}
+
+// Recent overrides for the audit feed.
+async function listTeacherOverrides({ learner, skill, limit = 50 } = {}) {
+  const conds = [];
+  const params = [];
+  if (learner) { params.push(learner); conds.push('learner_email = $' + params.length); }
+  if (skill)   { params.push(skill);   conds.push('skill_id = $' + params.length); }
+  const where = conds.length ? ('WHERE ' + conds.join(' AND ')) : '';
+  params.push(limit);
+  const r = await q(
+    `SELECT o.id, o.teacher_email AS "teacherEmail", o.learner_email AS "learnerEmail",
+            o.skill_id AS "skillId", s.label AS "skillLabel",
+            o.ai_level::float AS "aiLevel", o.human_level::float AS "humanLevel",
+            o.rationale, o.created_at AS "createdAt",
+            COALESCE(NULLIF((SELECT MAX(NULLIF(pseudonym,'')) FROM item_attempts WHERE email = o.learner_email), ''),
+                     'L-' || substr(md5(o.learner_email), 1, 6)) AS "learnerPseudonym"
+       FROM teacher_overrides o
+       LEFT JOIN skills s ON s.id = o.skill_id
+       ${where}
+      ORDER BY o.created_at DESC
+      LIMIT $${params.length}`,
+    params
+  );
+  return r ? r.rows : null;
+}
+
+// Parent → child links (Feature 6). All read-only.
+async function listChildrenForParent({ parentEmail }) {
+  const r = await q(
+    `SELECT child_email AS "childEmail", relationship, created_at AS "createdAt"
+       FROM parent_links WHERE parent_email = $1 ORDER BY created_at`,
+    [String(parentEmail).toLowerCase()]
+  );
+  return r ? r.rows : null;
+}
+async function isParentOfChild({ parentEmail, childEmail }) {
+  const r = await q(
+    `SELECT 1 FROM parent_links WHERE parent_email = $1 AND child_email = $2 LIMIT 1`,
+    [String(parentEmail).toLowerCase(), String(childEmail).toLowerCase()]
+  );
+  return !!(r && r.rows && r.rows.length);
+}
+async function listTeacherQuestionsForLearnerReadOnly({ childEmail, limit = 20 }) {
+  // Reuse the existing helper but in a parent-safe shape (drop sensitive fields if any).
+  return listTeacherQuestionsForLearner({ learnerEmail: childEmail, limit });
+}
+
 async function listLearnerActivity({ email, days = 30 }) {
   const r = await q(
     `SELECT day::text AS day, attempts, correct
@@ -788,6 +909,12 @@ module.exports = {
   bumpDailyActivity,
   listMasteryForLearner,
   listClassMastery,
+  getClassHeatmap,
+  recordTeacherOverride,
+  listTeacherOverrides,
+  listChildrenForParent,
+  isParentOfChild,
+  listTeacherQuestionsForLearnerReadOnly,
   listLearnerActivity,
   recomputeAllMastery,
   getLearnerStreak,

@@ -240,6 +240,49 @@
     </div>
   </div>
 </section>
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="heatmapCard">
+    <div class="explhead">
+      <h2>Class heat-map <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">pseudonymous learners × skills · click ✎ to override (EU AI Act Art. 14)</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadHeatmap()" title="Refresh">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Each cell shows the AI-inferred mastery level for one learner on one skill. Hover for the underlying attempt count. Click the pencil to set a human-reviewed level — every change is persisted to Postgres with your email and a free-text rationale.</p>
+    <div id="heatmapBox" style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;padding:1rem;">Loading…</div>
+    </div>
+  </div>
+</section>
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="overridesCard">
+    <div class="explhead">
+      <h2>Override audit log <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">last 50 manual changes · immutable</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadOverrides()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Every manual mastery change made by a teacher. This is your evidence of human oversight under EU AI Act Article 14.</p>
+    <div id="overridesList" style="display:flex;flex-direction:column;gap:.45rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+</section>
+<div class="modal-bg" id="overrideModal" onclick="if(event.target.id==='overrideModal')closeOverrideModal()">
+  <div class="modal" role="dialog" aria-label="Override mastery level">
+    <h2>Override mastery <span class="sub" id="ovrCtx" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
+    <p class="sub" style="font-size:.85rem;margin:.2rem 0 .6rem;">The AI currently rates this learner at <strong id="ovrAi">—</strong>. Set the human-reviewed level and document why.</p>
+    <div id="ovrLevels" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin:.4rem 0;">
+      <label style="border:1.5px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer;display:flex;flex-direction:column;gap:.15rem;"><span><input type="radio" name="ovrLvl" value="0.20"/> <strong>Beginner</strong></span><span class="sub" style="font-size:.7rem;color:var(--grey);">level ≈ 0.20</span></label>
+      <label style="border:1.5px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer;display:flex;flex-direction:column;gap:.15rem;"><span><input type="radio" name="ovrLvl" value="0.50"/> <strong>Practising</strong></span><span class="sub" style="font-size:.7rem;color:var(--grey);">level ≈ 0.50</span></label>
+      <label style="border:1.5px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer;display:flex;flex-direction:column;gap:.15rem;"><span><input type="radio" name="ovrLvl" value="0.75"/> <strong>Proficient</strong></span><span class="sub" style="font-size:.7rem;color:var(--grey);">level ≈ 0.75</span></label>
+      <label style="border:1.5px solid var(--line);border-radius:8px;padding:.55rem .7rem;cursor:pointer;display:flex;flex-direction:column;gap:.15rem;"><span><input type="radio" name="ovrLvl" value="1.00"/> <strong>Mastered</strong></span><span class="sub" style="font-size:.7rem;color:var(--grey);">level ≈ 1.00</span></label>
+    </div>
+    <label style="font-size:.78rem;color:var(--grey);">Rationale (required for audit)</label>
+    <textarea id="ovrRationale" maxlength="1000" rows="3" placeholder="e.g. Observed in lesson; the learner consistently solves equivalent fractions on the board." style="width:100%;padding:.55rem .65rem;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:.88rem;"></textarea>
+    <div id="ovrStatus" class="sub" style="font-size:.8rem;min-height:1rem;margin:.4rem 0;"></div>
+    <div class="actions">
+      <button class="btn ghost" onclick="closeOverrideModal()">Cancel</button>
+      <button class="btn" id="ovrSubmit" onclick="submitOverride()">Save override</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="catalogueModal" onclick="if(event.target.id==='catalogueModal')closeSkillCatalogue()">
   <div class="modal lg" role="dialog" aria-label="Skill catalogue">
     <h2>Skill catalogue <span class="sub" id="catCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -497,6 +540,8 @@ window.addEventListener('load', () => {
   loadMe();
   loadInbox();
   loadClassMastery();
+  loadHeatmap();
+  loadOverrides();
 });
 
 // --- Learner Q&A inbox (teacher view) -----------------------------------
@@ -577,7 +622,109 @@ async function loadClassMastery() {
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
 }
 
-// --- Skill catalogue (Feature 2) ----------------------------------------
+// --- Heat-map + Overrides (Feature 5a) ----------------------------------
+let _heatmap = null; // last fetched payload (for the override modal)
+function levelColour(lvl) {
+  if (lvl == null || isNaN(lvl) || lvl <= 0) return { bg: '#F3F4F6', fg: '#9CA3AF', label: '·' };
+  if (lvl < 0.40) return { bg: '#FEE2E2', fg: '#991B1B', label: 'B' };
+  if (lvl < 0.65) return { bg: '#FEF3C7', fg: '#92400E', label: 'P' };
+  if (lvl < 0.85) return { bg: '#DBEAFE', fg: '#1E40AF', label: 'Pr' };
+  return { bg: '#D1FAE5', fg: '#065F46', label: 'M' };
+}
+async function loadHeatmap() {
+  const box = document.getElementById('heatmapBox');
+  if (!box) return;
+  box.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;padding:1rem;">Loading…</div>';
+  try {
+    const r = await fetch('/api/teacher/class/heatmap', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { box.innerHTML = '<div class="sub" style="padding:1rem;font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.skills || !d.skills.length || !d.learners || !d.learners.length) {
+      box.innerHTML = '<div class="sub" style="padding:1rem;font-size:.85rem;opacity:.7;">Not enough data yet — learners need to attempt items first.</div>';
+      return;
+    }
+    _heatmap = d;
+    const head = '<thead><tr><th style="position:sticky;left:0;background:#F8FAFC;z-index:2;text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--grey);">Learner</th>'
+      + d.skills.map(s => '<th title="' + escapeHtml(s.label) + '" style="padding:.45rem .35rem;border-bottom:1px solid var(--line);font-size:.7rem;color:var(--grey);writing-mode:vertical-rl;transform:rotate(180deg);max-width:2.6rem;font-weight:600;">' + escapeHtml(s.skillId.replace(/^SK-/, '')) + '</th>').join('')
+      + '</tr></thead>';
+    const rows = d.learners.map(l => {
+      const cells = d.skills.map(s => {
+        const c = d.cells[l.email + '|' + s.skillId] || { level: 0, attempts: 0, override: null };
+        const eff = c.override ? c.override.humanLevel : c.level;
+        const col = levelColour(eff);
+        const pct = Math.round((eff || 0) * 100);
+        const ovrFlag = c.override ? '<span title="Human override on ' + new Date(c.override.createdAt).toLocaleString() + ': ' + escapeHtml(c.override.rationale || '') + '" style="position:absolute;top:1px;right:1px;font-size:.55rem;color:#7c3aed;">✎</span>' : '';
+        const tip = escapeHtml(s.label) + ' · ' + pct + '% · ' + c.attempts + ' attempts' + (c.override ? ' · OVERRIDDEN' : '');
+        return '<td style="padding:.18rem;text-align:center;border-bottom:1px solid #f1f5f9;"><button onclick="openOverrideModal(\'' + escapeHtml(l.email) + '\',\'' + escapeHtml(s.skillId) + '\')" title="' + tip + '" style="position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:2.2rem;min-height:1.6rem;background:' + col.bg + ';color:' + col.fg + ';border:none;border-radius:5px;font-size:.7rem;font-weight:700;cursor:pointer;">' + pct + '%' + ovrFlag + '</button></td>';
+      }).join('');
+      return '<tr><td style="position:sticky;left:0;background:#fff;z-index:1;padding:.4rem .6rem;border-bottom:1px solid #f1f5f9;font-size:.78rem;font-family:ui-monospace,monospace;"><strong>' + escapeHtml(l.pseudonym) + '</strong> <span class="sub" style="font-size:.7rem;color:var(--grey);">(' + l.totalAttempts + ' att.)</span></td>' + cells + '</tr>';
+    }).join('');
+    box.innerHTML = '<table style="border-collapse:collapse;width:max-content;min-width:100%;">' + head + '<tbody>' + rows + '</tbody></table>';
+  } catch (e) { box.innerHTML = '<div class="sub" style="padding:1rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+let _ovrCtx = null; // { learnerEmail, skillId }
+function openOverrideModal(learnerEmail, skillId) {
+  if (!_heatmap) return;
+  const skill = _heatmap.skills.find(s => s.skillId === skillId);
+  const learner = _heatmap.learners.find(l => l.email === learnerEmail);
+  const cell = _heatmap.cells[learnerEmail + '|' + skillId] || { level: 0, attempts: 0, override: null };
+  if (!skill || !learner) return;
+  _ovrCtx = { learnerEmail, skillId, aiLevel: cell.level };
+  document.getElementById('ovrCtx').textContent = '· ' + (learner.pseudonym) + ' × ' + (skill.label);
+  document.getElementById('ovrAi').textContent = Math.round((cell.level || 0) * 100) + '%';
+  document.getElementById('ovrRationale').value = '';
+  document.getElementById('ovrStatus').textContent = '';
+  document.getElementById('ovrStatus').style.color = '';
+  document.querySelectorAll('input[name="ovrLvl"]').forEach(r => { r.checked = false; });
+  // Pre-select the closest bucket to the current AI level.
+  const target = (cell.level || 0) < 0.40 ? '0.20' : (cell.level || 0) < 0.65 ? '0.50' : (cell.level || 0) < 0.85 ? '0.75' : '1.00';
+  const pre = document.querySelector('input[name="ovrLvl"][value="' + target + '"]'); if (pre) pre.checked = true;
+  document.getElementById('overrideModal').classList.add('open');
+}
+function closeOverrideModal() { document.getElementById('overrideModal').classList.remove('open'); _ovrCtx = null; }
+async function submitOverride() {
+  if (!_ovrCtx) return;
+  const status = document.getElementById('ovrStatus');
+  const sel = document.querySelector('input[name="ovrLvl"]:checked');
+  const rationale = document.getElementById('ovrRationale').value.trim();
+  if (!sel) { status.style.color = '#b00020'; status.textContent = 'Pick a level.'; return; }
+  if (!rationale) { status.style.color = '#b00020'; status.textContent = 'Rationale is required for the audit log.'; return; }
+  const btn = document.getElementById('ovrSubmit'); btn.disabled = true;
+  status.style.color = ''; status.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/teacher/overrides', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ learnerEmail: _ovrCtx.learnerEmail, skillId: _ovrCtx.skillId, aiLevel: _ovrCtx.aiLevel, humanLevel: Number(sel.value), rationale })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { status.style.color = '#b00020'; status.textContent = (d.detail || d.error || 'Failed.'); btn.disabled = false; return; }
+    status.style.color = 'var(--teal)'; status.textContent = 'Saved.';
+    setTimeout(() => { closeOverrideModal(); btn.disabled = false; loadHeatmap(); loadOverrides(); }, 600);
+  } catch (e) { status.style.color = '#b00020'; status.textContent = String(e); btn.disabled = false; }
+}
+async function loadOverrides() {
+  const list = document.getElementById('overridesList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/overrides?limit=50', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || !d.rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No overrides recorded yet. Click ✎ on a heat-map cell to record one.</div>'; return; }
+    list.innerHTML = d.rows.map(o => {
+      const ai = o.aiLevel == null ? '—' : (Math.round(o.aiLevel * 100) + '%');
+      const hum = Math.round(o.humanLevel * 100) + '%';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.55rem .75rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;">'
+        +   '<div><strong style="font-size:.88rem;">' + escapeHtml(o.learnerPseudonym) + '</strong> <span class="sub" style="color:var(--grey);font-size:.75rem;">×</span> <strong style="font-size:.88rem;">' + escapeHtml(o.skillLabel || o.skillId) + '</strong></div>'
+        +   '<div style="font-size:.78rem;color:var(--grey);">' + new Date(o.createdAt).toLocaleString() + '</div>'
+        + '</div>'
+        + '<div style="margin-top:.3rem;font-size:.82rem;">AI: <strong>' + ai + '</strong> &nbsp;→&nbsp; Human: <strong style="color:#7c3aed;">' + hum + '</strong> <span class="sub" style="font-size:.75rem;color:var(--grey);">· by ' + escapeHtml(o.teacherEmail) + '</span></div>'
+        + (o.rationale ? '<div style="margin-top:.3rem;font-size:.82rem;color:var(--navy);background:#F8FAFC;border-left:3px solid #7c3aed;padding:.35rem .55rem;border-radius:3px;">' + escapeHtml(o.rationale) + '</div>' : '')
+        + '</div>';
+    }).join('');
+  } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>'; }
+}
 let _catalogue = [];
 function openSkillCatalogue() {
   document.getElementById('catalogueModal').classList.add('open');

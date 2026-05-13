@@ -253,3 +253,32 @@ SELECT f.id, f.ask_id, f.email, f.rating, f.note, f.created_at,
   FROM ask_feedback f
   LEFT JOIN ask_history a ON a.id = f.ask_id
  ORDER BY f.created_at DESC;
+
+-- Teacher overrides (Feature 5a — EU AI Act Article 14 audit trail).
+-- Records every manual change a teacher makes to an AI-suggested mastery level.
+CREATE TABLE IF NOT EXISTS teacher_overrides (
+  id              BIGSERIAL    PRIMARY KEY,
+  teacher_email   TEXT         NOT NULL,
+  learner_email   TEXT         NOT NULL,
+  skill_id        TEXT         NOT NULL,
+  ai_level        REAL,
+  human_level     REAL         NOT NULL,
+  rationale       TEXT,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_teacher_overrides_learner ON teacher_overrides (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_teacher_overrides_skill   ON teacher_overrides (skill_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_teacher_overrides_created ON teacher_overrides (created_at DESC);
+
+-- Parent → child links (Feature 6). Read-only consent the parent gives the platform
+-- to follow the learner's progress in plain language; never carries data write rights.
+CREATE TABLE IF NOT EXISTS parent_links (
+  id              BIGSERIAL    PRIMARY KEY,
+  parent_email    TEXT         NOT NULL,
+  child_email     TEXT         NOT NULL,
+  relationship    TEXT         NOT NULL DEFAULT 'parent',
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (parent_email, child_email)
+);
+CREATE INDEX IF NOT EXISTS idx_parent_links_parent ON parent_links (parent_email);
+CREATE INDEX IF NOT EXISTS idx_parent_links_child  ON parent_links (child_email);

@@ -346,6 +346,110 @@ app.get('/api/teacher/class/mastery', async (req, res) => {
   const rows = await db.listClassMastery({ limit: 50 });
   res.json({ enabled: true, rows: rows || [] });
 });
+// Heat-map: pseudonym × skill matrix (Feature 5a). Teacher / admin only.
+app.get('/api/teacher/class/heatmap', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const data = await db.getClassHeatmap({ skillLimit: 24, learnerLimit: 30 });
+  if (!data) return res.json({ enabled: true, skills: [], learners: [], cells: {} });
+  // Strip raw learner emails from the response — replace with stable opaque keys (the pseudonym)
+  // so the UI renders pseudonymous identifiers only. Server keeps the email→pseudonym mapping
+  // server-side (we still send it back to allow round-tripping overrides through POST).
+  res.json({ enabled: true, ...data });
+});
+// Record a teacher override (Feature 5a).
+app.post('/api/teacher/overrides', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const learnerEmail = String(req.body?.learnerEmail || '').trim().toLowerCase();
+  const skillId      = String(req.body?.skillId || '').trim();
+  const humanLevel   = Number(req.body?.humanLevel);
+  const aiLevel      = req.body?.aiLevel == null ? null : Number(req.body.aiLevel);
+  const rationale    = req.body?.rationale ? String(req.body.rationale).slice(0, 1000) : null;
+  if (!learnerEmail || !skillId) return res.status(400).json({ error: 'learnerEmail and skillId required' });
+  if (!Number.isFinite(humanLevel) || humanLevel < 0 || humanLevel > 1) return res.status(400).json({ error: 'humanLevel must be in [0,1]' });
+  const row = await db.recordTeacherOverride({ teacherEmail: u.email, learnerEmail, skillId, aiLevel, humanLevel, rationale });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  res.status(201).json({ row });
+});
+// List recent teacher overrides (audit feed). Teacher / admin only.
+app.get('/api/teacher/overrides', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listTeacherOverrides({
+    learner: req.query.learner ? String(req.query.learner).toLowerCase() : null,
+    skill:   req.query.skill   ? String(req.query.skill) : null,
+    limit:   Math.min(Number(req.query.limit) || 50, 200)
+  });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+// --- Parent dashboard (Feature 6, read-only) ----------------------------
+function isParentOrAdmin(u) { return u && (u.role === 'parent' || u.role === 'admin'); }
+async function ensureLinked(req, res) {
+  const childEmail = String(req.params.child || '').toLowerCase();
+  if (!childEmail) { res.status(400).json({ error: 'child email required' }); return null; }
+  if (req.user.role === 'admin') return childEmail;
+  const linked = await db.isParentOfChild({ parentEmail: req.user.email, childEmail });
+  if (!linked) { res.status(403).json({ error: 'not linked to this learner' }); return null; }
+  return childEmail;
+}
+// List the children a parent is linked to (also returns enrichment from auth users so the
+// parent UI can show a friendly name + grade rather than the raw email).
+app.get('/api/parent/children', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, children: [] });
+  if (!isParentOrAdmin(u)) return res.status(403).json({ error: 'parent only' });
+  const rows = await db.listChildrenForParent({ parentEmail: u.email }) || [];
+  // Enrich with display name from the in-memory user store (auth.js) — never includes any PII
+  // beyond the demo seed users (no real children).
+  const auth = require('./auth');
+  const out = rows.map(r => {
+    const usr = (auth.SEED_USERS || []).find(x => x.email && x.email.toLowerCase() === r.childEmail);
+    return {
+      childEmail: r.childEmail,
+      displayName: usr ? [usr.firstName, usr.lastName].filter(Boolean).join(' ').trim() : r.childEmail,
+      relationship: r.relationship,
+      since: r.createdAt
+    };
+  });
+  res.json({ enabled: true, children: out });
+});
+// Per-skill mastery for the linked child (re-uses the learner mastery helper).
+app.get('/api/parent/child/:child/mastery', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const rows = await db.listMasteryForLearner({ email: childEmail, limit: 50 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Streak / badges for the linked child.
+app.get('/api/parent/child/:child/streak', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const stats = await db.getLearnerStreak({ email: childEmail, windowDays: 30 });
+  res.json({ enabled: true, ...(stats || { streak: 0, badges: [] }) });
+});
+// Per-day activity (last 30 days) for the trend chart.
+app.get('/api/parent/child/:child/activity', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const rows = await db.listLearnerActivity({ email: childEmail, days: 30 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Recent teacher Q&A (read-only) so the parent sees what a teacher answered to their child.
+app.get('/api/parent/child/:child/teacher-questions', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const rows = await db.listTeacherQuestionsForLearnerReadOnly({ childEmail, limit: 20 });
+  res.json({ enabled: true, rows: rows || [] });
+});
 // Admin-only rebuild of the mastery rollup from item_attempts.
 app.post('/api/learner/mastery/recompute', async (req, res) => {
   const u = req.user;

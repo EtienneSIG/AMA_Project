@@ -148,6 +148,45 @@
   .sheet-empty { color:var(--grey); font-style:italic; padding:1rem; text-align:center; }
   .saved-badge { display:inline-block; background:#E8F5EE; color:#1F8A5C; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; margin-left:.4rem; opacity:0; transition:opacity .25s; }
   .saved-badge.show { opacity:1; }
+  /* --- Tabbed workspace (Feature 6) --- */
+  .tabbar { max-width:1320px; margin:-1.6rem auto 1rem; padding:0 1.5rem; display:flex; gap:.5rem; flex-wrap:wrap; position:relative; z-index:5; }
+  .tabbar .tab-btn { background:#fff; color:var(--navy); border:1.5px solid var(--line); padding:.7rem 1.2rem; border-radius:999px; font-weight:600; font-family:inherit; font-size:.95rem; cursor:pointer; box-shadow:0 4px 14px rgba(15,27,45,0.05); display:inline-flex; align-items:center; gap:.5rem; transition:all .15s; }
+  .tabbar .tab-btn:hover { border-color:var(--teal); color:var(--teal); }
+  .tabbar .tab-btn.active { background:var(--orange); color:#fff; border-color:var(--orange); box-shadow:0 6px 18px rgba(242,99,52,0.25); }
+  [data-tab] { display:none; }
+  [data-tab].active { display:block; }
+  .child-wrap { max-width:1100px; margin:0 auto 2rem; padding:0 1.5rem; }
+  .child-picker { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.9rem; padding:.65rem .85rem; background:#F8FAFC; border:1px solid var(--line); border-radius:10px; }
+  .child-picker select { padding:.45rem .7rem; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:.9rem; background:#fff; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:.7rem; margin-bottom:1rem; }
+  @media (max-width: 720px) { .kpi-grid { grid-template-columns:repeat(2, 1fr); } }
+  .kpi { background:#fff; border:1px solid var(--line); border-radius:10px; padding:.7rem .85rem; }
+  .kpi .lbl { font-size:.72rem; color:var(--grey); font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+  .kpi .val { font-size:1.3rem; font-weight:700; color:var(--navy); font-family:'Poppins',sans-serif; line-height:1.1; margin-top:.15rem; }
+  .kpi .sub { font-size:.72rem; color:var(--grey); margin-top:.1rem; }
+  .chapter-card { border:1px solid var(--line); border-radius:10px; background:#fff; margin-bottom:.6rem; overflow:hidden; }
+  .chapter-head { display:flex; align-items:center; gap:.7rem; padding:.65rem .9rem; cursor:pointer; user-select:none; background:#F8FAFC; }
+  .chapter-head:hover { background:#EEF2F7; }
+  .chapter-head .chev { transition:transform .15s; color:var(--grey); font-size:.85rem; }
+  .chapter-card.collapsed .chapter-head .chev { transform:rotate(-90deg); }
+  .chapter-head .chap-title { font-weight:700; color:var(--navy); font-family:'Poppins',sans-serif; flex:1; font-size:.95rem; }
+  .chapter-head .chap-pct { font-weight:700; color:var(--navy); font-family:'Poppins',sans-serif; font-size:.92rem; }
+  .chapter-bar { height:.4rem; background:#F1F5F9; }
+  .chapter-bar > div { height:100%; background:linear-gradient(90deg,var(--teal),var(--navy)); transition:width .3s; }
+  .chapter-body { padding:.5rem .9rem .7rem; display:flex; flex-direction:column; gap:.4rem; }
+  .chapter-card.collapsed .chapter-body, .chapter-card.collapsed .chapter-bar { display:none; }
+  .skill-row { border:1px solid var(--line); border-radius:8px; padding:.45rem .65rem; background:#fff; }
+  .badge-pill { display:inline-block; background:#EEF2F7; color:var(--navy); padding:.1rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; margin-right:.3rem; }
+  .activity-bar { display:inline-flex; align-items:flex-end; gap:2px; height:32px; }
+  .activity-bar .day { width:6px; background:#E2E8F0; border-radius:2px; min-height:2px; }
+  .activity-bar .day.has { background:linear-gradient(180deg,var(--teal),var(--navy)); }
+  .tq-item { border:1px solid var(--line); border-radius:8px; padding:.55rem .75rem; background:#fff; }
+  .tq-item .head { display:flex; justify-content:space-between; gap:.5rem; align-items:center; }
+  .tq-item .subj { font-weight:600; color:var(--navy); font-size:.9rem; }
+  .tq-item .when { font-size:.72rem; color:var(--grey); }
+  .tq-item .pending { background:#FEF3C7; color:#92400E; padding:.1rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; }
+  .tq-item .answered { background:#D1FAE5; color:#065F46; padding:.1rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; }
+  .ask-wrap { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; }
 </style>
 </head>
 <body>
@@ -181,7 +220,12 @@
     <p>Manage parental consent (GDPR Art. 8), submit data access requests, and follow your child's progress — fully EU-hosted and aligned with EU AI Act Annex III §3 (education).</p>
   </div>
 </section>
-<main class="grid2">
+<nav class="tabbar" role="tablist">
+  <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab">💬 Ask the assistant</button>
+  <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab">🧒 My child's progress</button>
+</nav>
+<div data-tab="ask" class="active">
+<main class="grid2 ask-wrap" style="margin-top:0;">
   <div class="card askcol">
     <h2>Ask</h2>
     <p class="sub">Ask anything about your child's learning, privacy, or progress. Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to send.</p>
@@ -206,6 +250,32 @@
     <div class="meta" id="meta"></div>
   </div>
 </main>
+</div>
+<div data-tab="child">
+  <div class="child-wrap">
+    <div class="child-picker">
+      <label for="childSel" style="font-weight:600;color:var(--navy);">Child:</label>
+      <select id="childSel" onchange="loadChildDashboard(this.value)"><option value="">Loading…</option></select>
+      <span id="childRel" style="color:var(--grey);font-size:.85rem;"></span>
+    </div>
+    <div class="kpi-grid" id="childKpis"></div>
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">Mastery by chapter</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Read-only view of your child's progress. Updated after each practice attempt.</p>
+      <div id="childChapters"><div class="sheet-empty">Select a child to see mastery.</div></div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">Recent activity</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Daily practice attempts over the last 14 days.</p>
+      <div id="childActivity" style="min-height:60px;"><div class="sheet-empty">—</div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;">Messages from teacher</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Read-only copy of recent questions sent to your child by the teacher (latest 20).</p>
+      <div id="childTeacherQ"><div class="sheet-empty">—</div></div>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
   <div class="modal lg" role="dialog" aria-label="Study sheets">
     <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -444,7 +514,107 @@ window.addEventListener('load', () => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); } });
   refreshStatus();
   loadMe();
+  loadChildren();
 });
+
+// ===== Feature 6 — child progress tab =====
+function setTab(name) {
+  document.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('active', b.dataset.tabBtn === name));
+  document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
+}
+async function loadChildren() {
+  const sel = document.getElementById('childSel');
+  if (!sel) return;
+  try {
+    const r = await fetch('/api/parent/children');
+    if (!r.ok) { sel.innerHTML = '<option value="">(not authorised)</option>'; return; }
+    const j = await r.json();
+    if (!j.enabled) { sel.innerHTML = '<option value="">(database offline)</option>'; return; }
+    const kids = j.children || [];
+    if (!kids.length) { sel.innerHTML = '<option value="">(no children linked)</option>'; return; }
+    sel.innerHTML = kids.map(k => `<option value="${escapeHtml(k.childEmail)}">${escapeHtml(k.displayName || k.childEmail)}</option>`).join('');
+    const first = kids[0];
+    document.getElementById('childRel').textContent = first.relationship ? '· ' + first.relationship : '';
+    loadChildDashboard(first.childEmail);
+  } catch (e) { sel.innerHTML = '<option value="">(error)</option>'; }
+}
+function chapterTitle(id) {
+  const map = { basics:'Basics', operations:'Operations', representations:'Representations', word_problems:'Word problems' };
+  return map[id] || (id || 'Other');
+}
+async function loadChildDashboard(childEmail) {
+  if (!childEmail) return;
+  const base = '/api/parent/child/' + encodeURIComponent(childEmail);
+  const safeJson = async (url) => { try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); } catch { return null; } };
+  const [mast, streak, act, tq] = await Promise.all([
+    safeJson(base + '/mastery'),
+    safeJson(base + '/streak'),
+    safeJson(base + '/activity'),
+    safeJson(base + '/teacher-questions')
+  ]);
+  // KPIs
+  const kpis = document.getElementById('childKpis');
+  const rows = (mast && mast.rows) || [];
+  const avg = rows.length ? Math.round(100 * rows.reduce((a,b)=>a+(+b.level||0),0) / rows.length) : 0;
+  const mastered = rows.filter(r => (+r.level||0) >= 0.85).length;
+  const sk = streak || {};
+  const totals = sk.totalAttempts || 0;
+  const acc = totals ? Math.round(100 * (sk.accuracy || 0)) : 0;
+  kpis.innerHTML = [
+    `<div class="kpi"><div class="lbl">Avg mastery</div><div class="val">${avg}%</div><div class="sub">${rows.length} skills</div></div>`,
+    `<div class="kpi"><div class="lbl">Mastered</div><div class="val">${mastered}/${rows.length}</div><div class="sub">≥ 85% level</div></div>`,
+    `<div class="kpi"><div class="lbl">Current streak</div><div class="val">${sk.streak||0}d</div><div class="sub">${(sk.badges||[]).length} badges</div></div>`,
+    `<div class="kpi"><div class="lbl">Attempts (${sk.windowDays||30}d)</div><div class="val">${totals}</div><div class="sub">${acc}% accuracy</div></div>`
+  ].join('');
+  // Chapters
+  const ch = document.getElementById('childChapters');
+  if (!rows.length) { ch.innerHTML = '<div class="sheet-empty">No mastery records yet.</div>'; }
+  else {
+    const groups = {};
+    rows.forEach(r => { const c = r.chapter || 'other'; (groups[c] = groups[c] || []).push(r); });
+    const order = ['basics','operations','representations','word_problems'];
+    const keys = Object.keys(groups).sort((a,b) => { const ia=order.indexOf(a), ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+    ch.innerHTML = keys.map(k => {
+      const items = groups[k];
+      const pct = Math.round(100 * items.reduce((a,b)=>a+(+b.level||0),0) / items.length);
+      const skills = items.map(r => `<div class="skill-row"><span class="badge-pill">${Math.round((+r.level||0)*100)}%</span><strong>${escapeHtml(r.label||r.skillId)}</strong>${r.attempts?` · <span style="color:var(--grey);font-size:.8rem;">${r.attempts} attempts</span>`:''}</div>`).join('');
+      return `<div class="chapter-card" onclick="this.classList.toggle('collapsed')">
+        <div class="chapter-head"><span class="chev">▼</span><span class="chap-title">${chapterTitle(k)}</span><span class="chap-pct">${pct}%</span></div>
+        <div class="chapter-bar"><div style="width:${pct}%;"></div></div>
+        <div class="chapter-body" onclick="event.stopPropagation()">${skills}</div>
+      </div>`;
+    }).join('');
+  }
+  // Activity bar (last 30d, server returns rows ordered DESC)
+  const actEl = document.getElementById('childActivity');
+  const days = ((act && act.rows) || []).slice().reverse();
+  if (!days.length) { actEl.innerHTML = '<div class="sheet-empty">No recent activity.</div>'; }
+  else {
+    const max = Math.max(1, ...days.map(d => +d.attempts||0));
+    actEl.innerHTML = '<div class="activity-bar" style="height:48px;gap:4px;">' + days.map(d => {
+      const h = Math.max(2, Math.round(46 * (+d.attempts||0) / max));
+      const has = (+d.attempts||0) > 0 ? 'has' : '';
+      return `<div class="day ${has}" style="height:${h}px;width:14px;" title="${escapeHtml(d.day||'')}: ${d.attempts||0} attempts (${d.correct||0} correct)"></div>`;
+    }).join('') + '</div>';
+  }
+  // Teacher questions
+  const tqEl = document.getElementById('childTeacherQ');
+  const items = (tq && tq.rows) || [];
+  if (!items.length) { tqEl.innerHTML = '<div class="sheet-empty">No teacher messages yet.</div>'; }
+  else {
+    tqEl.innerHTML = items.map(qq => {
+      const status = qq.status === 'answered' ? '<span class="answered">Answered</span>' : '<span class="pending">Pending</span>';
+      const when = qq.created_at ? new Date(qq.created_at).toLocaleString() : '';
+      const ans = qq.answered_at ? ' · answered ' + new Date(qq.answered_at).toLocaleString() : '';
+      const body = qq.answer ? qq.answer : qq.question;
+      return `<div class="tq-item" style="margin-bottom:.45rem;">
+        <div class="head"><span class="subj">${escapeHtml(qq.subject||'(no subject)')}</span>${status}</div>
+        <div style="font-size:.85rem;color:var(--navy);margin:.3rem 0;white-space:pre-wrap;">${escapeHtml(body||'').slice(0,400)}</div>
+        <div class="when">${when}${ans}</div>
+      </div>`;
+    }).join('');
+  }
+}
 </script>
 </body>
 </html>
