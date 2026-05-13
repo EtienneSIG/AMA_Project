@@ -180,12 +180,14 @@
   @media (max-width: 1180px) { .practice-grid, .practice-grid.expl-collapsed { grid-template-columns: 1fr 1fr; } .practice-grid #explDrawer { grid-column: 1 / -1; } }
   @media (max-width: 820px)  { .practice-grid, .practice-grid.expl-collapsed { grid-template-columns: 1fr; } .practice-grid > .card { grid-column: 1 / -1; } }
   #explDrawer { position:relative; min-height: 28rem; }
-  #explDrawer .drawer-toggle { position:absolute; top:.7rem; right:.7rem; background:#fff; border:1.5px solid var(--line); color:var(--navy); border-radius:999px; padding:.25rem .55rem; cursor:pointer; font-size:.78rem; font-weight:600; }
+  #explDrawer .drawer-toggle { position:absolute; top:.7rem; right:.7rem; background:#fff; border:1.5px solid var(--line); color:var(--navy); border-radius:999px; padding:.3rem .6rem; cursor:pointer; font-size:.95rem; font-weight:700; line-height:1; z-index:5; box-shadow:0 2px 6px rgba(15,27,45,0.08); }
   #explDrawer .drawer-toggle:hover { border-color:var(--teal); color:var(--teal); }
   .practice-grid.expl-collapsed #explDrawer > *:not(.drawer-toggle):not(.collapsed-stub) { display:none; }
-  #explDrawer .collapsed-stub { display:none; flex-direction:column; align-items:center; gap:.5rem; padding-top:2.4rem; color:var(--grey); font-size:.78rem; writing-mode:vertical-rl; transform:rotate(180deg); }
+  .practice-grid.expl-collapsed #explDrawer .drawer-toggle { top:.55rem; right:50%; transform:translateX(50%); padding:.45rem .65rem; }
+  #explDrawer .collapsed-stub { display:none; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:3.4rem .3rem 1rem; color:var(--grey); font-size:.78rem; writing-mode:vertical-rl; transform:rotate(180deg); height:100%; cursor:pointer; user-select:none; }
+  #explDrawer .collapsed-stub:hover { color:var(--teal); }
   .practice-grid.expl-collapsed #explDrawer .collapsed-stub { display:flex; }
-  .practice-grid.expl-collapsed #explDrawer { padding:0; }
+  .practice-grid.expl-collapsed #explDrawer { padding:0; cursor:pointer; }
   /* Tab 2 layout: dedicated teacher Q&A */
   .askteacher-wrap { max-width:920px; margin:0 auto 2rem; padding:0 1.5rem; }
   /* Tab 3 layout: progress dashboard with chapter groups */
@@ -285,8 +287,8 @@
     </div>
   </div>
   <div class="card explcol" id="explDrawer">
-    <button class="drawer-toggle" id="explToggleBtn" onclick="toggleExplDrawer()" title="Hide / show the Explanation panel">⟶ Hide</button>
-    <div class="collapsed-stub">Explanation</div>
+    <button class="drawer-toggle" id="explToggleBtn" onclick="event.stopPropagation();toggleExplDrawer()" title="Hide / show the Explanation panel" aria-label="Toggle explanation panel">✕</button>
+    <div class="collapsed-stub" onclick="toggleExplDrawer()" title="Show the Explanation panel">☰ Explanation</div>
     <div class="explhead">
       <h2>Explanation<span class="saved-badge" id="sheetSaved">Saved to sheets</span></h2>
       <button class="btn btn-sm" id="saveSheetBtn" onclick="saveSheet()" disabled title="Save current explanation as a Study sheet">Save to Study sheet</button>
@@ -894,7 +896,10 @@ function toggleExplDrawer() {
   const grid = document.querySelector('.practice-grid'); if (!grid) return;
   const collapsed = grid.classList.toggle('expl-collapsed');
   const btn = document.getElementById('explToggleBtn');
-  if (btn) btn.textContent = collapsed ? '⟵ Show' : '⟶ Hide';
+  if (btn) {
+    btn.textContent = collapsed ? '\u2630' : '\u2715';
+    btn.title = collapsed ? 'Show the Explanation panel' : 'Hide the Explanation panel';
+  }
 }
 // Auto-open the drawer when a new chat answer arrives (in case the user collapsed it).
 function showExplDrawerIfHidden() {
