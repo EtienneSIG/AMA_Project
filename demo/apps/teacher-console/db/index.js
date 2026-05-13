@@ -660,6 +660,54 @@ async function recomputeAllMastery() {
   }
 }
 
+// --- Quality telemetry (Feature 3) ----------------------------------------
+
+// Insert a learner feedback row for a previous /api/chat answer.
+// Returns the new row id (or null on failure).
+async function logAskFeedback({ askId, email, rating, note }) {
+  if (!enabled) return null;
+  const allowed = new Set(['helpful', 'confusing', 'wrong']);
+  if (!allowed.has(rating)) return null;
+  const r = await q(
+    `INSERT INTO ask_feedback (ask_id, email, rating, note)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id`,
+    [
+      Number.isFinite(askId) ? askId : null,
+      String(email || 'anonymous'),
+      rating,
+      note ? String(note).slice(0, 500) : null
+    ]
+  );
+  return r && r.rows[0] ? r.rows[0].id : null;
+}
+
+// Headline KPIs for the admin Quality dashboard. Reads the v_quality_kpis_24h view.
+async function getQualityKpis() {
+  const r = await q('SELECT * FROM v_quality_kpis_24h');
+  if (!r || r.rows.length === 0) {
+    return {
+      prompts_24h: 0, p50_latency_ms: null, p95_latency_ms: null,
+      pct_blocked_cs_24h: 0, feedback_24h: 0, pct_helpful_24h: 0,
+      teacher_median_response_seconds_7d: null
+    };
+  }
+  return r.rows[0];
+}
+
+// Latest free-form learner feedback (for the admin Quality dashboard).
+async function getQualityFeedback({ limit = 50 } = {}) {
+  const lim = Math.min(Math.max(Number(limit) || 50, 1), 500);
+  const r = await q(
+    `SELECT id, ask_id AS "askId", email, rating, note, created_at AS "createdAt",
+            ask_role AS "askRole", ask_app AS "askApp", prompt, model, latency_ms AS "latencyMs"
+       FROM v_quality_feedback
+       LIMIT $1`,
+    [lim]
+  );
+  return r ? r.rows : null;
+}
+
 module.exports = {
   enabled,
   init,
@@ -690,6 +738,9 @@ module.exports = {
   recomputeAllMastery,
   listSkillsCatalogue,
   getSkillById,
+  logAskFeedback,
+  getQualityKpis,
+  getQualityFeedback,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

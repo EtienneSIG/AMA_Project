@@ -259,6 +259,16 @@
     </div>
     <div class="reply" id="reply">Ask a question to see the explanation here. Diagrams and worked examples will appear inline.</div>
     <div class="meta" id="meta"></div>
+    <div id="feedbackBar" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--line);">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+        <span class="sub" style="font-size:.82rem;color:var(--grey);margin-right:.4rem;">Was this answer useful?</span>
+        <button class="btn btn-sm" data-rating="helpful"   onclick="sendFeedback('helpful', this)" title="Mark this answer as helpful">👍 Helpful</button>
+        <button class="btn btn-sm secondary" data-rating="confusing" onclick="sendFeedback('confusing', this)" title="The answer was unclear">🤔 Confusing</button>
+        <button class="btn btn-sm ghost" data-rating="wrong" onclick="sendFeedback('wrong', this)" title="The answer was incorrect">⚠️ Wrong</button>
+        <span id="fbStatus" class="sub" style="font-size:.78rem;color:var(--teal);margin-left:.4rem;"></span>
+      </div>
+      <textarea id="fbNote" maxlength="500" rows="2" placeholder="Optional note (max 500 chars) — what was confusing or wrong?" style="margin-top:.5rem;width:100%;box-sizing:border-box;padding:.5rem .6rem;font-family:inherit;font-size:.88rem;border:1px solid var(--line);border-radius:6px;"></textarea>
+    </div>
   </div>
 </main>
 
@@ -470,6 +480,7 @@ window.adaptive = (function() {
 let currentUser = null;
 let lastAnswer = '';
 let lastPrompt = '';
+let lastAskId = null;
 function initials(u) { return ((u?.firstName?.[0] || '') + (u?.lastName?.[0] || '')).toUpperCase() || '··'; }
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
@@ -557,12 +568,15 @@ async function chat() {
   meta.textContent = '';
   if (saveBtn) saveBtn.disabled = true;
   lastAnswer = '';
+  lastAskId = null;
+  resetFeedbackBar();
   lastPrompt = document.getElementById('prompt').value;
   try {
     const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: lastPrompt }) });
     const data = await r.json();
     if (!data.answer) { out.textContent = JSON.stringify(data, null, 2); return; }
     lastAnswer = data.answer;
+    lastAskId = (typeof data.askId === 'number') ? data.askId : null;
     if (saveBtn) saveBtn.disabled = false;
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks: true, gfm: true });
@@ -587,9 +601,46 @@ async function chat() {
       }
     } else { out.textContent = data.answer; }
     if (data.usage) meta.textContent = `${data.usage.total_tokens} tokens · ${data.model || ''}`;
+    if (lastAskId != null) showFeedbackBar();
   } catch (err) { out.textContent = String(err); }
 }
 function setPrompt(e, text) { e.preventDefault(); document.getElementById('prompt').value = text; document.getElementById('prompt').focus(); }
+
+// --- Feedback widget (Feature 3) ---
+function resetFeedbackBar() {
+  const bar = document.getElementById('feedbackBar'); if (!bar) return;
+  bar.style.display = 'none';
+  bar.querySelectorAll('button[data-rating]').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  const note = document.getElementById('fbNote'); if (note) { note.value = ''; note.disabled = false; }
+  const st = document.getElementById('fbStatus'); if (st) st.textContent = '';
+}
+function showFeedbackBar() { const bar = document.getElementById('feedbackBar'); if (bar) bar.style.display = ''; }
+async function sendFeedback(rating, btn) {
+  if (lastAskId == null) return;
+  const note = (document.getElementById('fbNote')?.value || '').trim();
+  const st = document.getElementById('fbStatus');
+  const bar = document.getElementById('feedbackBar');
+  bar?.querySelectorAll('button[data-rating]').forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+  if (st) st.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/chat/feedback', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ askId: lastAskId, rating, note: note || undefined })
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      if (st) st.textContent = 'Error: ' + (j.error || r.status);
+      bar?.querySelectorAll('button[data-rating]').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+      return;
+    }
+    if (st) st.textContent = 'Thanks for your feedback!';
+    if (btn) btn.style.outline = '2px solid var(--teal)';
+    const noteEl = document.getElementById('fbNote'); if (noteEl) noteEl.disabled = true;
+  } catch (e) {
+    if (st) st.textContent = 'Error: ' + String(e);
+    bar?.querySelectorAll('button[data-rating]').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  }
+}
 
 // --- Study sheets ---
 async function saveSheet() {

@@ -132,7 +132,18 @@ app.post('/api/chat', async (req, res) => {
     if (inputScan.ran) db.logContentSafety({ askId, email: u.email, app: APP_NAME, direction: 'input', blocked: false, severities: inputScan.severities, raw: inputScan.raw }).catch(() => {});
     if (outputScan.ran) db.logContentSafety({ askId, email: u.email, app: APP_NAME, direction: 'output', blocked: Boolean(outputScan.blocked), severities: outputScan.severities, raw: outputScan.raw }).catch(() => {});
 
+    // Optional groundedness probe (Feature 3): if the prompt mentions a curriculum
+    // framework we expect the answer to cite at least one competency id (e.g. NL-MATH-Y7-FRAC-02).
+    // When it does not, auto-record a 'confusing' feedback row tagged 'low_groundedness'.
+    if (askId && /Bildungsstandards|Kerndoelen/i.test(userPrompt)) {
+      const cited = /\b[A-Z]{2}-[A-Z]+-Y\d+-[A-Z]+-\d+\b/.test(finalAnswer);
+      if (!cited) {
+        db.logAskFeedback({ askId, email: u.email, rating: 'confusing', note: 'low_groundedness (auto)' }).catch(() => {});
+      }
+    }
+
     res.json({
+      askId,
       answer: finalAnswer,
       model: data?.model,
       usage,
@@ -182,6 +193,43 @@ app.get('/api/data/skills/:id', async (req, res) => {
   const skill = await db.getSkillById({ id: req.params.id });
   if (!skill) return res.status(404).json({ enabled: true, skill: null, error: 'not found' });
   res.json({ enabled: true, skill });
+});
+
+// --- Quality telemetry (Feature 3) ----------------------------------------
+// Learner feedback widget on assistant answers.
+app.post('/api/chat/feedback', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'auth required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db disabled' });
+  const askId = Number(req.body?.askId);
+  const rating = String(req.body?.rating || '').toLowerCase();
+  const note = req.body?.note != null ? String(req.body.note) : null;
+  if (!['helpful', 'confusing', 'wrong'].includes(rating)) {
+    return res.status(400).json({ error: 'rating must be helpful|confusing|wrong' });
+  }
+  try {
+    const id = await db.logAskFeedback({
+      askId: Number.isFinite(askId) ? askId : null,
+      email: req.user.email,
+      rating,
+      note
+    });
+    res.status(201).json({ id });
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+  }
+});
+// Admin-only Quality dashboard endpoints.
+app.get('/api/admin/quality/kpis', async (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  if (!db.enabled) return res.json({ enabled: false, kpis: null });
+  const kpis = await db.getQualityKpis();
+  res.json({ enabled: true, kpis });
+});
+app.get('/api/admin/quality/feedback', async (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.getQualityFeedback({ limit: req.query.limit });
+  res.json({ enabled: true, rows: rows || [] });
 });
 // Admin-only: force a re-seed of curricula / glossary / learners from packaged data.
 // Idempotent (uses ON CONFLICT). Returns row counts before and after.

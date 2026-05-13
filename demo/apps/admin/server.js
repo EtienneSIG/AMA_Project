@@ -305,5 +305,17 @@ app.get('/api/admin/onnx/stats', async (_req, res) => {
   res.json({ enabled: true, rows: rows || [] });
 });
 
+// --- Quality telemetry (Feature 3) ----------------------------------------
+app.get('/api/admin/quality/kpis', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, kpis: null });
+  const kpis = await db.getQualityKpis();
+  res.json({ enabled: true, kpis });
+});
+app.get('/api/admin/quality/feedback', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.getQualityFeedback({ limit: req.query.limit });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));

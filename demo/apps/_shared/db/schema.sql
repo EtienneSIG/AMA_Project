@@ -209,3 +209,43 @@ CREATE TABLE IF NOT EXISTS learner_activity (
   PRIMARY KEY (email, day)
 );
 CREATE INDEX IF NOT EXISTS idx_learner_activity_email ON learner_activity (email, day DESC);
+
+-- ---------------------------------------------------------------------------
+-- Quality telemetry (Feature 3)
+-- One row per learner feedback click on an assistant answer.
+-- The optional groundedness probe also writes here with rating='confusing'
+-- and a 'low_groundedness' note when a curriculum-tagged prompt yields an
+-- answer that does not cite any competency id.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ask_feedback (
+  id          BIGSERIAL    PRIMARY KEY,
+  ask_id      BIGINT       REFERENCES ask_history(id) ON DELETE CASCADE,
+  email       TEXT         NOT NULL,
+  rating      TEXT         NOT NULL CHECK (rating IN ('helpful','confusing','wrong')),
+  note        TEXT,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ask_feedback_ask     ON ask_feedback (ask_id);
+CREATE INDEX IF NOT EXISTS idx_ask_feedback_created ON ask_feedback (created_at DESC);
+
+-- View: rolling 24h KPIs for the admin Quality dashboard.
+CREATE OR REPLACE VIEW v_quality_kpis_24h AS
+SELECT
+  (SELECT COUNT(*)::int FROM ask_history WHERE created_at > now() - INTERVAL '24 hours')                                       AS prompts_24h,
+  (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY latency_ms)::int FROM ask_history WHERE created_at > now() - INTERVAL '24 hours' AND latency_ms IS NOT NULL) AS p50_latency_ms,
+  (SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms)::int FROM ask_history WHERE created_at > now() - INTERVAL '24 hours' AND latency_ms IS NOT NULL) AS p95_latency_ms,
+  (SELECT CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(100.0 * SUM(CASE WHEN blocked THEN 1 ELSE 0 END)::numeric / COUNT(*)::numeric, 2)::float END
+     FROM content_safety_results WHERE created_at > now() - INTERVAL '24 hours')                                              AS pct_blocked_cs_24h,
+  (SELECT COUNT(*)::int FROM ask_feedback WHERE created_at > now() - INTERVAL '24 hours')                                      AS feedback_24h,
+  (SELECT CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(100.0 * SUM(CASE WHEN rating = 'helpful' THEN 1 ELSE 0 END)::numeric / COUNT(*)::numeric, 2)::float END
+     FROM ask_feedback WHERE created_at > now() - INTERVAL '24 hours')                                                         AS pct_helpful_24h,
+  (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (answered_at - created_at)))::int
+     FROM teacher_questions WHERE answered_at IS NOT NULL AND answered_at > now() - INTERVAL '7 days')                         AS teacher_median_response_seconds_7d;
+
+-- View: latest free-form learner feedback (joined to ask context).
+CREATE OR REPLACE VIEW v_quality_feedback AS
+SELECT f.id, f.ask_id, f.email, f.rating, f.note, f.created_at,
+       a.role AS ask_role, a.app AS ask_app, a.prompt, a.model, a.latency_ms
+  FROM ask_feedback f
+  LEFT JOIN ask_history a ON a.id = f.ask_id
+ ORDER BY f.created_at DESC;

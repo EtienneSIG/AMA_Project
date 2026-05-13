@@ -188,6 +188,18 @@
 
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Quality telemetry <span style="font-weight:400;color:var(--grey);font-size:.85rem;">last 24 h · /api/admin/quality/*</span></h2>
+      <div>
+        <button class="btn secondary" onclick="loadQuality()">Refresh</button>
+      </div>
+    </div>
+    <div id="qualityKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.6rem;margin-top:.6rem;">Loading…</div>
+    <h3 style="margin:1rem 0 .3rem;font-family:Poppins;color:var(--navy);font-size:1rem;">Latest learner feedback</h3>
+    <div id="qualityFeedback">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
       <div>
         <button class="btn secondary" onclick="refreshAll()">Refresh all</button>
@@ -276,7 +288,7 @@ async function restartSite(btn) {
   }
 }
 
-async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); }
+async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); loadQuality(); }
 async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
 
 async function loadUsers() {
@@ -351,7 +363,8 @@ async function loadDeployments() {
   loadCs();
   loadOnnx();
   loadDataPanels();
-  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); }, 30000);
+  loadQuality();
+  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); }, 30000);
 })();
 
 // ---- Content Safety panel ---------------------------------------------------
@@ -510,6 +523,55 @@ async function loadSheetLogs() {
       </tr>`).join('');
     el.innerHTML = `<table class="adm"><thead><tr><th>App</th><th>Role</th><th style="text-align:right;">Sheets</th><th>Last created</th></tr></thead><tbody>${rows}</tbody></table>`;
   } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+// ---- Quality telemetry panel (Feature 3) -----------------------------------
+function fmtMs(v) { return (v == null) ? '-' : (v + ' ms'); }
+function fmtPct(v) { return (v == null) ? '-' : (Number(v).toFixed(1) + '%'); }
+function kpiCard(label, value, hint) {
+  return `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:.7rem .8rem;">
+    <div style="font-size:.72rem;color:var(--grey);text-transform:uppercase;letter-spacing:.04em;">${escapeHtml(label)}</div>
+    <div style="font-size:1.5rem;font-weight:700;color:var(--navy);font-family:Poppins;">${escapeHtml(String(value))}</div>
+    ${hint ? `<div style="font-size:.72rem;color:var(--grey);margin-top:.15rem;">${escapeHtml(hint)}</div>` : ''}
+  </div>`;
+}
+async function loadQuality() {
+  const k = document.getElementById('qualityKpis');
+  const t = document.getElementById('qualityFeedback');
+  if (k) k.innerHTML = '<em>Loading…</em>';
+  if (t) t.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/quality/kpis', { cache:'no-store' })).json();
+    if (j.enabled === false) { if (k) k.innerHTML = '<em>Postgres not configured.</em>'; }
+    else {
+      const q = j.kpis || {};
+      const teacher = (q.teacher_median_response_seconds_7d == null) ? '-' : (Math.round(q.teacher_median_response_seconds_7d / 60) + ' min');
+      if (k) k.innerHTML = [
+        kpiCard('Prompts (24h)',     q.prompts_24h ?? 0),
+        kpiCard('Latency p50',       fmtMs(q.p50_latency_ms),       'over the last 24h'),
+        kpiCard('Latency p95',       fmtMs(q.p95_latency_ms),       'over the last 24h'),
+        kpiCard('Content Safety blocked', fmtPct(q.pct_blocked_cs_24h), 'last 24h'),
+        kpiCard('Feedback (24h)',    q.feedback_24h ?? 0),
+        kpiCard('% helpful',         fmtPct(q.pct_helpful_24h),     'learner ratings 24h'),
+        kpiCard('Teacher answer p50', teacher,                       'last 7 days')
+      ].join('');
+    }
+  } catch (e) { if (k) k.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+  try {
+    const j = await (await fetch('/api/admin/quality/feedback?limit=50', { cache:'no-store' })).json();
+    if (j.enabled === false) { if (t) t.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    if (!j.rows || !j.rows.length) { if (t) t.innerHTML = '<em>No feedback recorded yet. Click 👍/🤔/⚠️ on a learner answer to populate this view.</em>'; return; }
+    const rows = j.rows.map(r => `
+      <tr>
+        <td style="font-size:.78rem;color:var(--grey);">${r.createdAt ? new Date(r.createdAt).toLocaleString() : '-'}</td>
+        <td>${escapeHtml(r.email||'-')}</td>
+        <td><span class="badge ${r.rating==='helpful'?'ok':(r.rating==='wrong'?'err':'')}">${escapeHtml(r.rating||'-')}</span></td>
+        <td style="font-size:.78rem;color:var(--grey);">${escapeHtml(r.askApp||'-')}</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:var(--grey);max-width:24rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml((r.prompt||'').slice(0,140))}</td>
+        <td style="font-size:.85rem;color:var(--navy);max-width:18rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.note||'')}</td>
+      </tr>`).join('');
+    if (t) t.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>Learner</th><th>Rating</th><th>App</th><th>Prompt</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) { if (t) t.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
 }
 </script>
 </body>
