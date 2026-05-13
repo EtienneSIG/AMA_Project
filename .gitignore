@@ -6,6 +6,8 @@
 
 # Deploy logs/zips
 **/.deploy/
+**/deploy.log
+demo/apps/*.zip
 
 # Node / Python
 **/node_modules/
