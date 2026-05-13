@@ -164,6 +164,25 @@ app.get('/api/data/learners', async (_req, res) => {
   const rows = await db.summariseLearners();
   res.json({ enabled: true, rows: rows || [] });
 });
+// Skill catalogue (Feature 2). Open to any signed-in user. Optional filters:
+//   ?domain=numeracy
+//   ?competency=NL-MATH-Y7-FRAC-02   (returns skills mapped to that ministry competency)
+app.get('/api/data/skills', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listSkillsCatalogue({
+    domain: req.query.domain ? String(req.query.domain) : undefined,
+    competency: req.query.competency ? String(req.query.competency) : undefined,
+    limit: 200
+  });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Detailed view of one skill (linked competencies + items).
+app.get('/api/data/skills/:id', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, skill: null });
+  const skill = await db.getSkillById({ id: req.params.id });
+  if (!skill) return res.status(404).json({ enabled: true, skill: null, error: 'not found' });
+  res.json({ enabled: true, skill });
+});
 // Admin-only: force a re-seed of curricula / glossary / learners from packaged data.
 // Idempotent (uses ON CONFLICT). Returns row counts before and after.
 app.post('/api/data/reseed', async (req, res) => {

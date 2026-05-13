@@ -171,6 +171,20 @@ CREATE TABLE IF NOT EXISTS item_skills (
 );
 CREATE INDEX IF NOT EXISTS idx_item_skills_skill ON item_skills (skill_id);
 
+-- ---------------------------------------------------------------------------
+-- Skill <-> curriculum competency mapping (Feature 2)
+-- One skill can map to many ministerial competencies (DE Bildungsstandards,
+-- NL Kerndoelen, ...) and one competency may aggregate several skills.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS skill_competency_map (
+  skill_id      TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+  competency_id TEXT NOT NULL,
+  weight        REAL NOT NULL DEFAULT 1.0,
+  loaded_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (skill_id, competency_id)
+);
+CREATE INDEX IF NOT EXISTS idx_skill_comp_competency ON skill_competency_map (competency_id);
+
 -- Per-learner mastery rollup. Recomputed on every /api/learner/attempt.
 CREATE TABLE IF NOT EXISTS skill_mastery (
   email       TEXT        NOT NULL,

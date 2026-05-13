@@ -32,10 +32,10 @@ const APP = process.env.APP_NAME || process.env.APP_ROLE || 'unknown';
 
 const enabled = Boolean(HOST && USER && !PWD.startsWith('@Microsoft.KeyVault'));
 
-// --- Static skill catalogue + item -> skill mapping (Feature 1) -----------
-// Mirrors the FRAC-* items defined in learner-web/public/index.html.
-// Feature 2 will replace these constants with /demo/data/skills.csv etc.
-const SKILL_SEED = [
+// --- Static skill catalogue + item -> skill mapping ------------------------
+// Fallback used when demo/data/skills.csv is missing (very early dev / CI).
+// Production seeding is CSV-driven by seedReferenceData() (Feature 2).
+const SKILL_SEED_FALLBACK = [
   { id: 'SK-FRAC-ADD',      label: 'Add fractions',                domain: 'numeracy', difficulty: 0.40, bloom: 'apply' },
   { id: 'SK-FRAC-SIMPLIFY', label: 'Simplify fractions',           domain: 'numeracy', difficulty: 0.30, bloom: 'understand' },
   { id: 'SK-FRAC-COMPARE',  label: 'Compare fractions',            domain: 'numeracy', difficulty: 0.45, bloom: 'analyze' },
@@ -44,7 +44,7 @@ const SKILL_SEED = [
   { id: 'SK-FRAC-MULT',     label: 'Multiply fractions',           domain: 'numeracy', difficulty: 0.60, bloom: 'apply' },
   { id: 'SK-FRAC-MIXED',    label: 'Mixed numbers',                domain: 'numeracy', difficulty: 0.50, bloom: 'apply' }
 ];
-const ITEM_SKILL_SEED = [
+const ITEM_SKILL_SEED_FALLBACK = [
   { itemId: 'FRAC-01', skillId: 'SK-FRAC-ADD' },
   { itemId: 'FRAC-02', skillId: 'SK-FRAC-SIMPLIFY' },
   { itemId: 'FRAC-03', skillId: 'SK-FRAC-COMPARE' },
@@ -158,9 +158,23 @@ async function seedReferenceData(p) {
     }
   }
 
-  // 3. Skill catalogue + item->skill mapping (Feature 1; replaced by Feature 2 catalogue later)
+  // 3. Skill catalogue + item->skill mapping + skill->competency map (Feature 2; CSV-driven, falls back to inline seed if missing).
   try {
-    for (const s of SKILL_SEED) {
+    // 3a. Skills catalogue
+    let skills = SKILL_SEED_FALLBACK;
+    const skillsCsv = path.join(dataDir, 'skills.csv');
+    if (fs.existsSync(skillsCsv)) {
+      skills = [];
+      const lines = fs.readFileSync(skillsCsv, 'utf8').split(/\r?\n/);
+      // header: id,domain,label,difficulty,bloom
+      for (let i = 1; i < lines.length; i++) {
+        const c = parseCsvLine(lines[i]);
+        if (c.length < 3 || !c[0]) continue;
+        const diff = parseFloat(c[3]);
+        skills.push({ id: c[0], domain: c[1], label: c[2], difficulty: Number.isFinite(diff) ? diff : 0.5, bloom: c[4] || null });
+      }
+    }
+    for (const s of skills) {
       await p.query(
         `INSERT INTO skills (id, label, domain, difficulty, bloom)
          VALUES ($1, $2, $3, $4, $5)
@@ -168,11 +182,46 @@ async function seedReferenceData(p) {
         [s.id, s.label, s.domain, s.difficulty, s.bloom]
       );
     }
-    for (const m of ITEM_SKILL_SEED) {
+
+    // 3b. Item -> skill mapping
+    let mapping = ITEM_SKILL_SEED_FALLBACK;
+    const itemSkillsCsv = path.join(dataDir, 'items_to_skills.csv');
+    if (fs.existsSync(itemSkillsCsv)) {
+      mapping = [];
+      const lines = fs.readFileSync(itemSkillsCsv, 'utf8').split(/\r?\n/);
+      // header: item_id,skill_id
+      for (let i = 1; i < lines.length; i++) {
+        const c = parseCsvLine(lines[i]);
+        if (c.length < 2 || !c[0]) continue;
+        mapping.push({ itemId: c[0], skillId: c[1] });
+      }
+    }
+    for (const m of mapping) {
       await p.query(
         `INSERT INTO item_skills (item_id, skill_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [m.itemId, m.skillId]
       );
+    }
+
+    // 3c. Skill -> competency mapping (Feature 2)
+    const mapCsv = path.join(dataDir, 'skill_competency_map.csv');
+    if (fs.existsSync(mapCsv)) {
+      const lines = fs.readFileSync(mapCsv, 'utf8').split(/\r?\n/);
+      // header: skill_id,competency_id,weight
+      let mapCount = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const c = parseCsvLine(lines[i]);
+        if (c.length < 2 || !c[0]) continue;
+        const w = parseFloat(c[2]);
+        await p.query(
+          `INSERT INTO skill_competency_map (skill_id, competency_id, weight)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (skill_id, competency_id) DO UPDATE SET weight = EXCLUDED.weight`,
+          [c[0], c[1], Number.isFinite(w) ? w : 1.0]
+        );
+        mapCount++;
+      }
+      console.log(`[db] seeded ${mapCount} skill->competency mappings`);
     }
   } catch (e) { console.error('[db] skill seed failed:', e.message); }
 
@@ -532,6 +581,60 @@ async function listLearnerActivity({ email, days = 30 }) {
   return r ? r.rows : null;
 }
 
+// --- Skill catalogue (Feature 2) ------------------------------------------
+
+// List the skill catalogue with optional filters and per-skill counts of
+// mapped competencies and items. Used by /api/data/skills.
+async function listSkillsCatalogue({ domain, competency, limit = 200 } = {}) {
+  const conds = []; const params = [];
+  if (domain) { params.push(domain); conds.push(`s.domain = $${params.length}`); }
+  if (competency) {
+    params.push(competency);
+    conds.push(`EXISTS (SELECT 1 FROM skill_competency_map m WHERE m.skill_id = s.id AND m.competency_id = $${params.length})`);
+  }
+  params.push(limit);
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const r = await q(
+    `SELECT s.id AS "skillId", s.label, s.domain, s.difficulty, s.bloom,
+            (SELECT COUNT(*)::int FROM skill_competency_map m WHERE m.skill_id = s.id) AS "competencyCount",
+            (SELECT COUNT(*)::int FROM item_skills isk WHERE isk.skill_id = s.id) AS "itemCount"
+       FROM skills s
+       ${where}
+       ORDER BY s.domain, s.difficulty, s.id
+       LIMIT $${params.length}`,
+    params
+  );
+  return r ? r.rows : null;
+}
+
+// Detailed view of one skill: linked competencies (with curriculum context if known) + items.
+async function getSkillById({ id }) {
+  const sr = await q(
+    `SELECT id AS "skillId", label, domain, difficulty, bloom FROM skills WHERE id = $1`,
+    [id]
+  );
+  if (!sr || sr.rows.length === 0) return null;
+  const skill = sr.rows[0];
+  const cr = await q(
+    `SELECT m.competency_id AS "competencyId", m.weight,
+            c.country, c.framework, c.grade, c.subject, c.title, c.description
+       FROM skill_competency_map m
+       LEFT JOIN curricula c ON c.id = m.competency_id
+       WHERE m.skill_id = $1
+       ORDER BY c.country NULLS LAST, m.competency_id`,
+    [id]
+  );
+  const ir = await q(
+    `SELECT item_id AS "itemId" FROM item_skills WHERE skill_id = $1 ORDER BY item_id`,
+    [id]
+  );
+  return {
+    ...skill,
+    competencies: cr ? cr.rows : [],
+    items: ir ? ir.rows.map(r => r.itemId) : []
+  };
+}
+
 // Admin-only: rebuild the entire skill_mastery table from item_attempts (idempotent).
 async function recomputeAllMastery() {
   if (!enabled) return { enabled: false };
@@ -585,6 +688,8 @@ module.exports = {
   listClassMastery,
   listLearnerActivity,
   recomputeAllMastery,
+  listSkillsCatalogue,
+  getSkillById,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

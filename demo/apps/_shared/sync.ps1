@@ -30,5 +30,9 @@ foreach ($a in $apps) {
         Get-ChildItem (Join-Path $here ('data/' + $sub)) -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $sd $_.Name) }
     }
     Copy-Item -Force -Path (Join-Path $here 'data/synthetic_learners.csv') -Destination (Join-Path $dataDest 'synthetic_learners.csv')
+    foreach ($csv in 'skills.csv','items_to_skills.csv','skill_competency_map.csv') {
+        $src = Join-Path $here ('data/' + $csv)
+        if (Test-Path $src) { Copy-Item -Force -Path $src -Destination (Join-Path $dataDest $csv) }
+    }
     Write-Host "synced -> $a" -ForegroundColor Green
 }

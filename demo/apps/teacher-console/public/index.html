@@ -229,7 +229,10 @@
   <div class="card" id="classMasteryCard">
     <div class="explhead">
       <h2>Class mastery <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">aggregated from item_attempts · EU Postgres</span></h2>
-      <button class="btn btn-sm secondary" onclick="loadClassMastery()">Refresh</button>
+      <div style="display:flex;gap:.4rem;">
+        <button class="btn btn-sm secondary" onclick="openSkillCatalogue()" title="Browse the skill catalogue and curriculum mapping">Catalogue</button>
+        <button class="btn btn-sm secondary" onclick="loadClassMastery()">Refresh</button>
+      </div>
     </div>
     <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">For each skill: how many learners are at each mastery bucket and the cohort's average level.</p>
     <div id="classMasteryList" style="display:flex;flex-direction:column;gap:.4rem;">
@@ -237,6 +240,23 @@
     </div>
   </div>
 </section>
+<div class="modal-bg" id="catalogueModal" onclick="if(event.target.id==='catalogueModal')closeSkillCatalogue()">
+  <div class="modal lg" role="dialog" aria-label="Skill catalogue">
+    <h2>Skill catalogue <span class="sub" id="catCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
+    <p class="sub" style="margin:.1rem 0 .6rem;">Atomic, model-friendly skills used by the adaptive picker. Each skill maps to one or more ministry competencies (DE Bildungsstandards, NL Kerndoelen).</p>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0 .8rem;">
+      <input id="catSearch" placeholder="Filter by id, label, competency…" style="flex:1;min-width:240px;" oninput="renderSkillCatalogue()" />
+      <select id="catDomain" onchange="renderSkillCatalogue()" style="max-width:180px;"><option value="">all domains</option></select>
+    </div>
+    <div id="catalogueList" style="max-height:55vh;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;">
+      <div class="sub" style="padding:1rem;font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+    <div id="catalogueDetail" style="margin-top:.7rem;font-size:.85rem;"></div>
+    <div class="actions">
+      <button class="btn ghost" onclick="closeSkillCatalogue()">Close</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
   <div class="modal lg" role="dialog" aria-label="Study sheets">
     <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -555,6 +575,77 @@ async function loadClassMastery() {
           + '</div>';
       }).join('');
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+// --- Skill catalogue (Feature 2) ----------------------------------------
+let _catalogue = [];
+function openSkillCatalogue() {
+  document.getElementById('catalogueModal').classList.add('open');
+  document.getElementById('catalogueDetail').innerHTML = '';
+  loadSkillCatalogue();
+}
+function closeSkillCatalogue() { document.getElementById('catalogueModal').classList.remove('open'); }
+async function loadSkillCatalogue() {
+  const list = document.getElementById('catalogueList');
+  try {
+    const r = await fetch('/api/data/skills', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="padding:1rem;font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    _catalogue = d.rows || [];
+    const cnt = document.getElementById('catCount');
+    if (cnt) cnt.textContent = '(' + _catalogue.length + ')';
+    const sel = document.getElementById('catDomain');
+    if (sel && sel.options.length <= 1) {
+      const domains = Array.from(new Set(_catalogue.map(s => s.domain).filter(Boolean))).sort();
+      for (const d of domains) { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); }
+    }
+    renderSkillCatalogue();
+  } catch (e) { list.innerHTML = '<div class="sub" style="padding:1rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>'; }
+}
+function renderSkillCatalogue() {
+  const list = document.getElementById('catalogueList');
+  if (!list) return;
+  const search = (document.getElementById('catSearch')?.value || '').toLowerCase().trim();
+  const dom = document.getElementById('catDomain')?.value || '';
+  let rows = _catalogue.slice();
+  if (dom) rows = rows.filter(r => r.domain === dom);
+  if (search) rows = rows.filter(r => (r.label + ' ' + r.skillId).toLowerCase().includes(search));
+  if (!rows.length) { list.innerHTML = '<div class="sub" style="padding:1rem;font-size:.85rem;opacity:.7;">No skills match.</div>'; return; }
+  list.innerHTML = '<div style="display:grid;grid-template-columns:1.4fr .8fr 2fr .6fr .6fr .6fr;gap:.4rem;font-size:.74rem;color:var(--grey);font-weight:600;padding:.4rem .6rem;border-bottom:1px solid #e2e8f0;">'
+    + '<div>Skill ID</div><div>Domain</div><div>Label</div><div>Diff.</div><div>#Items</div><div>#Comp.</div></div>'
+    + rows.map(r => {
+      return '<div onclick="showSkillDetail(\'' + encodeURIComponent(r.skillId).replace(/\'/g,"%27") + '\')" style="display:grid;grid-template-columns:1.4fr .8fr 2fr .6fr .6fr .6fr;gap:.4rem;align-items:center;font-size:.82rem;padding:.45rem .6rem;border-bottom:1px solid #f1f5f9;cursor:pointer;" onmouseover="this.style.background=\'#F8FAFC\'" onmouseout="this.style.background=\'\'">'
+        + '<div><code style="font-size:.78rem;">' + escapeHtml(r.skillId) + '</code></div>'
+        + '<div style="font-size:.78rem;">' + escapeHtml(r.domain || '') + '</div>'
+        + '<div>' + escapeHtml(r.label) + ' <span class="sub" style="font-size:.7rem;color:var(--grey);">· ' + escapeHtml(r.bloom || '') + '</span></div>'
+        + '<div>' + (r.difficulty != null ? r.difficulty.toFixed(2) : '—') + '</div>'
+        + '<div>' + (r.itemCount || 0) + '</div>'
+        + '<div>' + (r.competencyCount || 0) + '</div>'
+        + '</div>';
+    }).join('');
+}
+async function showSkillDetail(idEnc) {
+  const id = decodeURIComponent(idEnc);
+  const box = document.getElementById('catalogueDetail');
+  box.innerHTML = '<em>Loading ' + escapeHtml(id) + '…</em>';
+  try {
+    const r = await fetch('/api/data/skills/' + encodeURIComponent(id), { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.skill) { box.innerHTML = '<span style="color:#b00020;">Skill not found.</span>'; return; }
+    const s = d.skill;
+    const comps = (s.competencies || []).map(c => {
+      const tag = c.country ? (c.country + ' · ' + (c.framework || '')) : 'unknown framework';
+      return '<li><code>' + escapeHtml(c.competencyId) + '</code> <span class="sub" style="font-size:.78rem;color:var(--grey);">[' + escapeHtml(tag) + ', w=' + (c.weight || 1) + ']</span><br/><span style="font-size:.85rem;">' + escapeHtml(c.title || '— competency not seeded —') + '</span></li>';
+    }).join('') || '<li class="sub" style="opacity:.7;">No mapped competencies.</li>';
+    const items = (s.items || []).map(i => '<code>' + escapeHtml(i) + '</code>').join(' · ') || '<span class="sub" style="opacity:.7;">No items linked.</span>';
+    box.innerHTML = '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.7rem;background:#F8FAFC;">'
+      + '<div><strong>' + escapeHtml(s.label) + '</strong> <span class="sub" style="font-size:.78rem;color:var(--grey);">' + escapeHtml(s.skillId) + ' · ' + escapeHtml(s.domain) + ' · ' + escapeHtml(s.bloom || '') + ' · diff ' + (s.difficulty != null ? s.difficulty.toFixed(2) : '—') + '</span></div>'
+      + '<div style="margin-top:.5rem;font-size:.82rem;color:var(--grey);font-weight:600;">Mapped competencies</div>'
+      + '<ul style="margin:.3rem 0 .6rem 1.1rem;padding:0;">' + comps + '</ul>'
+      + '<div style="font-size:.82rem;color:var(--grey);font-weight:600;">Adaptive items</div>'
+      + '<div style="margin-top:.2rem;">' + items + '</div>'
+      + '</div>';
+  } catch (e) { box.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
 }
 </script>
 </body>
