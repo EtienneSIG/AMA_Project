@@ -338,6 +338,50 @@ async function reseedReferenceData() {
   return { enabled: true, dataDir, dataDirExists: exists, before, after, error };
 }
 
+// --- Teacher Q&A (learner ↔ teacher async messaging) -----------------------
+
+async function createTeacherQuestion({ learnerEmail, learnerName, subject, question }) {
+  const r = await q(
+    `INSERT INTO teacher_questions (learner_email, learner_name, subject, question)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, learner_email, learner_name, subject, question, status, teacher_email, teacher_name, answer, created_at, answered_at`,
+    [learnerEmail, learnerName || null, String(subject || '').slice(0, 200), String(question || '').slice(0, 4000)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listTeacherQuestionsForLearner({ learnerEmail, limit = 50 }) {
+  const r = await q(
+    `SELECT id, learner_email, learner_name, subject, question, status, teacher_email, teacher_name, answer, created_at, answered_at
+     FROM teacher_questions WHERE learner_email = $1 ORDER BY created_at DESC LIMIT $2`,
+    [learnerEmail, limit]
+  );
+  return r ? r.rows : null;
+}
+
+async function listTeacherQuestionsInbox({ status, limit = 100 } = {}) {
+  const params = []; let where = '';
+  if (status) { params.push(status); where = `WHERE status = $${params.length}`; }
+  params.push(limit);
+  const r = await q(
+    `SELECT id, learner_email, learner_name, subject, question, status, teacher_email, teacher_name, answer, created_at, answered_at
+     FROM teacher_questions ${where} ORDER BY (status = 'pending') DESC, created_at DESC LIMIT $${params.length}`,
+    params
+  );
+  return r ? r.rows : null;
+}
+
+async function answerTeacherQuestion({ id, teacherEmail, teacherName, answer }) {
+  const r = await q(
+    `UPDATE teacher_questions
+       SET answer = $1, teacher_email = $2, teacher_name = $3, status = 'answered', answered_at = now()
+       WHERE id = $4
+     RETURNING id, learner_email, learner_name, subject, question, status, teacher_email, teacher_name, answer, created_at, answered_at`,
+    [String(answer || '').slice(0, 8000), teacherEmail, teacherName || null, id]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
 module.exports = {
   enabled,
   init,
@@ -356,6 +400,10 @@ module.exports = {
   recentAttempts,
   attemptStats,
   logContentSafety,
+  createTeacherQuestion,
+  listTeacherQuestionsForLearner,
+  listTeacherQuestionsInbox,
+  answerTeacherQuestion,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

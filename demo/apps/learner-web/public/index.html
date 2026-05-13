@@ -262,6 +262,27 @@
   </div>
 </main>
 
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="teacherQACard">
+    <div class="explhead">
+      <h2>Ask your teacher <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">stored in EU Postgres · reviewed by a human teacher</span></h2>
+      <button class="btn btn-sm secondary" id="refreshTQBtn" onclick="loadTeacherQuestions()" title="Refresh thread">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">When the AI tutor isn't enough, send your question to a teacher. They'll reply asynchronously — you'll see the answer below.</p>
+    <div class="grid2cols" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+      <div><label style="font-size:.78rem;color:var(--grey);">Subject</label><input id="tqSubject" maxlength="200" placeholder="e.g. Fractions homework, exercise 4" style="width:100%;padding:.5rem .65rem;border:1px solid var(--line);border-radius:6px;" /></div>
+      <div style="display:flex;align-items:flex-end;justify-content:flex-end;"><button class="btn" id="tqSendBtn" onclick="sendTeacherQuestion()">Send to teacher</button></div>
+    </div>
+    <label style="font-size:.78rem;color:var(--grey);margin-top:.5rem;display:block;">Your question</label>
+    <textarea id="tqQuestion" maxlength="4000" placeholder="Describe what you tried and where you're stuck. Be precise so the teacher can help quickly." style="min-height:5rem;width:100%;"></textarea>
+    <div id="tqStatus" class="sub" style="font-size:.8rem;margin:.4rem 0;min-height:1.1rem;"></div>
+    <h3 style="margin:1rem 0 .4rem;font-size:1rem;">Your conversations</h3>
+    <div id="tqList" style="display:flex;flex-direction:column;gap:.55rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+</section>
+
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 <script>
 // Adaptive item picker — loads learner.onnx and runs inference client-side.
@@ -625,7 +646,57 @@ window.addEventListener('load', () => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); } });
   refreshStatus();
   loadMe();
+  loadTeacherQuestions();
 });
+
+// --- Ask your teacher (async Q&A stored in Postgres) ---------------------
+function fmtDateTQ(s) { try { return new Date(s).toLocaleString(); } catch (_) { return s || ''; } }
+async function sendTeacherQuestion() {
+  const subject = document.getElementById('tqSubject').value.trim();
+  const question = document.getElementById('tqQuestion').value.trim();
+  const status = document.getElementById('tqStatus');
+  const btn = document.getElementById('tqSendBtn');
+  if (!subject || !question) { status.textContent = 'Subject and question are both required.'; status.style.color = '#b00020'; return; }
+  btn.disabled = true; status.style.color = ''; status.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/teacher-questions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, question })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { status.style.color = '#b00020'; status.textContent = (d.detail || d.error || 'Failed to send.'); return; }
+    document.getElementById('tqSubject').value = '';
+    document.getElementById('tqQuestion').value = '';
+    status.style.color = '#0a7d2c'; status.textContent = 'Sent — your teacher will be notified.';
+    loadTeacherQuestions();
+  } catch (e) { status.style.color = '#b00020'; status.textContent = String(e); }
+  finally { btn.disabled = false; }
+}
+async function loadTeacherQuestions() {
+  const list = document.getElementById('tqList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher-questions/mine', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured for this environment.</div>'; return; }
+    if (!d.rows || d.rows.length === 0) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No questions yet — your conversations with teachers will appear here.</div>'; return; }
+    list.innerHTML = d.rows.map(row => {
+      const pending = row.status !== 'answered';
+      const badge = pending
+        ? '<span style="background:#FFF3CD;color:#856404;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Pending</span>'
+        : '<span style="background:#D4EDDA;color:#155724;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Answered</span>';
+      const answer = pending
+        ? '<div class="sub" style="font-size:.82rem;opacity:.7;font-style:italic;">Waiting for a teacher to reply…</div>'
+        : '<div style="background:#EEF2F7;padding:.55rem .7rem;border-radius:6px;margin-top:.35rem;"><div style="font-size:.72rem;color:var(--grey);margin-bottom:.2rem;">Reply from ' + escapeHtml(row.teacher_name || row.teacher_email || 'teacher') + ' · ' + fmtDateTQ(row.answered_at) + '</div><div style="white-space:pre-wrap;font-size:.9rem;">' + escapeHtml(row.answer) + '</div></div>';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.65rem .8rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;"><strong style="font-size:.92rem;">' + escapeHtml(row.subject) + '</strong>' + badge + '</div>'
+        + '<div class="sub" style="font-size:.72rem;color:var(--grey);margin:.15rem 0 .35rem;">Sent ' + fmtDateTQ(row.created_at) + '</div>'
+        + '<div style="white-space:pre-wrap;font-size:.88rem;">' + escapeHtml(row.question) + '</div>'
+        + answer
+        + '</div>';
+    }).join('');
+  } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
+}
 </script>
 </body>
 </html>

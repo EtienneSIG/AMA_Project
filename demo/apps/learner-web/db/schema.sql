@@ -130,3 +130,20 @@ CREATE TABLE IF NOT EXISTS content_safety_results (
 CREATE INDEX IF NOT EXISTS idx_cs_results_email ON content_safety_results (email, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cs_results_app   ON content_safety_results (app, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cs_results_blocked ON content_safety_results (blocked, created_at DESC);
+
+-- Q&A thread between learners and teachers (asynchronous, demo-grade).
+CREATE TABLE IF NOT EXISTS teacher_questions (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  learner_email   TEXT        NOT NULL,
+  learner_name    TEXT,
+  subject         TEXT        NOT NULL,
+  question        TEXT        NOT NULL,
+  status          TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','answered')),
+  teacher_email   TEXT,
+  teacher_name    TEXT,
+  answer          TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  answered_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_teacher_questions_learner ON teacher_questions (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_teacher_questions_status  ON teacher_questions (status, created_at DESC);

@@ -206,6 +206,25 @@
     <div class="meta" id="meta"></div>
   </div>
 </main>
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="tqInboxCard">
+    <div class="explhead">
+      <h2>Learner questions <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">human-in-the-loop · EU AI Act Art. 14</span></h2>
+      <div style="display:flex;gap:.4rem;align-items:center;">
+        <select id="tqFilter" onchange="loadInbox()" style="padding:.35rem .55rem;border:1px solid var(--line);border-radius:6px;font-size:.85rem;">
+          <option value="pending">Pending only</option>
+          <option value="">All</option>
+          <option value="answered">Answered</option>
+        </select>
+        <button class="btn btn-sm secondary" onclick="loadInbox()">Refresh</button>
+      </div>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Questions from learners that need a human reply. Pending items appear first.</p>
+    <div id="tqInboxList" style="display:flex;flex-direction:column;gap:.55rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+</section>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
   <div class="modal lg" role="dialog" aria-label="Study sheets">
     <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -444,7 +463,59 @@ window.addEventListener('load', () => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); } });
   refreshStatus();
   loadMe();
+  loadInbox();
 });
+
+// --- Learner Q&A inbox (teacher view) -----------------------------------
+function fmtDateTQ(s) { try { return new Date(s).toLocaleString(); } catch (_) { return s || ''; } }
+async function loadInbox() {
+  const list = document.getElementById('tqInboxList');
+  if (!list) return;
+  const filter = document.getElementById('tqFilter').value;
+  try {
+    const url = '/api/teacher-questions/inbox' + (filter ? ('?status=' + encodeURIComponent(filter)) : '');
+    const r = await fetch(url, { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || d.rows.length === 0) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No questions match this filter.</div>'; return; }
+    list.innerHTML = d.rows.map(row => {
+      const pending = row.status !== 'answered';
+      const badge = pending
+        ? '<span style="background:#FFF3CD;color:#856404;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Pending</span>'
+        : '<span style="background:#D4EDDA;color:#155724;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Answered</span>';
+      const replyBlock = pending
+        ? '<div style="margin-top:.5rem;"><textarea id="ans-' + row.id + '" maxlength="8000" placeholder="Write a clear, age-appropriate reply…" style="min-height:4.5rem;width:100%;"></textarea>'
+          + '<div style="display:flex;gap:.4rem;align-items:center;margin-top:.3rem;">'
+          + '<button class="btn btn-sm" onclick="answerQuestion(\'' + row.id + '\')">Send reply</button>'
+          + '<span class="sub" id="ans-status-' + row.id + '" style="font-size:.78rem;"></span>'
+          + '</div></div>'
+        : '<div style="background:#EEF2F7;padding:.55rem .7rem;border-radius:6px;margin-top:.35rem;"><div style="font-size:.72rem;color:var(--grey);margin-bottom:.2rem;">Replied by ' + escapeHtml(row.teacher_name || row.teacher_email || 'teacher') + ' · ' + fmtDateTQ(row.answered_at) + '</div><div style="white-space:pre-wrap;font-size:.9rem;">' + escapeHtml(row.answer) + '</div></div>';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.65rem .8rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;"><strong style="font-size:.92rem;">' + escapeHtml(row.subject) + '</strong>' + badge + '</div>'
+        + '<div class="sub" style="font-size:.72rem;color:var(--grey);margin:.15rem 0 .35rem;">From ' + escapeHtml(row.learner_name || row.learner_email) + ' · ' + fmtDateTQ(row.created_at) + '</div>'
+        + '<div style="white-space:pre-wrap;font-size:.88rem;">' + escapeHtml(row.question) + '</div>'
+        + replyBlock
+        + '</div>';
+    }).join('');
+  } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
+}
+async function answerQuestion(id) {
+  const ta = document.getElementById('ans-' + id);
+  const status = document.getElementById('ans-status-' + id);
+  if (!ta) return;
+  const answer = ta.value.trim();
+  if (!answer) { status.style.color = '#b00020'; status.textContent = 'Reply required.'; return; }
+  status.style.color = ''; status.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/teacher-questions/' + encodeURIComponent(id) + '/answer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { status.style.color = '#b00020'; status.textContent = (d.detail || d.error || 'Failed.'); return; }
+    loadInbox();
+  } catch (e) { status.style.color = '#b00020'; status.textContent = String(e); }
+}
 </script>
 </body>
 </html>

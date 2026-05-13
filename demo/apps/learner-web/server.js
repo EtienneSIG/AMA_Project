@@ -196,5 +196,57 @@ app.get('/api/learner/persona', async (_req, res) => {
   res.json({ enabled: true, persona });
 });
 
+// --- Teacher Q&A (learner ↔ teacher async messaging) ----------------------
+// Learner posts a question; teacher (or admin) sees an inbox and replies.
+app.post('/api/teacher-questions', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!['student', 'admin'].includes(u.role)) return res.status(403).json({ error: 'student only' });
+  const subject = String(req.body?.subject || '').trim();
+  const question = String(req.body?.question || '').trim();
+  if (!subject || !question) return res.status(400).json({ error: 'subject and question required' });
+  // Content Safety on the learner's message — same threshold as /api/chat.
+  const scan = await cs.analyze(`${subject}\n\n${question}`);
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Your question was flagged by Azure AI Content Safety.', severities: scan.severities, threshold: scan.threshold });
+  }
+  const learnerName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || null;
+  const row = await db.createTeacherQuestion({ learnerEmail: u.email, learnerName, subject, question });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  res.status(201).json({ row });
+});
+
+app.get('/api/teacher-questions/mine', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listTeacherQuestionsForLearner({ learnerEmail: u.email, limit: 50 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+app.get('/api/teacher-questions/inbox', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const status = req.query.status === 'answered' || req.query.status === 'pending' ? req.query.status : null;
+  const rows = await db.listTeacherQuestionsInbox({ status, limit: 100 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+app.post('/api/teacher-questions/:id/answer', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const answer = String(req.body?.answer || '').trim();
+  if (!answer) return res.status(400).json({ error: 'answer required' });
+  const scan = await cs.analyze(answer);
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'output_blocked', detail: 'Your answer was flagged by Azure AI Content Safety.', severities: scan.severities, threshold: scan.threshold });
+  }
+  const teacherName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || null;
+  const row = await db.answerTeacherQuestion({ id: req.params.id, teacherEmail: u.email, teacherName, answer });
+  if (!row) return res.status(404).json({ error: 'not found' });
+  res.json({ row });
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[${APP_ROLE}] listening on :${port} (allowedRoles=${ALLOWED.join(',')}, APIM=${APIM || 'unset'})`));
