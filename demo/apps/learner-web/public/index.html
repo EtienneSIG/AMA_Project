@@ -283,6 +283,19 @@
   </div>
 </section>
 
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="masteryCard">
+    <div class="explhead">
+      <h2>My progress <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">per-skill mastery · stored in EU Postgres</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadMastery()" title="Refresh">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Each adaptive question updates your mastery for the related skill. Mastered skills (≥85%) graduate from the practice loop.</p>
+    <div id="masteryList" style="display:flex;flex-direction:column;gap:.45rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+</section>
+
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 <script>
 // Adaptive item picker — loads learner.onnx and runs inference client-side.
@@ -397,6 +410,7 @@ window.adaptive = (function() {
         body: JSON.stringify({ itemId: currentItem.id, difficulty: currentItem.difficulty, predicted: currentItem.predicted, correct, latencyMs })
       });
     } catch (e) { /* swallow */ }
+    loadMastery();
     next();
   }
 
@@ -647,6 +661,7 @@ window.addEventListener('load', () => {
   refreshStatus();
   loadMe();
   loadTeacherQuestions();
+  loadMastery();
 });
 
 // --- Ask your teacher (async Q&A stored in Postgres) ---------------------
@@ -693,6 +708,45 @@ async function loadTeacherQuestions() {
         + '<div class="sub" style="font-size:.72rem;color:var(--grey);margin:.15rem 0 .35rem;">Sent ' + fmtDateTQ(row.created_at) + '</div>'
         + '<div style="white-space:pre-wrap;font-size:.88rem;">' + escapeHtml(row.question) + '</div>'
         + answer
+        + '</div>';
+    }).join('');
+  } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+// --- My progress (skill mastery from Postgres) ---------------------------
+function masteryBucket(level) {
+  if (level >= 0.85) return { label: 'Mastered',   bg: '#D1FAE5', fg: '#065F46' };
+  if (level >= 0.65) return { label: 'Proficient', bg: '#DBEAFE', fg: '#1E40AF' };
+  if (level >= 0.40) return { label: 'Practising', bg: '#FEF3C7', fg: '#92400E' };
+  return                    { label: 'Beginner',   bg: '#F3F4F6', fg: '#374151' };
+}
+async function loadMastery() {
+  const list = document.getElementById('masteryList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/learner/mastery', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured for this environment.</div>'; return; }
+    if (!d.rows || d.rows.length === 0) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No skills yet. Try a few practice questions to populate your progress.</div>'; return; }
+    // Show top 8 by recent activity, then by difficulty.
+    const top = d.rows.slice(0, 8);
+    list.innerHTML = top.map(row => {
+      const bucket = masteryBucket(row.level);
+      const pct = Math.round((row.level || 0) * 100);
+      const seen = row.lastSeen ? ('Last seen ' + fmtDateTQ(row.lastSeen)) : 'Not yet attempted';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.55rem .75rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;">'
+        +   '<div><strong style="font-size:.92rem;">' + escapeHtml(row.label) + '</strong> '
+        +       '<span class="sub" style="font-size:.72rem;color:var(--grey);">' + escapeHtml(row.skillId) + '</span></div>'
+        +   '<span style="background:' + bucket.bg + ';color:' + bucket.fg + ';padding:.1rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">' + bucket.label + '</span>'
+        + '</div>'
+        + '<div style="margin:.4rem 0 .25rem;background:#F1F5F9;height:.55rem;border-radius:999px;overflow:hidden;">'
+        +   '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--teal),var(--navy));"></div>'
+        + '</div>'
+        + '<div class="sub" style="font-size:.72rem;color:var(--grey);display:flex;justify-content:space-between;">'
+        +   '<span>' + row.correct + ' / ' + row.attempts + ' correct · ' + pct + '%</span>'
+        +   '<span>' + escapeHtml(seen) + '</span>'
+        + '</div>'
         + '</div>';
     }).join('');
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }

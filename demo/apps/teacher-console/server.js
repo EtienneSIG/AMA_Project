@@ -183,6 +183,9 @@ app.post('/api/learner/attempt', async (req, res) => {
   const { itemId, difficulty, predicted, correct, latencyMs, pseudonym } = req.body || {};
   if (!itemId) return res.status(400).json({ error: 'itemId required' });
   await db.logItemAttempt({ email: u.email, pseudonym, itemId, difficulty: Number(difficulty), predicted: Number(predicted), correct: Boolean(correct), latencyMs: Number(latencyMs) }).catch(() => {});
+  // Feature 1 — keep skill mastery + daily activity in sync (best-effort).
+  await db.bumpSkillMasteryFromAttempt({ email: u.email, itemId }).catch(() => {});
+  await db.bumpDailyActivity({ email: u.email, correct: Boolean(correct) }).catch(() => {});
   res.json({ ok: true, store: db.enabled ? 'postgres' : 'memory' });
 });
 app.get('/api/learner/attempts', async (req, res) => {
@@ -194,6 +197,37 @@ app.get('/api/learner/persona', async (_req, res) => {
   if (!db.enabled) return res.json({ enabled: false, persona: null });
   const persona = await db.pickRandomLearner({ market: 'DE' });
   res.json({ enabled: true, persona });
+});
+
+// --- Skills progression (Feature 1) ---------------------------------------
+// Per-learner mastery profile. Open to any signed-in user (each sees their own).
+app.get('/api/learner/mastery', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listMasteryForLearner({ email: u.email, limit: 24 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Per-learner activity (last 30 days). Used by streak/badges in Feature 4.
+app.get('/api/learner/activity', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listLearnerActivity({ email: u.email, days: 30 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Class-wide aggregate per skill. Teacher / admin only.
+app.get('/api/teacher/class/mastery', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listClassMastery({ limit: 50 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Admin-only rebuild of the mastery rollup from item_attempts.
+app.post('/api/learner/mastery/recompute', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  const out = await db.recomputeAllMastery();
+  res.json(out);
 });
 
 // --- Teacher Q&A (learner ↔ teacher async messaging) ----------------------

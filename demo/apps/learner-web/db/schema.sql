@@ -147,3 +147,51 @@ CREATE TABLE IF NOT EXISTS teacher_questions (
 );
 CREATE INDEX IF NOT EXISTS idx_teacher_questions_learner ON teacher_questions (learner_email, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_teacher_questions_status  ON teacher_questions (status, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Skills progression (Feature 1)
+-- A small static skill catalogue + per-learner mastery + daily activity rollup.
+-- The catalogue is light here; Feature 2 (model-oriented skill catalogue) replaces
+-- the seed data with a richer schema (skill_competency_map etc.).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS skills (
+  id          TEXT        PRIMARY KEY,                       -- e.g. SK-FRAC-ADD
+  label       TEXT        NOT NULL,                          -- "Add fractions"
+  domain      TEXT        NOT NULL DEFAULT 'numeracy',
+  difficulty  REAL        NOT NULL DEFAULT 0.5,              -- 0..1
+  bloom       TEXT,                                          -- remember | understand | apply | ...
+  loaded_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Many-to-many between adaptive items (FRAC-01, FRAC-02, ...) and skills.
+CREATE TABLE IF NOT EXISTS item_skills (
+  item_id   TEXT NOT NULL,
+  skill_id  TEXT NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+  PRIMARY KEY (item_id, skill_id)
+);
+CREATE INDEX IF NOT EXISTS idx_item_skills_skill ON item_skills (skill_id);
+
+-- Per-learner mastery rollup. Recomputed on every /api/learner/attempt.
+CREATE TABLE IF NOT EXISTS skill_mastery (
+  email       TEXT        NOT NULL,
+  skill_id    TEXT        NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+  attempts    INTEGER     NOT NULL DEFAULT 0,
+  correct     INTEGER     NOT NULL DEFAULT 0,
+  level       REAL        NOT NULL DEFAULT 0.0,              -- 0..1
+  last_seen   TIMESTAMPTZ,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, skill_id)
+);
+CREATE INDEX IF NOT EXISTS idx_skill_mastery_email ON skill_mastery (email, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_skill_mastery_skill ON skill_mastery (skill_id);
+
+-- Daily activity rollup per learner (used by streak / badges in Feature 4 too).
+CREATE TABLE IF NOT EXISTS learner_activity (
+  email       TEXT        NOT NULL,
+  day         DATE        NOT NULL,
+  attempts    INTEGER     NOT NULL DEFAULT 0,
+  correct     INTEGER     NOT NULL DEFAULT 0,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, day)
+);
+CREATE INDEX IF NOT EXISTS idx_learner_activity_email ON learner_activity (email, day DESC);

@@ -225,6 +225,18 @@
     </div>
   </div>
 </section>
+<section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="classMasteryCard">
+    <div class="explhead">
+      <h2>Class mastery <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">aggregated from item_attempts · EU Postgres</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadClassMastery()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">For each skill: how many learners are at each mastery bucket and the cohort's average level.</p>
+    <div id="classMasteryList" style="display:flex;flex-direction:column;gap:.4rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+</section>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
   <div class="modal lg" role="dialog" aria-label="Study sheets">
     <h2>Study sheets <span class="sub" id="sheetsCount" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -464,6 +476,7 @@ window.addEventListener('load', () => {
   refreshStatus();
   loadMe();
   loadInbox();
+  loadClassMastery();
 });
 
 // --- Learner Q&A inbox (teacher view) -----------------------------------
@@ -515,6 +528,33 @@ async function answerQuestion(id) {
     if (!r.ok) { status.style.color = '#b00020'; status.textContent = (d.detail || d.error || 'Failed.'); return; }
     loadInbox();
   } catch (e) { status.style.color = '#b00020'; status.textContent = String(e); }
+}
+
+// --- Class mastery (per-skill aggregate from Postgres) ------------------
+async function loadClassMastery() {
+  const list = document.getElementById('classMasteryList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/class/mastery', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || d.rows.length === 0) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No skill data yet — learners need to attempt items first.</div>'; return; }
+    const cell = (n, bg, fg) => '<span style="display:inline-block;min-width:1.6rem;text-align:center;background:' + bg + ';color:' + fg + ';padding:.1rem .4rem;border-radius:6px;font-size:.74rem;font-weight:600;">' + n + '</span>';
+    list.innerHTML = '<div style="display:grid;grid-template-columns:1.6fr .6fr repeat(4,.6fr) .8fr;gap:.4rem;align-items:center;font-size:.78rem;color:var(--grey);font-weight:600;padding:.25rem .6rem;">'
+      + '<div>Skill</div><div>Learners</div><div>Beg.</div><div>Pract.</div><div>Prof.</div><div>Mast.</div><div>Avg level</div></div>'
+      + d.rows.map(row => {
+        const avgPct = Math.round((row.avgLevel || 0) * 100);
+        return '<div style="display:grid;grid-template-columns:1.6fr .6fr repeat(4,.6fr) .8fr;gap:.4rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;background:#fff;">'
+          + '<div><strong style="font-size:.88rem;">' + escapeHtml(row.label) + '</strong> <span class="sub" style="font-size:.7rem;color:var(--grey);">' + escapeHtml(row.skillId) + '</span></div>'
+          + '<div style="font-size:.82rem;">' + row.learners + '</div>'
+          + '<div>' + cell(row.beginner,   '#F3F4F6', '#374151') + '</div>'
+          + '<div>' + cell(row.practising, '#FEF3C7', '#92400E') + '</div>'
+          + '<div>' + cell(row.proficient, '#DBEAFE', '#1E40AF') + '</div>'
+          + '<div>' + cell(row.mastered,   '#D1FAE5', '#065F46') + '</div>'
+          + '<div><div style="background:#F1F5F9;height:.45rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + avgPct + '%;background:linear-gradient(90deg,var(--teal),var(--navy));"></div></div><div class="sub" style="font-size:.7rem;color:var(--grey);text-align:right;margin-top:.1rem;">' + avgPct + '%</div></div>'
+          + '</div>';
+      }).join('');
+  } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
 }
 </script>
 </body>
