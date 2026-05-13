@@ -158,10 +158,14 @@ CREATE TABLE IF NOT EXISTS skills (
   id          TEXT        PRIMARY KEY,                       -- e.g. SK-FRAC-ADD
   label       TEXT        NOT NULL,                          -- "Add fractions"
   domain      TEXT        NOT NULL DEFAULT 'numeracy',
+  chapter     TEXT        NOT NULL DEFAULT 'General',        -- groups skills in the learner's progress dashboard
   difficulty  REAL        NOT NULL DEFAULT 0.5,              -- 0..1
   bloom       TEXT,                                          -- remember | understand | apply | ...
   loaded_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Additive migration: keep the canonical schema runnable against pre-Feature-4b databases.
+ALTER TABLE skills ADD COLUMN IF NOT EXISTS chapter TEXT NOT NULL DEFAULT 'General';
 
 -- Many-to-many between adaptive items (FRAC-01, FRAC-02, ...) and skills.
 CREATE TABLE IF NOT EXISTS item_skills (

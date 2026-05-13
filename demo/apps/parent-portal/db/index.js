@@ -36,13 +36,13 @@ const enabled = Boolean(HOST && USER && !PWD.startsWith('@Microsoft.KeyVault'));
 // Fallback used when demo/data/skills.csv is missing (very early dev / CI).
 // Production seeding is CSV-driven by seedReferenceData() (Feature 2).
 const SKILL_SEED_FALLBACK = [
-  { id: 'SK-FRAC-ADD',      label: 'Add fractions',                domain: 'numeracy', difficulty: 0.40, bloom: 'apply' },
-  { id: 'SK-FRAC-SIMPLIFY', label: 'Simplify fractions',           domain: 'numeracy', difficulty: 0.30, bloom: 'understand' },
-  { id: 'SK-FRAC-COMPARE',  label: 'Compare fractions',            domain: 'numeracy', difficulty: 0.45, bloom: 'analyze' },
-  { id: 'SK-FRAC-CONVERT',  label: 'Convert decimals & fractions', domain: 'numeracy', difficulty: 0.55, bloom: 'apply' },
-  { id: 'SK-FRAC-WORD',     label: 'Fraction word problems',       domain: 'numeracy', difficulty: 0.35, bloom: 'apply' },
-  { id: 'SK-FRAC-MULT',     label: 'Multiply fractions',           domain: 'numeracy', difficulty: 0.60, bloom: 'apply' },
-  { id: 'SK-FRAC-MIXED',    label: 'Mixed numbers',                domain: 'numeracy', difficulty: 0.50, bloom: 'apply' }
+  { id: 'SK-FRAC-ADD',      label: 'Add fractions',                domain: 'numeracy', chapter: 'Fractions · operations',      difficulty: 0.40, bloom: 'apply' },
+  { id: 'SK-FRAC-SIMPLIFY', label: 'Simplify fractions',           domain: 'numeracy', chapter: 'Fractions · basics',          difficulty: 0.30, bloom: 'understand' },
+  { id: 'SK-FRAC-COMPARE',  label: 'Compare fractions',            domain: 'numeracy', chapter: 'Fractions · basics',          difficulty: 0.45, bloom: 'analyze' },
+  { id: 'SK-FRAC-CONVERT',  label: 'Convert decimals & fractions', domain: 'numeracy', chapter: 'Fractions · representations', difficulty: 0.55, bloom: 'apply' },
+  { id: 'SK-FRAC-WORD',     label: 'Fraction word problems',       domain: 'numeracy', chapter: 'Fractions · word problems',   difficulty: 0.35, bloom: 'apply' },
+  { id: 'SK-FRAC-MULT',     label: 'Multiply fractions',           domain: 'numeracy', chapter: 'Fractions · operations',      difficulty: 0.60, bloom: 'apply' },
+  { id: 'SK-FRAC-MIXED',    label: 'Mixed numbers',                domain: 'numeracy', chapter: 'Fractions · operations',      difficulty: 0.50, bloom: 'apply' }
 ];
 const ITEM_SKILL_SEED_FALLBACK = [
   { itemId: 'FRAC-01', skillId: 'SK-FRAC-ADD' },
@@ -166,20 +166,31 @@ async function seedReferenceData(p) {
     if (fs.existsSync(skillsCsv)) {
       skills = [];
       const lines = fs.readFileSync(skillsCsv, 'utf8').split(/\r?\n/);
-      // header: id,domain,label,difficulty,bloom
+      // header (Feature 4b): id,domain,chapter,label,difficulty,bloom (also tolerates legacy id,domain,label,difficulty,bloom).
+      const header = parseCsvLine(lines[0] || '').map(h => (h || '').trim().toLowerCase());
+      const idx = name => header.indexOf(name);
+      const hasChapter = idx('chapter') >= 0;
+      const iId = idx('id'), iDomain = idx('domain'), iChapter = idx('chapter'), iLabel = idx('label'), iDiff = idx('difficulty'), iBloom = idx('bloom');
       for (let i = 1; i < lines.length; i++) {
         const c = parseCsvLine(lines[i]);
-        if (c.length < 3 || !c[0]) continue;
-        const diff = parseFloat(c[3]);
-        skills.push({ id: c[0], domain: c[1], label: c[2], difficulty: Number.isFinite(diff) ? diff : 0.5, bloom: c[4] || null });
+        if (!c[iId]) continue;
+        const diff = parseFloat(c[iDiff]);
+        skills.push({
+          id:        c[iId],
+          domain:    c[iDomain] || 'numeracy',
+          chapter:   hasChapter ? (c[iChapter] || 'General') : 'General',
+          label:     c[iLabel] || c[iId],
+          difficulty: Number.isFinite(diff) ? diff : 0.5,
+          bloom:     c[iBloom] || null
+        });
       }
     }
     for (const s of skills) {
       await p.query(
-        `INSERT INTO skills (id, label, domain, difficulty, bloom)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, domain = EXCLUDED.domain, difficulty = EXCLUDED.difficulty, bloom = EXCLUDED.bloom`,
-        [s.id, s.label, s.domain, s.difficulty, s.bloom]
+        `INSERT INTO skills (id, label, domain, chapter, difficulty, bloom)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, domain = EXCLUDED.domain, chapter = EXCLUDED.chapter, difficulty = EXCLUDED.difficulty, bloom = EXCLUDED.bloom`,
+        [s.id, s.label, s.domain, s.chapter || 'General', s.difficulty, s.bloom]
       );
     }
 
@@ -536,14 +547,14 @@ async function bumpDailyActivity({ email, correct }) {
 
 async function listMasteryForLearner({ email, limit = 24 }) {
   const r = await q(
-    `SELECT s.id AS "skillId", s.label, s.domain, s.difficulty, s.bloom,
+    `SELECT s.id AS "skillId", s.label, s.domain, s.chapter, s.difficulty, s.bloom,
             COALESCE(m.attempts, 0)::int AS attempts,
             COALESCE(m.correct, 0)::int AS correct,
             COALESCE(m.level, 0)::float AS level,
             m.last_seen AS "lastSeen"
        FROM skills s
        LEFT JOIN skill_mastery m ON m.skill_id = s.id AND m.email = $1
-      ORDER BY (m.last_seen IS NULL), m.last_seen DESC NULLS LAST, s.difficulty
+      ORDER BY s.chapter, s.difficulty, s.id
       LIMIT $2`,
     [email, limit]
   );

@@ -28,10 +28,11 @@ red build.
 | Study sheets                   | DONE       | `sheets`, sheets modal in every app                              |
 | Curricula + glossary           | DONE       | `curricula`, `glossary_terms`                                    |
 | Teacher Q&A async              | DONE       | `teacher_questions`, learner card + teacher inbox                |
-| Skills progression             | TODO       | brief: `feature/skills progression.md`                           |
-| Model-oriented skills catalogue| TODO       | brief: `feature/model oriented skills.md`                        |
-| Quality telemetry (feedback)   | PARTIAL    | `ask_history` in place; widget + admin tab missing               |
-| Streaks / badges / Quiz-me     | TODO       | brief: `feature/learner feature.md` (sections 6-8)               |
+| Skills progression             | DONE       | brief: `feature/skills progression.md` (commit c258f09)          |
+| Model-oriented skills catalogue| DONE       | brief: `feature/model oriented skills.md` (commit cd8e5ea)       |
+| Quality telemetry (feedback)   | DONE       | brief: `feature/evaluate.md` (commit 3775a12)                    |
+| Streaks / badges / Quiz-me     | DONE       | brief: `feature/learner feature.md` §6-8 (commit 409b654)        |
+| Learner-web tabbed redesign    | TODO       | brief: `feature/learner feature.md` §"UI redesign"               |
 | Teacher overrides + roster     | TODO       | brief: `feature/teacher feature.md` (sections 4-9)               |
 
 ---
@@ -68,11 +69,22 @@ Closes the loop on AI quality with a feedback widget + admin KPIs.
   - admin: new "Quality" tab with KPI tiles + table.
 - Commit: `feat(quality): add answer feedback widget and admin KPIs`.
 
-### Feature 4 — Learner engagement: streaks, badges, Quiz-me, bookmark answers  (brief: `learner feature.md` sections 6-8)
+### Feature 4 — Learner engagement: streaks, badges, Quiz-me, bookmark answers  (brief: `learner feature.md` sections 6-8) — DONE (commit 409b654)
 - Schema: trigger / function on `item_attempts` -> `learner_activity` (or post-insert helper for the demo).
-- Routes: `GET /api/learner/activity`, `POST /api/learner/quiz-from-sheet/:id`.
+- Routes: `GET /api/learner/activity`, `GET /api/learner/streak`, `POST /api/sheets/:id/quiz`.
 - UI in learner-web: streak widget, badges row, "Quiz me" on each sheet, star to bookmark teacher answers as sheets.
-- Commit: `feat(learner): streaks badges quiz-from-sheet bookmarks`.
+- Commit: `feat(engagement): learner streak + badges + revision quiz + teacher-answer bookmark`.
+
+### Feature 4b — Learner web tabbed redesign  (brief: `learner feature.md` §"UI redesign")
+Splits the single-page learner experience into 3 dedicated tabs to reduce scroll fatigue and reflect the K-12 task framing.
+- Top navigation in the hero: `Test your knowledge` | `Ask your teacher` | `My progress`.
+- Tab 1 (default): adaptive item picker (left column) + AI tutor (centre) + a **retractable Explanation drawer** on the right, collapsible with one click. Sheets modal still reachable from the topbar.
+- Tab 2: dedicated Q&A page — composer on top, threaded list of past questions/answers below, with the bookmark action inline.
+- Tab 3: progress dashboard — streak/badges row, then per-skill mastery **grouped by chapter** (a `chapter` field on the skills catalogue, e.g. "Fractions · basics", "Fractions · operations"), each chapter rendered as a collapsible card with chapter-level progress bar.
+- Schema: add `chapter TEXT` to `skills` (nullable, default `'General'`), back-fill via the `skills.csv` seed.
+- Helpers: `listMasteryForLearner` returns `chapter`; client groups by chapter.
+- No new routes — purely a re-arrangement of existing JS + a small schema additive.
+- Commit: `feat(ui): tabbed learner workspace + per-chapter progress`.
 
 ### Feature 5 — Teacher oversight: overrides + curriculum browser + class roster  (brief: `teacher feature.md` sections 4-9)
 - Schema: `teacher_overrides`.

@@ -1,9 +1,9 @@
-id,domain,label,difficulty,bloom
-SK-FRAC-ADD,numeracy,Add fractions with like or unlike denominators,0.40,apply
-SK-FRAC-SIMPLIFY,numeracy,Simplify a fraction to lowest terms,0.30,understand
-SK-FRAC-COMPARE,numeracy,Compare and order fractions,0.45,analyze
-SK-FRAC-CONVERT,numeracy,Convert between fractions and decimals,0.55,apply
-SK-FRAC-WORD,numeracy,Solve fraction word problems,0.35,apply
-SK-FRAC-MULT,numeracy,Multiply fractions and mixed numbers,0.60,apply
-SK-FRAC-MIXED,numeracy,Convert and operate with mixed numbers,0.50,apply
-SK-FRAC-EQUIV,numeracy,Recognise equivalent fractions,0.25,understand
+﻿id,domain,chapter,label,difficulty,bloom
+SK-FRAC-EQUIV,numeracy,Fractions · basics,Recognise equivalent fractions,0.25,understand
+SK-FRAC-SIMPLIFY,numeracy,Fractions · basics,Simplify a fraction to lowest terms,0.30,understand
+SK-FRAC-COMPARE,numeracy,Fractions · basics,Compare and order fractions,0.45,analyze
+SK-FRAC-ADD,numeracy,Fractions · operations,Add fractions with like or unlike denominators,0.40,apply
+SK-FRAC-MULT,numeracy,Fractions · operations,Multiply fractions and mixed numbers,0.60,apply
+SK-FRAC-MIXED,numeracy,Fractions · operations,Convert and operate with mixed numbers,0.50,apply
+SK-FRAC-CONVERT,numeracy,Fractions · representations,Convert between fractions and decimals,0.55,apply
+SK-FRAC-WORD,numeracy,Fractions · word problems,Solve fraction word problems,0.35,apply

@@ -56,3 +56,32 @@ Postgres so the experience survives a tab close.
 - All user-generated text MUST go through `cs.analyze` before storage or display.
 - All API failures MUST degrade gracefully (banner + no UX block).
 - The page MUST stay usable on a 12.9" tablet in portrait (already validated by `main.grid2`).
+
+## UI redesign — tabbed workspace (Feature 4b)
+
+A single scroll wall is too dense for a 12-year-old. The learner web shifts to a
+three-tab workspace driven by buttons in the hero header.
+
+### Tab 1 — Test your knowledge (default)
+- Left column: Adaptive item picker (unchanged).
+- Centre: `Ask the AI tutor` composer + suggestion chips.
+- Right: **retractable Explanation drawer**. Closed by default on tablet portrait;
+  opens with one click as soon as a chat answer arrives. Includes the existing
+  Save-to-sheet button and the F3 feedback widget.
+
+### Tab 2 — Ask your teacher
+- Composer on top (subject + question textarea + send).
+- Threaded list of past Q&A below, with the existing `? Bookmark` action on
+  answered replies.
+- No AI tutor on this page — clear signal that a human reviews the message.
+
+### Tab 3 — My progress
+- Streak + badges row (Feature 4 widget).
+- Per-skill mastery **grouped by chapter** — a new `chapter TEXT` column on the
+  `skills` catalogue (e.g. `Fractions · basics`, `Fractions · operations`).
+- Each chapter renders as a collapsible card with its own progress bar
+  (mean of the chapter's skill mastery levels).
+
+### Out of scope for this redesign
+- No new APIs (re-uses `/api/learner/mastery`, `/api/learner/streak`, `/api/teacher-questions/mine`).
+- No persistent `activeTab` storage in this iteration; the default is always Tab 1 on load.
