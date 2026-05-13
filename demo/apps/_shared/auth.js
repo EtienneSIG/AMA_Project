@@ -1,6 +1,6 @@
 // LearnEU shared auth lib — demo-grade session manager.
 // Production: replace SEED_USERS with Azure Table Storage via DefaultAzureCredential,
-//             swap SECRET to a KV-referenced env var, add CSRF tokens, rate-limit /login.
+//             swap SECRET to a KV-referenced env var, integrate Azure AD B2C.
 // Demo password (all 4 users): DemoPass2026!
 'use strict';
 
@@ -16,16 +16,92 @@ function clientIp(req) {
   return xf || req.ip || (req.connection && req.connection.remoteAddress) || null;
 }
 
+// SEED_USERS: 4 baseline accounts + an extended cohort used by the seed script
+// in db/index.js to populate item_attempts, skill_mastery, learner_activity,
+// teacher_questions, sheets and parent_links.  All accounts share the same
+// demo password (DemoPass2026!).  Markets: DE | NL | FR | ES | IT.
 const SEED_USERS = [
-  { email: 'admin@learneu.demo',   role: 'admin',   firstName: 'Alex',   lastName: 'Admin',    age: 35, social: '@alex.admin',  language: 'en' },
-  { email: 'teacher@learneu.demo', role: 'teacher', firstName: 'Klaus',  lastName: 'Klein',    age: 42, social: '@klaus.klein', language: 'de' },
-  { email: 'parent@learneu.demo',  role: 'parent',  firstName: 'Sophie', lastName: 'De Vries', age: 40, social: '@sophie.dv',   language: 'nl' },
-  { email: 'student@learneu.demo', role: 'student', firstName: 'Lucas',  lastName: 'Janssen',  age: 12, social: '@lucas12',     language: 'fr' }
+  // --- baseline (do not rename — referenced by docs) -----------------------
+  { email: 'admin@learneu.demo',    role: 'admin',   firstName: 'Alex',     lastName: 'Admin',    age: 35, social: '@alex.admin',     language: 'en' },
+  { email: 'teacher@learneu.demo',  role: 'teacher', firstName: 'Klaus',    lastName: 'Klein',    age: 42, social: '@klaus.klein',    language: 'de' },
+  { email: 'parent@learneu.demo',   role: 'parent',  firstName: 'Sophie',   lastName: 'De Vries', age: 40, social: '@sophie.dv',      language: 'nl' },
+  { email: 'student@learneu.demo',  role: 'student', firstName: 'Lucas',    lastName: 'Janssen',  age: 12, social: '@lucas12',        language: 'fr' },
+  // --- extended teachers ---------------------------------------------------
+  { email: 'teacher1@learneu.demo', role: 'teacher', firstName: 'Marieke',  lastName: 'Visser',   age: 38, social: '@m.visser',       language: 'nl' },
+  { email: 'teacher2@learneu.demo', role: 'teacher', firstName: 'Camille',  lastName: 'Laurent',  age: 45, social: '@c.laurent',      language: 'fr' },
+  // --- extended parents ----------------------------------------------------
+  { email: 'parent1@learneu.demo',  role: 'parent',  firstName: 'Anna',     lastName: 'Müller',   age: 41, social: '@anna.muller',    language: 'de' },
+  { email: 'parent2@learneu.demo',  role: 'parent',  firstName: 'Pieter',   lastName: 'De Vries', age: 44, social: '@p.devries',      language: 'nl' },
+  { email: 'parent3@learneu.demo',  role: 'parent',  firstName: 'Marc',     lastName: 'Dubois',   age: 39, social: '@marc.dubois',    language: 'fr' },
+  { email: 'parent4@learneu.demo',  role: 'parent',  firstName: 'Lukas',    lastName: 'Schmidt',  age: 43, social: '@lukas.schmidt',  language: 'de' },
+  // --- extended students (diverse mastery profiles seeded in db/index.js) -
+  { email: 'student1@learneu.demo', role: 'student', firstName: 'Emma',     lastName: 'Müller',   age: 12, social: '@emma12',         language: 'de' },
+  { email: 'student2@learneu.demo', role: 'student', firstName: 'Noah',     lastName: 'De Vries', age: 13, social: '@noah13',         language: 'nl' },
+  { email: 'student3@learneu.demo', role: 'student', firstName: 'Mia',      lastName: 'Dubois',   age: 11, social: '@mia11',          language: 'fr' },
+  { email: 'student4@learneu.demo', role: 'student', firstName: 'Liam',     lastName: 'Schmidt',  age: 12, social: '@liam12',         language: 'de' },
+  { email: 'student5@learneu.demo', role: 'student', firstName: 'Olivia',   lastName: 'Bakker',   age: 13, social: '@olivia13',       language: 'nl' },
+  { email: 'student6@learneu.demo', role: 'student', firstName: 'Hugo',     lastName: 'García',   age: 11, social: '@hugo11',         language: 'es' },
+  { email: 'student7@learneu.demo', role: 'student', firstName: 'Sofia',    lastName: 'Rossi',    age: 12, social: '@sofia12',        language: 'it' },
+  { email: 'student8@learneu.demo', role: 'student', firstName: 'Léa',      lastName: 'Martin',   age: 13, social: '@lea13',          language: 'fr' }
 ];
 const SEED_PASSWORD = 'DemoPass2026!';
 const COOKIE = 'learneu_session';
 const TTL_MS = 8 * 60 * 60 * 1000;
 const SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+// --- CSRF Protection (double-submit cookie pattern) ---
+const CSRF_COOKIE = 'learneu_csrf';
+function generateCsrfToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+function setCsrfCookie(res, token) {
+  res.cookie(CSRF_COOKIE, token, { httpOnly: false, sameSite: 'lax', maxAge: TTL_MS, secure: true });
+}
+function csrfMiddleware(req, res, next) {
+  // Skip safe methods and public paths
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (req.path.startsWith('/api/auth/login') || req.path === '/api/health') return next();
+  const cookieToken = req.cookies && req.cookies[CSRF_COOKIE];
+  const headerToken = req.headers['x-csrf-token'];
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    return res.status(403).json({ error: 'CSRF token mismatch. Refresh the page and try again.' });
+  }
+  next();
+}
+
+// --- Rate Limiting (in-memory sliding window) ---
+const RATE_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000;
+const RATE_MAX_LOGIN = parseInt(process.env.RATE_LIMIT_LOGIN, 10) || 10;
+const RATE_MAX_API   = parseInt(process.env.RATE_LIMIT_API, 10) || 60;
+const rateBuckets = new Map();
+
+// Evict stale entries every 5 minutes
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  for (const [key, timestamps] of rateBuckets) {
+    const filtered = timestamps.filter(t => t > cutoff);
+    if (filtered.length === 0) rateBuckets.delete(key);
+    else rateBuckets.set(key, filtered);
+  }
+}, 5 * 60 * 1000).unref();
+
+function rateLimitMiddleware(bucketPrefix, maxRequests) {
+  return (req, res, next) => {
+    const ip = clientIp(req) || 'unknown';
+    const key = `${bucketPrefix}:${ip}`;
+    const now = Date.now();
+    const cutoff = now - RATE_WINDOW_MS;
+    let timestamps = rateBuckets.get(key) || [];
+    timestamps = timestamps.filter(t => t > cutoff);
+    if (timestamps.length >= maxRequests) {
+      res.set('Retry-After', String(Math.ceil(RATE_WINDOW_MS / 1000)));
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    timestamps.push(now);
+    rateBuckets.set(key, timestamps);
+    next();
+  };
+}
 
 const userMap = new Map();
 let ready = false;
@@ -65,6 +141,15 @@ function mountAuth(app, options = {}) {
   const allowedRoles = options.allowedRoles || [];
 
   app.use(cookieParser());
+
+  // Issue a CSRF token cookie on every request (client reads it and sends as header)
+  app.use((req, res, next) => {
+    if (!req.cookies[CSRF_COOKIE]) {
+      setCsrfCookie(res, generateCsrfToken());
+    }
+    next();
+  });
+
   app.use((req, _res, next) => {
     const session = verify(req.cookies && req.cookies[COOKIE]);
     if (session) {
@@ -72,6 +157,19 @@ function mountAuth(app, options = {}) {
       if (u) req.user = u;
     }
     next();
+  });
+
+  // CSRF protection on all state-changing requests
+  app.use(csrfMiddleware);
+
+  // Rate limit all API routes
+  app.use('/api/', rateLimitMiddleware('api', RATE_MAX_API));
+
+  // CSRF token endpoint — clients call this to get a fresh token
+  app.get('/api/auth/csrf', (req, res) => {
+    const token = generateCsrfToken();
+    setCsrfCookie(res, token);
+    res.json({ csrfToken: token });
   });
 
   app.get('/api/auth/me', (req, res) => res.json({ user: publicProfile(req.user), allowedRoles }));
@@ -103,7 +201,7 @@ function mountAuth(app, options = {}) {
     res.json({ user: publicProfile(req.user) });
   });
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', rateLimitMiddleware('login', RATE_MAX_LOGIN), async (req, res) => {
     if (!ready) return res.status(503).json({ error: 'auth not ready, retry in 1s' });
     const { email, password } = req.body || {};
     const ip = clientIp(req);
@@ -119,8 +217,11 @@ function mountAuth(app, options = {}) {
     }
     const token = sign({ email: u.email.toLowerCase(), role: u.role, exp: Date.now() + TTL_MS });
     res.cookie(COOKIE, token, { httpOnly: true, sameSite: 'lax', maxAge: TTL_MS, secure: true });
+    // Issue fresh CSRF token after login
+    const csrfToken = generateCsrfToken();
+    setCsrfCookie(res, csrfToken);
     db.logConnection({ email: u.email, role: u.role, app: APP_NAME, event: 'login', ip, userAgent: ua }).catch(() => {});
-    res.json({ user: publicProfile(u) });
+    res.json({ user: publicProfile(u), csrfToken });
   });
 
   app.post('/api/auth/logout', (req, res) => {

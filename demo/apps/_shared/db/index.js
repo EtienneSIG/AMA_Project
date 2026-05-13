@@ -257,14 +257,261 @@ async function seedReferenceData(p) {
     } catch (e) { console.error('[db] learner seed failed:', e.message); }
   }
 
-  // 5. Parent → child links (Feature 6). Demo seed: parent@learneu.demo follows student@learneu.demo.
+  // 5. Parent → child links + extended demo cohort (Feature 6 + multi-user demo).
+  //    All inserts are idempotent (ON CONFLICT) and the heavier blocks (attempts,
+  //    sheets, teacher Q&A) are guarded so they only run once.
   try {
+    await seedDemoCohort(p);
+  } catch (e) { console.error('[db] demo cohort seed failed:', e.message); }
+}
+
+// ---------------------------------------------------------------------------
+// Demo cohort: 9 students × 3 teachers × 5 parents with consistent linkage,
+// item attempts, mastery rollups, activity bars, teacher Q&A and study sheets.
+// Re-runs are no-ops once item_attempts already contains rows for these emails.
+// ---------------------------------------------------------------------------
+const DEMO_STUDENTS = [
+  // email, pseudonym (matches synthetic_learners pattern), profile bucket
+  { email: 'student@learneu.demo',  name: 'Lucas',  bucket: 'practising' },
+  { email: 'student1@learneu.demo', name: 'Emma',   bucket: 'mastered'   },
+  { email: 'student2@learneu.demo', name: 'Noah',   bucket: 'proficient' },
+  { email: 'student3@learneu.demo', name: 'Mia',    bucket: 'beginner'   },
+  { email: 'student4@learneu.demo', name: 'Liam',   bucket: 'practising' },
+  { email: 'student5@learneu.demo', name: 'Olivia', bucket: 'mastered'   },
+  { email: 'student6@learneu.demo', name: 'Hugo',   bucket: 'beginner'   },
+  { email: 'student7@learneu.demo', name: 'Sofia',  bucket: 'proficient' },
+  { email: 'student8@learneu.demo', name: 'Léa',    bucket: 'practising' }
+];
+const DEMO_PARENT_LINKS = [
+  { parent: 'parent@learneu.demo',  child: 'student@learneu.demo',  rel: 'parent' },
+  { parent: 'parent1@learneu.demo', child: 'student1@learneu.demo', rel: 'parent' },
+  { parent: 'parent2@learneu.demo', child: 'student2@learneu.demo', rel: 'parent' },
+  { parent: 'parent3@learneu.demo', child: 'student3@learneu.demo', rel: 'parent' },
+  { parent: 'parent3@learneu.demo', child: 'student8@learneu.demo', rel: 'parent' },
+  { parent: 'parent4@learneu.demo', child: 'student4@learneu.demo', rel: 'parent' },
+  { parent: 'parent4@learneu.demo', child: 'student5@learneu.demo', rel: 'parent' }
+];
+// Bucket -> target mastery level mean & per-skill correctness probability.
+const BUCKET_PROFILES = {
+  beginner:   { meanLevel: 0.25, pCorrect: 0.40, attemptsPerSkill: [2, 4] },
+  practising: { meanLevel: 0.55, pCorrect: 0.62, attemptsPerSkill: [3, 6] },
+  proficient: { meanLevel: 0.78, pCorrect: 0.80, attemptsPerSkill: [4, 7] },
+  mastered:   { meanLevel: 0.92, pCorrect: 0.93, attemptsPerSkill: [5, 8] }
+};
+// Deterministic PRNG seeded from a string — same input ⇒ same output.
+function seededRand(seed) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return function() { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+async function seedDemoCohort(p) {
+  // Cluster-wide advisory lock prevents two apps from racing the seed and
+  // creating duplicate item_attempts / sheets / teacher_questions rows.
+  const lock = await p.query(`SELECT pg_try_advisory_lock(739121345) AS ok`);
+  if (!lock || !lock.rows[0] || !lock.rows[0].ok) return;
+  try {
+    await _seedDemoCohortLocked(p);
+  } finally {
+    await p.query(`SELECT pg_advisory_unlock(739121345)`).catch(() => {});
+  }
+}
+
+async function _seedDemoCohortLocked(p) {
+  // 5a. Parent links (always idempotent).
+  for (const l of DEMO_PARENT_LINKS) {
     await p.query(
       `INSERT INTO parent_links (parent_email, child_email, relationship)
        VALUES ($1, $2, $3) ON CONFLICT (parent_email, child_email) DO NOTHING`,
-      ['parent@learneu.demo', 'student@learneu.demo', 'parent']
+      [l.parent, l.child, l.rel]
     );
-  } catch (e) { console.error('[db] parent_links seed failed:', e.message); }
+  }
+
+  // Resolve item -> skill mapping (we need real skill ids that exist in `skills`).
+  const itemMap = await p.query(
+    `SELECT i.item_id, i.skill_id FROM item_skills i JOIN skills s ON s.id = i.skill_id`
+  );
+  const items = (itemMap && itemMap.rows) ? itemMap.rows : [];
+  if (!items.length) { console.warn('[db] demo cohort: no item_skills rows yet, skipping attempts seed'); return; }
+  const bySkill = new Map();
+  for (const it of items) {
+    if (!bySkill.has(it.skill_id)) bySkill.set(it.skill_id, []);
+    bySkill.get(it.skill_id).push(it.item_id);
+  }
+  const skillIds = [...bySkill.keys()];
+
+  // 5b. item_attempts + skill_mastery + learner_activity per student.
+  // Per-student guard so adding a new student to DEMO_STUDENTS still seeds it.
+  const seenRow = await p.query(
+    `SELECT email FROM item_attempts WHERE email = ANY($1::text[]) GROUP BY email`,
+    [DEMO_STUDENTS.map(s => s.email)]
+  );
+  const alreadySeeded = new Set((seenRow && seenRow.rows ? seenRow.rows : []).map(r => r.email));
+  let totalAttempts = 0;
+  for (const s of DEMO_STUDENTS) {
+    if (alreadySeeded.has(s.email)) continue;
+    const rng = seededRand(s.email);
+    const profile = BUCKET_PROFILES[s.bucket] || BUCKET_PROFILES.practising;
+    const masteryAcc = new Map(); // skill_id -> { attempts, correct, sumPredicted }
+    const activityAcc = new Map(); // 'YYYY-MM-DD' -> { attempts, correct }
+
+    for (const skillId of skillIds) {
+      const itemList = bySkill.get(skillId);
+      const [lo, hi] = profile.attemptsPerSkill;
+      const n = lo + Math.floor(rng() * (hi - lo + 1));
+      for (let i = 0; i < n; i++) {
+        const itemId = itemList[Math.floor(rng() * itemList.length)];
+        const correct = rng() < profile.pCorrect;
+        const predicted = Math.max(0, Math.min(1, profile.meanLevel + (rng() - 0.5) * 0.25));
+        const latency = 4000 + Math.floor(rng() * 9000);
+        // distribute across the past 14 days, biased to recent (sqrt squashes towards 0)
+        const daysAgo = Math.floor(Math.sqrt(rng()) * 14);
+        const ts = new Date(Date.now() - daysAgo * 86400000 - Math.floor(rng() * 6 * 3600000));
+        await p.query(
+          `INSERT INTO item_attempts (email, pseudonym, item_id, difficulty, predicted, correct, latency_ms, created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [s.email, s.name, itemId, 0.5, predicted, correct, latency, ts.toISOString()]
+        );
+        totalAttempts++;
+        const mAcc = masteryAcc.get(skillId) || { attempts: 0, correct: 0, sum: 0 };
+        mAcc.attempts++; if (correct) mAcc.correct++; mAcc.sum += predicted;
+        masteryAcc.set(skillId, mAcc);
+        const dayKey = ts.toISOString().slice(0, 10);
+        const aAcc = activityAcc.get(dayKey) || { attempts: 0, correct: 0 };
+        aAcc.attempts++; if (correct) aAcc.correct++;
+        activityAcc.set(dayKey, aAcc);
+      }
+    }
+    // Always include "today" so the activity bar / streak look alive.
+    const today = new Date().toISOString().slice(0, 10);
+    if (!activityAcc.has(today)) activityAcc.set(today, { attempts: 1, correct: 1 });
+
+    for (const [skillId, m] of masteryAcc) {
+      const level = Math.max(0, Math.min(1, 0.6 * (m.correct / Math.max(1, m.attempts)) + 0.4 * (m.sum / Math.max(1, m.attempts))));
+      await p.query(
+        `INSERT INTO skill_mastery (email, skill_id, attempts, correct, level, last_seen, updated_at)
+         VALUES ($1,$2,$3,$4,$5, now(), now())
+         ON CONFLICT (email, skill_id) DO UPDATE SET
+           attempts = EXCLUDED.attempts, correct = EXCLUDED.correct, level = EXCLUDED.level,
+           last_seen = EXCLUDED.last_seen, updated_at = now()`,
+        [s.email, skillId, m.attempts, m.correct, level]
+      );
+    }
+    for (const [day, a] of activityAcc) {
+      await p.query(
+        `INSERT INTO learner_activity (email, day, attempts, correct, updated_at)
+         VALUES ($1,$2,$3,$4, now())
+         ON CONFLICT (email, day) DO UPDATE SET attempts = EXCLUDED.attempts, correct = EXCLUDED.correct, updated_at = now()`,
+        [s.email, day, a.attempts, a.correct]
+      );
+    }
+  }
+  console.log(`[db] demo cohort: seeded ${totalAttempts} attempts across ${DEMO_STUDENTS.length} students`);
+
+  // 5c. teacher_questions — 1 to 3 per student, mix of pending and answered.
+  const QUESTION_TEMPLATES = [
+    { subject: 'Help with adding fractions',          question: 'I keep getting the wrong answer when I add 2/3 + 1/4. What is the trick with the denominators?' },
+    { subject: 'Why simplify?',                       question: 'Do I always have to simplify the result, even on a test?' },
+    { subject: 'Mixed numbers vs improper fractions', question: 'When should I write 7/3 as 2 1/3 and when should I keep it as 7/3?' },
+    { subject: 'Word problem stuck',                  question: 'The recipe asks for 3/4 cup but I want to make half — how do I work that out?' },
+    { subject: 'Decimals confusion',                  question: 'My calculator shows 0.333… for 1/3. Is that the same number?' },
+    { subject: 'Comparing fractions',                 question: 'Which is bigger: 5/8 or 7/12? I\u2019m not sure how to compare them quickly.' }
+  ];
+  const ANSWER_TEMPLATES = [
+    'Great question! First find a common denominator (here 12). Rewrite both fractions, then add the numerators. We will practise three more in class on Friday.',
+    'Yes, when possible — it shows you understood the concept. On a test, write both forms if you have time.',
+    'Either form is correct. Use mixed numbers when measuring real things (e.g. 2 1/3 cups), and improper fractions when you keep calculating.',
+    'Multiply each ingredient by 1/2. So 3/4 cup × 1/2 = 3/8 cup. Try drawing a tape diagram if it helps.',
+    'Yes — 1/3 and 0.333… are the same number. The dots mean "repeats forever".',
+    'Convert both to the same denominator (24): 5/8 = 15/24 and 7/12 = 14/24, so 5/8 is bigger.'
+  ];
+  // Round-robin teacher per student so the inbox shows variety.
+  const TEACHERS = [
+    { email: 'teacher@learneu.demo',  name: 'Klaus Klein' },
+    { email: 'teacher1@learneu.demo', name: 'Marieke Visser' },
+    { email: 'teacher2@learneu.demo', name: 'Camille Laurent' }
+  ];
+  const tqSeen = await p.query(`SELECT learner_email FROM teacher_questions WHERE learner_email = ANY($1::text[]) GROUP BY learner_email`, [DEMO_STUDENTS.map(s => s.email)]);
+  const tqDone = new Set((tqSeen && tqSeen.rows ? tqSeen.rows : []).map(r => r.learner_email));
+  {
+    let tqCount = 0;
+    for (let si = 0; si < DEMO_STUDENTS.length; si++) {
+      const s = DEMO_STUDENTS[si];
+      if (tqDone.has(s.email)) continue;
+      const rng = seededRand(s.email + '|tq');
+      const nQ = 1 + Math.floor(rng() * 3); // 1-3 questions
+      for (let i = 0; i < nQ; i++) {
+        const t = QUESTION_TEMPLATES[(si + i) % QUESTION_TEMPLATES.length];
+        const a = ANSWER_TEMPLATES[(si + i) % ANSWER_TEMPLATES.length];
+        const teacher = TEACHERS[(si + i) % TEACHERS.length];
+        const answered = rng() < 0.55; // ~55% answered, rest pending
+        const createdAt = new Date(Date.now() - (1 + Math.floor(rng() * 9)) * 86400000);
+        const answeredAt = answered ? new Date(createdAt.getTime() + (3 + Math.floor(rng() * 18)) * 3600000) : null;
+        await p.query(
+          `INSERT INTO teacher_questions (learner_email, learner_name, subject, question, status, teacher_email, teacher_name, answer, created_at, answered_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [s.email, s.name, t.subject, t.question, answered ? 'answered' : 'pending',
+           answered ? teacher.email : null, answered ? teacher.name : null, answered ? a : null,
+           createdAt.toISOString(), answeredAt ? answeredAt.toISOString() : null]
+        );
+        tqCount++;
+      }
+    }
+    console.log(`[db] demo cohort: seeded ${tqCount} teacher_questions`);
+  }
+
+  // 5d. Study sheets — a couple per student + one per teacher.
+  const SHEET_TEMPLATES = [
+    { title: 'Adding fractions — quick recipe',
+      prompt: 'Explain step by step how to add 2/3 + 1/4 with a worked example.',
+      answer: '## Adding fractions in 4 steps\n\n1. **Find the common denominator** — for 2/3 and 1/4 it is **12**.\n2. **Rewrite each fraction**: 2/3 = 8/12 and 1/4 = 3/12.\n3. **Add the numerators**: 8 + 3 = 11.\n4. **Keep the denominator**: result = **11/12**.\n\nIf the result can be simplified, do it — here it cannot.' },
+    { title: 'Why simplify a fraction?',
+      prompt: 'Why is 6/8 the same as 3/4?',
+      answer: '6/8 and 3/4 represent the **same amount of pizza** — only the slices are cut differently.\n\nDivide top and bottom by their greatest common factor (here 2): 6 ÷ 2 = 3, 8 ÷ 2 = 4 → **3/4**.\n\nSimplifying makes the answer easier to compare and read.' },
+    { title: 'Compare two fractions',
+      prompt: 'How do I compare 5/8 and 7/12?',
+      answer: 'Bring them to the **same denominator** (LCM of 8 and 12 is 24):\n\n- 5/8 = **15/24**\n- 7/12 = **14/24**\n\n15 > 14, so **5/8 > 7/12**.' }
+  ];
+  const TEACHER_SHEET_TEMPLATES = [
+    { title: '30-min lesson plan — Year 7 fractions',
+      prompt: 'Plan a 30-minute lesson on fractions for Year 7 aligned to Bildungsstandards.',
+      answer: '## 30-min Year 7 lesson — *Adding fractions*\n\n| Time | Activity |\n|------|----------|\n| 0–5  | Warm-up: equivalent fractions on whiteboards |\n| 5–15 | Mini-lesson: common denominator with tape diagrams |\n| 15–25| Pair task: 6 worked examples (mixed difficulty) |\n| 25–30| Exit ticket: 2/3 + 1/4 — explain your reasoning |\n\n**Aligned to** Bildungsstandards K3 *Operieren mit Brüchen*.' }
+  ];
+  const sheetSeen = await p.query(`SELECT email FROM sheets WHERE email = ANY($1::text[]) GROUP BY email`, [[...DEMO_STUDENTS.map(s => s.email), ...TEACHERS.map(t => t.email)]]);
+  const shDone = new Set((sheetSeen && sheetSeen.rows ? sheetSeen.rows : []).map(r => r.email));
+  {
+    let shCount = 0;
+    for (let si = 0; si < DEMO_STUDENTS.length; si++) {
+      const s = DEMO_STUDENTS[si];
+      if (shDone.has(s.email)) continue;
+      const rng = seededRand(s.email + '|sh');
+      const nS = 1 + Math.floor(rng() * 2); // 1-2 sheets
+      for (let i = 0; i < nS; i++) {
+        const t = SHEET_TEMPLATES[(si + i) % SHEET_TEMPLATES.length];
+        await p.query(
+          `INSERT INTO sheets (email, role, app, title, prompt, answer)
+           VALUES ($1,'student','student',$2,$3,$4)`,
+          [s.email, t.title, t.prompt, t.answer]
+        );
+        shCount++;
+      }
+    }
+    for (const t of TEACHERS) {
+      if (shDone.has(t.email)) continue;
+      const tpl = TEACHER_SHEET_TEMPLATES[0];
+      await p.query(
+        `INSERT INTO sheets (email, role, app, title, prompt, answer)
+         VALUES ($1,'teacher','teacher',$2,$3,$4)`,
+        [t.email, tpl.title, tpl.prompt, tpl.answer]
+      );
+      shCount++;
+    }
+    console.log(`[db] demo cohort: seeded ${shCount} study sheets`);
+  }
+
+  // 5e — one-shot normalization of legacy app values so /api/sheets (filtered by APP_ROLE) sees them.
+  await p.query(`UPDATE sheets SET app='student' WHERE app='learner-web'`);
+  await p.query(`UPDATE sheets SET app='teacher' WHERE app='teacher-console'`);
 }
 
 // Minimal CSV line parser: handles unquoted + double-quoted fields. No embedded newlines.
