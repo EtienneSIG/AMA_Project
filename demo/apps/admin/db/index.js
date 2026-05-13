@@ -581,6 +581,49 @@ async function listLearnerActivity({ email, days = 30 }) {
   return r ? r.rows : null;
 }
 
+// Streak + totals + badges (Feature 4). Returns null if DB unavailable.
+async function getLearnerStreak({ email, windowDays = 30 }) {
+  const rows = await listLearnerActivity({ email, days: windowDays });
+  if (!rows) return null;
+  const byDay = new Map(rows.map(r => [r.day, r]));
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0, 10);
+  // Streak counts back from today; if today has no attempts yet we forgive that one day.
+  let streak = 0;
+  let cursor = new Date(today);
+  if (!byDay.has(iso(cursor)) || (byDay.get(iso(cursor)).attempts | 0) === 0) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  for (let i = 0; i < windowDays; i++) {
+    const k = iso(cursor);
+    const d = byDay.get(k);
+    if (d && (d.attempts | 0) > 0) {
+      streak += 1;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    } else { break; }
+  }
+  const totalAttempts = rows.reduce((s, r) => s + (r.attempts | 0), 0);
+  const totalCorrect  = rows.reduce((s, r) => s + (r.correct  | 0), 0);
+  const accuracy = totalAttempts > 0 ? totalCorrect / totalAttempts : 0;
+  // Mastery snapshot for badges.
+  const m = await q(
+    `SELECT COUNT(*) FILTER (WHERE level >= 0.7)::int AS mastered,
+            COUNT(*)::int AS skills_seen
+       FROM skill_mastery WHERE email = $1`,
+    [email]
+  );
+  const mastered    = m && m.rows[0] ? (m.rows[0].mastered    | 0) : 0;
+  const skillsSeen  = m && m.rows[0] ? (m.rows[0].skills_seen | 0) : 0;
+  const badges = [];
+  if (totalAttempts >= 1)  badges.push({ id: 'beginner',     label: 'Beginner',          hint: 'First answer recorded' });
+  if (totalAttempts >= 10) badges.push({ id: 'reviewer',     label: 'Reviewer',          hint: '10+ attempts in 30 days' });
+  if (streak >= 3)         badges.push({ id: 'on_fire',      label: 'On fire (3-day)',   hint: 'Practised 3 days in a row' });
+  if (streak >= 7)         badges.push({ id: 'week_streak',  label: 'Week streak',       hint: '7-day practice streak' });
+  if (mastered >= 3)       badges.push({ id: 'mastered_3',   label: 'Mastered x3',       hint: '3 skills at 70%+ mastery' });
+  if (totalAttempts >= 10 && accuracy >= 0.8) badges.push({ id: 'sharpshooter', label: 'Sharpshooter', hint: '80%+ accuracy over 10+ attempts' });
+  return { streak, totalAttempts, totalCorrect, accuracy, mastered, skillsSeen, badges, windowDays };
+}
+
 // --- Skill catalogue (Feature 2) ------------------------------------------
 
 // List the skill catalogue with optional filters and per-skill counts of
@@ -736,6 +779,7 @@ module.exports = {
   listClassMastery,
   listLearnerActivity,
   recomputeAllMastery,
+  getLearnerStreak,
   listSkillsCatalogue,
   getSkillById,
   logAskFeedback,

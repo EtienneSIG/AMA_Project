@@ -231,6 +231,55 @@ app.get('/api/admin/quality/feedback', async (req, res) => {
   const rows = await db.getQualityFeedback({ limit: req.query.limit });
   res.json({ enabled: true, rows: rows || [] });
 });
+
+// --- Revision quiz from a study sheet (Feature 4) -------------------------
+// Generates 5 short MCQs grounded in the sheet content and returns them as JSON.
+// Attempts are recorded by the client via /api/learner/attempt with synthetic
+// item ids of the form SHEET:<sheetId>:Q<n>.
+app.post('/api/sheets/:id/quiz', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'auth required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db disabled' });
+  if (!APIM || !KEY || KEY.startsWith('@Microsoft.KeyVault')) return res.status(503).json({ error: 'APIM not configured' });
+  const sheet = await db.getSheet({ id: req.params.id, email: req.user.email });
+  if (!sheet) return res.status(404).json({ error: 'sheet not found' });
+  const sys = `You are a K-12 quiz generator. From the study sheet provided by the user, output EXACTLY 5 short multiple-choice questions in strict JSON, no prose around it. Schema:
+{"questions":[{"q":"...","choices":["A","B","C","D"],"correctIndex":0,"explanation":"..."}]}
+Constraints: questions in ${req.user.language || 'en'}; each question max 140 chars; 4 choices each (one correct); explanation max 180 chars; do NOT repeat the sheet verbatim; difficulty fits a ${req.user.age || 12}-year-old.`;
+  const userPrompt = `Sheet title: ${sheet.title}\n\nSheet content:\n${(sheet.answer || '').slice(0, 3500)}`;
+  const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
+  const t0 = Date.now();
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': KEY },
+      body: JSON.stringify({
+        messages: [ { role: 'system', content: sys }, { role: 'user', content: userPrompt } ],
+        max_completion_tokens: 900,
+        response_format: { type: 'json_object' }
+      })
+    });
+    const latency = Date.now() - t0;
+    if (!r.ok) {
+      const text = await r.text();
+      return res.status(r.status).type('application/json').send(text);
+    }
+    const data = await r.json();
+    const raw = data?.choices?.[0]?.message?.content || '{}';
+    let parsed = {};
+    try { parsed = JSON.parse(raw); } catch (_) { parsed = {}; }
+    const questions = Array.isArray(parsed.questions) ? parsed.questions.slice(0, 5).map((q, i) => ({
+      n: i + 1,
+      q: String(q.q || '').slice(0, 200),
+      choices: Array.isArray(q.choices) ? q.choices.slice(0, 4).map(c => String(c).slice(0, 120)) : [],
+      correctIndex: Number.isInteger(q.correctIndex) ? Math.max(0, Math.min(3, q.correctIndex)) : 0,
+      explanation: String(q.explanation || '').slice(0, 240)
+    })) : [];
+    db.logAsk({ email: req.user.email, role: req.user.role, app: APP_NAME, prompt: '[quiz from sheet:' + sheet.id + ']', answer: raw.slice(0, 4000), model: data?.model || DEP, usage: data?.usage, latencyMs: latency, status: 200 }).catch(() => {});
+    res.json({ sheetId: sheet.id, title: sheet.title, questions, model: data?.model, latencyMs: latency });
+  } catch (e) {
+    res.status(502).json({ error: 'upstream error', detail: String(e) });
+  }
+});
 // Admin-only: force a re-seed of curricula / glossary / learners from packaged data.
 // Idempotent (uses ON CONFLICT). Returns row counts before and after.
 app.post('/api/data/reseed', async (req, res) => {
@@ -280,6 +329,14 @@ app.get('/api/learner/activity', async (req, res) => {
   if (!db.enabled) return res.json({ enabled: false, rows: [] });
   const rows = await db.listLearnerActivity({ email: u.email, days: 30 });
   res.json({ enabled: true, rows: rows || [] });
+});
+// Streak + totals + earned badges (Feature 4 widget).
+app.get('/api/learner/streak', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, streak: 0, badges: [] });
+  const stats = await db.getLearnerStreak({ email: u.email, windowDays: 30 });
+  if (!stats) return res.json({ enabled: true, streak: 0, badges: [] });
+  res.json({ enabled: true, ...stats });
 });
 // Class-wide aggregate per skill. Teacher / admin only.
 app.get('/api/teacher/class/mastery', async (req, res) => {

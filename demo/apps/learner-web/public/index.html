@@ -300,6 +300,9 @@
       <button class="btn btn-sm secondary" onclick="loadMastery()" title="Refresh">Refresh</button>
     </div>
     <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Each adaptive question updates your mastery for the related skill. Mastered skills (≥85%) graduate from the practice loop.</p>
+    <div id="streakWidget" style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.7rem;padding:.6rem .75rem;background:#F8FAFC;border:1px solid var(--line);border-radius:8px;">
+      <div style="font-size:.78rem;color:var(--grey);">Loading streak…</div>
+    </div>
     <div id="masteryList" style="display:flex;flex-direction:column;gap:.45rem;">
       <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
     </div>
@@ -672,8 +675,9 @@ async function refreshSheets() {
       const row = document.createElement('div'); row.className = 'sheet-row';
       const t = document.createElement('div'); t.className = 'sheet-title'; t.textContent = s.title; t.title = s.title; t.onclick = () => loadSheet(s.id);
       const d = document.createElement('div'); d.className = 'sheet-date'; d.textContent = new Date(s.createdAt).toLocaleString();
+      const qz = document.createElement('button'); qz.className = 'btn btn-sm secondary'; qz.textContent = 'Quiz me'; qz.title = 'Generate a 5-question revision quiz from this sheet'; qz.onclick = (ev) => { ev.stopPropagation(); startQuiz(s.id, s.title, qz); };
       const x = document.createElement('button'); x.className = 'sheet-del'; x.textContent = '×'; x.title = 'Delete'; x.setAttribute('aria-label','Delete sheet'); x.onclick = (ev) => { ev.stopPropagation(); deleteSheet(s.id); };
-      row.appendChild(t); row.appendChild(d); row.appendChild(x); list.appendChild(row);
+      row.appendChild(t); row.appendChild(d); row.appendChild(qz); row.appendChild(x); list.appendChild(row);
     }
   } catch (e) { list.innerHTML = '<div class="sheet-empty">Error: ' + escapeHtml(String(e)) + '</div>'; }
 }
@@ -751,9 +755,18 @@ async function loadTeacherQuestions() {
       const badge = pending
         ? '<span style="background:#FFF3CD;color:#856404;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Pending</span>'
         : '<span style="background:#D4EDDA;color:#155724;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Answered</span>';
+      const subjectAttr = encodeURIComponent(row.subject || '');
+      const answerAttr  = encodeURIComponent(row.answer  || '');
+      const bookmarkBtn = pending ? '' : '<button class="btn btn-sm ghost" title="Save this teacher reply as a Study sheet" onclick="bookmarkTeacherAnswer(decodeURIComponent(\'' + subjectAttr + '\'), decodeURIComponent(\'' + answerAttr + '\'), this)">☆ Bookmark</button>';
       const answer = pending
         ? '<div class="sub" style="font-size:.82rem;opacity:.7;font-style:italic;">Waiting for a teacher to reply…</div>'
-        : '<div style="background:#EEF2F7;padding:.55rem .7rem;border-radius:6px;margin-top:.35rem;"><div style="font-size:.72rem;color:var(--grey);margin-bottom:.2rem;">Reply from ' + escapeHtml(row.teacher_name || row.teacher_email || 'teacher') + ' · ' + fmtDateTQ(row.answered_at) + '</div><div style="white-space:pre-wrap;font-size:.9rem;">' + escapeHtml(row.answer) + '</div></div>';
+        : '<div style="background:#EEF2F7;padding:.55rem .7rem;border-radius:6px;margin-top:.35rem;">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">'
+          +   '<div style="font-size:.72rem;color:var(--grey);">Reply from ' + escapeHtml(row.teacher_name || row.teacher_email || 'teacher') + ' · ' + fmtDateTQ(row.answered_at) + '</div>'
+          +   bookmarkBtn
+          + '</div>'
+          + '<div style="white-space:pre-wrap;font-size:.9rem;margin-top:.3rem;">' + escapeHtml(row.answer) + '</div>'
+          + '</div>';
       return '<div style="border:1px solid var(--line);border-radius:8px;padding:.65rem .8rem;background:#fff;">'
         + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;"><strong style="font-size:.92rem;">' + escapeHtml(row.subject) + '</strong>' + badge + '</div>'
         + '<div class="sub" style="font-size:.72rem;color:var(--grey);margin:.15rem 0 .35rem;">Sent ' + fmtDateTQ(row.created_at) + '</div>'
@@ -772,6 +785,7 @@ function masteryBucket(level) {
   return                    { label: 'Beginner',   bg: '#F3F4F6', fg: '#374151' };
 }
 async function loadMastery() {
+  loadStreak();
   const list = document.getElementById('masteryList');
   if (!list) return;
   try {
@@ -802,6 +816,130 @@ async function loadMastery() {
     }).join('');
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
 }
+
+// --- Streak + badges (Feature 4) ---------------------------------------
+async function loadStreak() {
+  const w = document.getElementById('streakWidget'); if (!w) return;
+  try {
+    const r = await fetch('/api/learner/streak', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { w.innerHTML = '<div style="font-size:.78rem;color:var(--grey);">DB disabled — streak unavailable.</div>'; return; }
+    const acc = d.totalAttempts ? Math.round((d.accuracy || 0) * 100) : 0;
+    const stat = (label, value) => '<div style="display:flex;flex-direction:column;line-height:1.1;"><span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--grey);">' + escapeHtml(label) + '</span><span style="font-size:1.05rem;font-weight:700;color:var(--navy);font-family:Poppins;">' + escapeHtml(String(value)) + '</span></div>';
+    const badges = (d.badges || []).map(b => '<span title="' + escapeHtml(b.hint || '') + '" style="background:#FFF3CD;color:#856404;padding:.18rem .55rem;border-radius:999px;font-size:.72rem;font-weight:600;">★ ' + escapeHtml(b.label) + '</span>').join('');
+    w.innerHTML = ''
+      + stat('Streak', (d.streak || 0) + ' day' + ((d.streak || 0) === 1 ? '' : 's'))
+      + stat('Attempts (30d)', d.totalAttempts || 0)
+      + stat('Accuracy', acc + '%')
+      + stat('Mastered skills', d.mastered || 0)
+      + '<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-left:auto;">'
+      + (badges || '<span class="sub" style="font-size:.72rem;color:var(--grey);">No badges yet — keep practising!</span>')
+      + '</div>';
+  } catch (e) { w.innerHTML = '<div style="font-size:.78rem;color:#b00020;">Failed to load streak: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+// --- Bookmark a teacher answer as a Study sheet (Feature 4) -----------
+async function bookmarkTeacherAnswer(subject, answer, btn) {
+  if (!answer) return;
+  if (btn) { btn.disabled = true; btn.textContent = '★ Saving…'; }
+  try {
+    const r = await fetch('/api/sheets', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Teacher reply: ' + (subject || '').slice(0, 80), prompt: subject || '', answer })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'failed');
+    if (btn) { btn.textContent = '★ Saved'; btn.style.background = '#D1FAE5'; btn.style.color = '#065F46'; }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '☆ Bookmark'; }
+    alert('Bookmark failed: ' + String(e));
+  }
+}
+
+// --- Revision quiz from a sheet (Feature 4) ---------------------------
+let _quiz = null; // { sheetId, title, questions, current, score, answeredAt }
+function ensureQuizModal() {
+  if (document.getElementById('quizModal')) return;
+  const div = document.createElement('div');
+  div.className = 'modal-bg'; div.id = 'quizModal';
+  div.onclick = (e) => { if (e.target.id === 'quizModal') closeQuiz(); };
+  div.innerHTML = ''
+    + '<div class="modal" style="max-width:640px;">'
+    +   '<div class="modal-head"><h3 id="quizTitle">Quiz</h3><button class="btn ghost" onclick="closeQuiz()">Close</button></div>'
+    +   '<div id="quizBody" style="display:flex;flex-direction:column;gap:.6rem;"></div>'
+    + '</div>';
+  document.body.appendChild(div);
+}
+function closeQuiz() { const m = document.getElementById('quizModal'); if (m) m.classList.remove('open'); }
+async function startQuiz(sheetId, title, btn) {
+  ensureQuizModal();
+  const m = document.getElementById('quizModal');
+  document.getElementById('quizTitle').textContent = 'Quiz · ' + (title || 'Sheet');
+  const body = document.getElementById('quizBody');
+  body.innerHTML = '<div class="sub" style="opacity:.7;">Generating 5 questions…</div>';
+  m.classList.add('open');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/sheets/' + encodeURIComponent(sheetId) + '/quiz', { method:'POST' });
+    const j = await r.json();
+    if (!r.ok || !Array.isArray(j.questions) || !j.questions.length) {
+      body.innerHTML = '<div style="color:#b00020;">Failed to generate quiz: ' + escapeHtml(j.error || 'no questions returned') + '</div>';
+      return;
+    }
+    _quiz = { sheetId: j.sheetId, title: j.title, questions: j.questions, current: 0, score: 0, t0: Date.now() };
+    renderQuizQuestion();
+  } catch (e) { body.innerHTML = '<div style="color:#b00020;">Error: ' + escapeHtml(String(e)) + '</div>'; }
+  finally { if (btn) btn.disabled = false; }
+}
+function renderQuizQuestion() {
+  if (!_quiz) return;
+  const body = document.getElementById('quizBody');
+  if (_quiz.current >= _quiz.questions.length) {
+    const pct = Math.round(100 * _quiz.score / _quiz.questions.length);
+    body.innerHTML = '<div style="padding:1rem;background:#F8FAFC;border:1px solid var(--line);border-radius:8px;">'
+      + '<div style="font-size:1.1rem;font-weight:700;color:var(--navy);">Quiz complete · ' + _quiz.score + ' / ' + _quiz.questions.length + ' (' + pct + '%)</div>'
+      + '<div class="sub" style="font-size:.8rem;color:var(--grey);margin-top:.3rem;">Each answer was logged as a SHEET:' + escapeHtml(_quiz.sheetId) + ':Q… attempt and counts toward your activity.</div>'
+      + '<div style="margin-top:.7rem;display:flex;gap:.4rem;"><button class="btn btn-sm" onclick="closeQuiz();loadMastery();">Done</button></div>'
+      + '</div>';
+    return;
+  }
+  const q = _quiz.questions[_quiz.current];
+  body.innerHTML = '<div style="font-size:.8rem;color:var(--grey);">Question ' + (_quiz.current + 1) + ' / ' + _quiz.questions.length + '</div>'
+    + '<div style="font-weight:600;color:var(--navy);font-size:1rem;">' + escapeHtml(q.q) + '</div>'
+    + '<div id="qChoices" style="display:flex;flex-direction:column;gap:.35rem;">'
+    + (q.choices || []).map((c, i) => '<button class="btn secondary" style="text-align:left;" onclick="answerQuiz(' + i + ', this)">' + escapeHtml(c) + '</button>').join('')
+    + '</div>'
+    + '<div id="qFeedback" style="font-size:.85rem;"></div>';
+}
+async function answerQuiz(choice, btn) {
+  if (!_quiz) return;
+  const q = _quiz.questions[_quiz.current];
+  const correct = (choice === q.correctIndex);
+  if (correct) _quiz.score += 1;
+  document.querySelectorAll('#qChoices button').forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.correctIndex) b.style.background = '#D1FAE5';
+    if (i === choice && !correct) b.style.background = '#FEE2E2';
+  });
+  const fb = document.getElementById('qFeedback');
+  if (fb) fb.innerHTML = (correct ? '<strong style="color:#065F46;">Correct!</strong> ' : '<strong style="color:#9F1239;">Not quite.</strong> ')
+    + escapeHtml(q.explanation || '')
+    + '<div style="margin-top:.5rem;"><button class="btn btn-sm" onclick="nextQuiz()">Next</button></div>';
+  // Log attempt to /api/learner/attempt for activity + content telemetry. Synthetic item id.
+  try {
+    await fetch('/api/learner/attempt', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemId: 'SHEET:' + _quiz.sheetId + ':Q' + (_quiz.current + 1),
+        difficulty: 0.5,
+        predicted: correct ? 0.7 : 0.3,
+        correct,
+        latencyMs: Date.now() - (_quiz.t0 || Date.now())
+      })
+    });
+  } catch (_) { /* ignore */ }
+}
+function nextQuiz() { if (!_quiz) return; _quiz.current += 1; _quiz.t0 = Date.now(); renderQuizQuestion(); }
 </script>
 </body>
 </html>
