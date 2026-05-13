@@ -89,13 +89,17 @@ CREATE INDEX IF NOT EXISTS idx_glossary_lang ON glossary_terms (language);
 CREATE TABLE IF NOT EXISTS learners (
   learner_id  UUID        PRIMARY KEY,
   pseudonym   TEXT        NOT NULL UNIQUE,
+  email       TEXT,
   market      TEXT        NOT NULL,             -- DE | NL
   grade       INTEGER     NOT NULL,
   decile      INTEGER     NOT NULL,             -- 1..10 (deprivation decile)
   sen         BOOLEAN     NOT NULL,             -- special educational needs
+  age_group   TEXT        CHECK (age_group IN ('10-12','13-15','16-18')),
+  gender      TEXT        CHECK (gender IN ('M','F','Non-binary','Prefer not to say')),
   loaded_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_learners_market ON learners (market, grade);
+CREATE INDEX IF NOT EXISTS idx_learners_email  ON learners (email);
 
 -- Per-item attempts written by the ONNX adaptive loop in learner-web.
 -- Used to compute next-item recommendations and to show progress in the admin UI.
