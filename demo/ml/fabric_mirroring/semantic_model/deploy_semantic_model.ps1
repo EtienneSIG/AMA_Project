@@ -114,8 +114,10 @@ $modelBim = @{
     # --- TABLES ---
     tables = @(
       # ===================== DIMENSION: Learners =====================
-      # NOTE: age_group, gender, email columns will be available after applying
-      # add_demographics.sql to Postgres. Until then, only base columns are used.
+      # NOTE: email, age_group, gender columns are in Postgres but mirroring
+      # hasn't synced the DDL change yet (ALTER TABLE not auto-detected).
+      # Once mirroring is restarted, uncomment those columns and the
+      # Demographics hierarchy. For now, relationships go via email on fact tables.
       @{
         name             = "Learners"
         sourceLineageTag = "[_public].[learners]"
@@ -126,6 +128,10 @@ $modelBim = @{
           (New-Col -Name "grade" -DataType "int64")
           (New-Col -Name "decile" -DataType "int64")
           (New-Col -Name "sen" -DataType "boolean")
+          # After mirroring restart, add:
+          # (New-Col -Name "email" -IsHidden $true)
+          # (New-Col -Name "age_group")
+          # (New-Col -Name "gender")
         )
         partitions = @( (New-DLPartition -Name "learners-partition" -EntityName "learners") )
         hierarchies = @(
@@ -137,6 +143,15 @@ $modelBim = @{
               @{ name = "SEN"; ordinal = 2; column = "sen" }
             )
           }
+          # After mirroring restart, add Demographics hierarchy:
+          # @{
+          #   name = "Demographics"
+          #   levels = @(
+          #     @{ name = "Market"; ordinal = 0; column = "market" }
+          #     @{ name = "Age Group"; ordinal = 1; column = "age_group" }
+          #     @{ name = "Gender"; ordinal = 2; column = "gender" }
+          #   )
+          # }
         )
       }
 
@@ -409,9 +424,9 @@ $modelBim = @{
     ) # end tables
 
     # --- RELATIONSHIPS ---
-    # NOTE: Learner dimension relationships via email are commented out until
-    # add_demographics.sql is applied to Postgres (adds email column to learners).
-    # Until then, Item Attempts links to Learners via pseudonym.
+    # NOTE: Email-based relationships to Learners are commented out until
+    # mirroring syncs the email column (requires mirroring restart for DDL).
+    # Item Attempts joins to Learners via pseudonym (available now).
     relationships = @(
       # Learners ← Item Attempts (via pseudonym — available now)
       @{
@@ -419,6 +434,11 @@ $modelBim = @{
         fromTable = "Item Attempts"; fromColumn = "pseudonym"
         toTable = "Learners"; toColumn = "pseudonym"
       }
+      # After mirroring restart (email column available in Learners), add:
+      # Learner_to_ConnectionLogs (email), Learner_to_AskHistory (email),
+      # Learner_to_SkillMastery (email), Learner_to_LearnerActivity (email),
+      # Learner_to_AskFeedback (email)
+
       # Skills ← Skill Mastery
       @{
         name = "Skill_to_SkillMastery"
