@@ -76,7 +76,26 @@ psql -f ../add_demographics.sql
 
 # 2. Deploy the semantic model
 pwsh deploy_semantic_model.ps1
+
+# 3. Deploy the Power BI report (5 pages)
+pwsh deploy_report.ps1
 ```
+
+### Deployed Assets
+
+| Asset | ID |
+|---|---|
+| Semantic Model | `80a0d835-88b8-474d-a5ba-e8d420bd782e` |
+| Report | `8676c657-c973-4d62-bda3-d0268c879602` |
+| Workspace | `127a12ab-fa94-421b-bee3-4f534264d3ff` |
+
+### Report Pages
+
+1. **Adoption Overview** — DAU/MAU/Stickiness cards, login trend, logins by app & role, market slicer
+2. **Student Demographics** — Students by market/grade/decile, SEN donut, mastery by market, learner table
+3. **Skill Mastery Progression** — Mastered/struggling cards, by domain/chapter, correctness by difficulty
+4. **AI Quality & Safety** — Prompts, latency (avg/P95), error rate, feedback gauge, tokens by model, safety table
+5. **Teacher Engagement** — Override rate, AI-human gap, questions table, comparison chart
 
 ## Privacy Notes
 
