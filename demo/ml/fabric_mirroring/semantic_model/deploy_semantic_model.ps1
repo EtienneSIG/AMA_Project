@@ -21,6 +21,7 @@
 param(
   [string]$WorkspaceId  = '127a12ab-fa94-421b-bee3-4f534264d3ff',
   [string]$LakehouseId  = 'a4e67934-17d0-43ea-b522-f4e11885d7a5',
+  [string]$MirroredDbId = '3e34ce1e-a283-4a58-bc04-425e4654c571',
   [string]$ModelName    = 'LearnEU - Adoption & Student Level'
 )
 
@@ -38,16 +39,16 @@ $headers = @{
 }
 
 # ---------------------------------------------------------------------------
-# 2. Get the SQL endpoint connection string for the lakehouse
+# 2. Get the SQL endpoint connection string for the mirrored database
 # ---------------------------------------------------------------------------
-Write-Host "==> Resolving lakehouse SQL endpoint..." -ForegroundColor Cyan
-$lhUrl = "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/lakehouses/$LakehouseId"
-$lh = Invoke-RestMethod -Uri $lhUrl -Headers $headers -Method Get
-$sqlEndpoint = $lh.properties.sqlEndpointProperties.connectionString
-$sqlDb = $lh.properties.sqlEndpointProperties.id
+Write-Host "==> Resolving mirrored database SQL endpoint..." -ForegroundColor Cyan
+$mirrorUrl = "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/mirroredDatabases/$MirroredDbId"
+$mirror = Invoke-RestMethod -Uri $mirrorUrl -Headers $headers -Method Get
+$sqlEndpoint = $mirror.properties.sqlEndpointProperties.connectionString
+$dbName = $mirror.displayName
 Write-Host "  SQL Endpoint: $sqlEndpoint"
-Write-Host "  SQL DB ID:    $sqlDb"
-Write-Host "  Lakehouse:    $($lh.displayName)"
+Write-Host "  Database:     $dbName"
+Write-Host "  Schema:       _public (Postgres public -> Fabric _public)"
 
 # ---------------------------------------------------------------------------
 # 3. Build the model.bim (bare Database object — NOT a TMSL command envelope)
@@ -63,7 +64,7 @@ function New-DLPartition([string]$Name, [string]$EntityName) {
     source = @{
       type             = "entity"
       entityName       = $EntityName
-      schemaName       = "dbo"
+      schemaName       = "_public"
       expressionSource = "DatabaseQuery"
     }
   }
@@ -103,7 +104,7 @@ $modelBim = @{
         kind       = "m"
         expression = @(
           "let"
-          "    database = Sql.Database(""$sqlEndpoint"", ""$($lh.displayName)"")"
+          "    database = Sql.Database(""$sqlEndpoint"", ""$dbName"")"
           "in"
           "    database"
         )
@@ -113,30 +114,21 @@ $modelBim = @{
     # --- TABLES ---
     tables = @(
       # ===================== DIMENSION: Learners =====================
+      # NOTE: age_group, gender, email columns will be available after applying
+      # add_demographics.sql to Postgres. Until then, only base columns are used.
       @{
         name             = "Learners"
-        sourceLineageTag = "[dbo].[learners]"
+        sourceLineageTag = "[_public].[learners]"
         columns = @(
           (New-Col -Name "learner_id" -IsKey $true)
           (New-Col -Name "pseudonym")
-          (New-Col -Name "email" -IsHidden $true)
           (New-Col -Name "market")
           (New-Col -Name "grade" -DataType "int64")
           (New-Col -Name "decile" -DataType "int64")
           (New-Col -Name "sen" -DataType "boolean")
-          (New-Col -Name "age_group")
-          (New-Col -Name "gender")
         )
         partitions = @( (New-DLPartition -Name "learners-partition" -EntityName "learners") )
         hierarchies = @(
-          @{
-            name = "Demographics"
-            levels = @(
-              @{ name = "Market"; ordinal = 0; column = "market" }
-              @{ name = "Age Group"; ordinal = 1; column = "age_group" }
-              @{ name = "Gender"; ordinal = 2; column = "gender" }
-            )
-          }
           @{
             name = "Socio-Economic"
             levels = @(
@@ -151,7 +143,7 @@ $modelBim = @{
       # ===================== DIMENSION: Skills =====================
       @{
         name             = "Skills"
-        sourceLineageTag = "[dbo].[skills]"
+        sourceLineageTag = "[_public].[skills]"
         columns = @(
           (New-Col -Name "id" -IsKey $true)
           (New-Col -Name "label")
@@ -176,7 +168,7 @@ $modelBim = @{
       # ===================== DIMENSION: Curricula =====================
       @{
         name             = "Curricula"
-        sourceLineageTag = "[dbo].[curricula]"
+        sourceLineageTag = "[_public].[curricula]"
         columns = @(
           (New-Col -Name "id" -IsKey $true)
           (New-Col -Name "country")
@@ -191,7 +183,7 @@ $modelBim = @{
       # ===================== FACT: Connection Logs (Adoption) =====================
       @{
         name             = "Connection Logs"
-        sourceLineageTag = "[dbo].[connection_logs]"
+        sourceLineageTag = "[_public].[connection_logs]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "email" -IsHidden $true)
@@ -214,7 +206,7 @@ $modelBim = @{
       # ===================== FACT: Ask History (AI Usage) =====================
       @{
         name             = "Ask History"
-        sourceLineageTag = "[dbo].[ask_history]"
+        sourceLineageTag = "[_public].[ask_history]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "email" -IsHidden $true)
@@ -243,7 +235,7 @@ $modelBim = @{
       # ===================== FACT: Item Attempts (Learning) =====================
       @{
         name             = "Item Attempts"
-        sourceLineageTag = "[dbo].[item_attempts]"
+        sourceLineageTag = "[_public].[item_attempts]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "email" -IsHidden $true)
@@ -269,7 +261,7 @@ $modelBim = @{
       # ===================== FACT: Skill Mastery (Level Snapshot) =====================
       @{
         name             = "Skill Mastery"
-        sourceLineageTag = "[dbo].[skill_mastery]"
+        sourceLineageTag = "[_public].[skill_mastery]"
         columns = @(
           (New-Col -Name "email" -IsHidden $true)
           (New-Col -Name "skill_id")
@@ -292,7 +284,7 @@ $modelBim = @{
       # ===================== FACT: Learner Activity (Daily Rollup) =====================
       @{
         name             = "Learner Activity"
-        sourceLineageTag = "[dbo].[learner_activity]"
+        sourceLineageTag = "[_public].[learner_activity]"
         columns = @(
           (New-Col -Name "email" -IsHidden $true)
           (New-Col -Name "day" -DataType "dateTime")
@@ -311,7 +303,7 @@ $modelBim = @{
       # ===================== FACT: Ask Feedback =====================
       @{
         name             = "Ask Feedback"
-        sourceLineageTag = "[dbo].[ask_feedback]"
+        sourceLineageTag = "[_public].[ask_feedback]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "ask_id" -DataType "int64")
@@ -330,7 +322,7 @@ $modelBim = @{
       # ===================== FACT: Content Safety =====================
       @{
         name             = "Content Safety"
-        sourceLineageTag = "[dbo].[content_safety_results]"
+        sourceLineageTag = "[_public].[content_safety_results]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "email" -IsHidden $true)
@@ -353,7 +345,7 @@ $modelBim = @{
       # ===================== FACT: Teacher Overrides (AI Act Art.14) =====================
       @{
         name             = "Teacher Overrides"
-        sourceLineageTag = "[dbo].[teacher_overrides]"
+        sourceLineageTag = "[_public].[teacher_overrides]"
         columns = @(
           (New-Col -Name "id" -DataType "int64" -IsKey $true)
           (New-Col -Name "teacher_email" -IsHidden $true)
@@ -374,7 +366,7 @@ $modelBim = @{
       # ===================== FACT: Teacher Questions =====================
       @{
         name             = "Teacher Questions"
-        sourceLineageTag = "[dbo].[teacher_questions]"
+        sourceLineageTag = "[_public].[teacher_questions]"
         columns = @(
           (New-Col -Name "id" -IsKey $true)
           (New-Col -Name "learner_email" -IsHidden $true)
@@ -395,7 +387,7 @@ $modelBim = @{
       # ===================== BRIDGE: Item Skills =====================
       @{
         name             = "Item Skills"
-        sourceLineageTag = "[dbo].[item_skills]"
+        sourceLineageTag = "[_public].[item_skills]"
         columns = @(
           (New-Col -Name "item_id")
           (New-Col -Name "skill_id")
@@ -406,7 +398,7 @@ $modelBim = @{
       # ===================== BRIDGE: Skill Competency Map =====================
       @{
         name             = "Skill Competency Map"
-        sourceLineageTag = "[dbo].[skill_competency_map]"
+        sourceLineageTag = "[_public].[skill_competency_map]"
         columns = @(
           (New-Col -Name "skill_id")
           (New-Col -Name "competency_id")
@@ -417,42 +409,15 @@ $modelBim = @{
     ) # end tables
 
     # --- RELATIONSHIPS ---
+    # NOTE: Learner dimension relationships via email are commented out until
+    # add_demographics.sql is applied to Postgres (adds email column to learners).
+    # Until then, Item Attempts links to Learners via pseudonym.
     relationships = @(
-      # Learners ← Connection Logs (many-to-one)
-      @{
-        name = "Learner_to_ConnectionLogs"
-        fromTable = "Connection Logs"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
-      }
-      # Learners ← Ask History
-      @{
-        name = "Learner_to_AskHistory"
-        fromTable = "Ask History"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
-      }
-      # Learners ← Item Attempts
+      # Learners ← Item Attempts (via pseudonym — available now)
       @{
         name = "Learner_to_ItemAttempts"
-        fromTable = "Item Attempts"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
-      }
-      # Learners ← Skill Mastery
-      @{
-        name = "Learner_to_SkillMastery"
-        fromTable = "Skill Mastery"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
-      }
-      # Learners ← Learner Activity
-      @{
-        name = "Learner_to_LearnerActivity"
-        fromTable = "Learner Activity"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
-      }
-      # Learners ← Ask Feedback
-      @{
-        name = "Learner_to_AskFeedback"
-        fromTable = "Ask Feedback"; fromColumn = "email"
-        toTable = "Learners"; toColumn = "email"
+        fromTable = "Item Attempts"; fromColumn = "pseudonym"
+        toTable = "Learners"; toColumn = "pseudonym"
       }
       # Skills ← Skill Mastery
       @{
