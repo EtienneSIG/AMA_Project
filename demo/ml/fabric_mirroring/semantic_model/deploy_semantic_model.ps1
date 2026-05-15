@@ -210,11 +210,11 @@ $modelBim = @{
         partitions = @( (New-DLPartition -Name "connection-logs-partition" -EntityName "connection_logs") )
         measures = @(
           @{ name = "Total Logins"; expression = 'COUNTROWS(FILTER(''Connection Logs'', ''Connection Logs''[event] = "login"))' }
-          @{ name = "Unique Users (Login)"; expression = 'DISTINCTCOUNT(''Connection Logs''[email])' }
+          @{ name = "Unique Users"; expression = 'DISTINCTCOUNT(''Connection Logs''[email])' }
           @{ name = "Login Failure Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Connection Logs'', ''Connection Logs''[event] = "login_failed")), COUNTROWS(''Connection Logs''), 0)'; formatString = "0.00%" }
           @{ name = "DAU"; expression = 'CALCULATE(DISTINCTCOUNT(''Connection Logs''[email]), ''Connection Logs''[event] = "login", FILTER(ALL(''Connection Logs''[created_at]), ''Connection Logs''[created_at] >= TODAY()))' }
           @{ name = "MAU"; expression = 'CALCULATE(DISTINCTCOUNT(''Connection Logs''[email]), ''Connection Logs''[event] = "login", FILTER(ALL(''Connection Logs''[created_at]), ''Connection Logs''[created_at] >= EDATE(TODAY(), -1)))' }
-          @{ name = "Stickiness (DAU/MAU)"; expression = "DIVIDE([DAU], [MAU], 0)"; formatString = "0.0%" }
+          @{ name = "Stickiness"; expression = "DIVIDE([DAU], [MAU], 0)"; formatString = "0.0%" }
         )
       }
 
@@ -237,13 +237,13 @@ $modelBim = @{
         )
         partitions = @( (New-DLPartition -Name "ask-history-partition" -EntityName "ask_history") )
         measures = @(
-          @{ name = "Total AI Prompts"; expression = "COUNTROWS('Ask History')" }
+          @{ name = "Total Prompts"; expression = "COUNTROWS('Ask History')" }
           @{ name = "AI Active Users"; expression = "DISTINCTCOUNT('Ask History'[email])" }
-          @{ name = "Avg Latency (ms)"; expression = "AVERAGE('Ask History'[latency_ms])"; formatString = "#,##0" }
-          @{ name = "P95 Latency (ms)"; expression = "PERCENTILE.INC('Ask History'[latency_ms], 0.95)"; formatString = "#,##0" }
-          @{ name = "AI Error Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Ask History'', ''Ask History''[status] >= 400)), COUNTROWS(''Ask History''), 0)'; formatString = "0.00%" }
-          @{ name = "Total Tokens Used"; expression = "SUM('Ask History'[total_tokens])"; formatString = "#,##0" }
-          @{ name = "Prompts Per Active User"; expression = "DIVIDE([Total AI Prompts], [AI Active Users], 0)"; formatString = "#,##0.0" }
+          @{ name = "Avg Latency (s)"; expression = "DIVIDE(AVERAGE('Ask History'[latency_ms]), 1000, 0)"; formatString = "0.00" }
+          @{ name = "P95 Latency (s)"; expression = "DIVIDE(PERCENTILE.INC('Ask History'[latency_ms], 0.95), 1000, 0)"; formatString = "0.00" }
+          @{ name = "Error Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Ask History'', ''Ask History''[status] >= 400)), COUNTROWS(''Ask History''), 0)'; formatString = "0.00%" }
+          @{ name = "Total Tokens"; expression = "SUM('Ask History'[total_tokens])"; formatString = "#,##0" }
+          @{ name = "AI Prompts Per User"; expression = "DIVIDE([Total Prompts], [AI Active Users], 0)"; formatString = "#,##0.0" }
         )
       }
 
@@ -268,7 +268,7 @@ $modelBim = @{
           @{ name = "Correct Attempts"; expression = "COUNTROWS(FILTER('Item Attempts', 'Item Attempts'[correct] = TRUE()))" }
           @{ name = "Correctness Rate"; expression = "DIVIDE([Correct Attempts], [Total Attempts], 0)"; formatString = "0.0%" }
           @{ name = "Active Learners"; expression = "DISTINCTCOUNT('Item Attempts'[email])" }
-          @{ name = "Avg Item Difficulty"; expression = "AVERAGE('Item Attempts'[difficulty])"; formatString = "0.00" }
+          @{ name = "Avg Difficulty"; expression = "AVERAGE('Item Attempts'[difficulty])"; formatString = "0.00" }
           @{ name = "Attempts Per Learner"; expression = "DIVIDE([Total Attempts], [Active Learners], 0)"; formatString = "#,##0.0" }
         )
       }
@@ -289,10 +289,10 @@ $modelBim = @{
         partitions = @( (New-DLPartition -Name "skill-mastery-partition" -EntityName "skill_mastery") )
         measures = @(
           @{ name = "Avg Mastery Level"; expression = "AVERAGE('Skill Mastery'[level])"; formatString = "0.0%" }
-          @{ name = "Mastered Skills (>80%)"; expression = "COUNTROWS(FILTER('Skill Mastery', 'Skill Mastery'[level] >= 0.8))" }
-          @{ name = "Struggling Skills (<30%)"; expression = "COUNTROWS(FILTER('Skill Mastery', 'Skill Mastery'[level] < 0.3))" }
+          @{ name = "Mastered Count"; expression = "COUNTROWS(FILTER('Skill Mastery', 'Skill Mastery'[level] >= 0.8))" }
+          @{ name = "Struggling Count"; expression = "COUNTROWS(FILTER('Skill Mastery', 'Skill Mastery'[level] < 0.3))" }
           @{ name = "Skills Attempted"; expression = "COUNTROWS('Skill Mastery')" }
-          @{ name = "Skill Accuracy Rate"; expression = "DIVIDE(SUM('Skill Mastery'[correct]), SUM('Skill Mastery'[attempts]), 0)"; formatString = "0.0%" }
+          @{ name = "Mastery Accuracy"; expression = "DIVIDE(SUM('Skill Mastery'[correct]), SUM('Skill Mastery'[attempts]), 0)"; formatString = "0.0%" }
         )
       }
 
@@ -331,6 +331,7 @@ $modelBim = @{
           @{ name = "Total Feedback"; expression = "COUNTROWS('Ask Feedback')" }
           @{ name = "Helpful Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Ask Feedback'', ''Ask Feedback''[rating] = "helpful")), COUNTROWS(''Ask Feedback''), 0)'; formatString = "0.0%" }
           @{ name = "Confusing Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Ask Feedback'', ''Ask Feedback''[rating] = "confusing")), COUNTROWS(''Ask Feedback''), 0)'; formatString = "0.0%" }
+          @{ name = "Positive Feedback Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Ask Feedback'', ''Ask Feedback''[rating] = "helpful")), COUNTROWS(''Ask Feedback''), 0)'; formatString = "0.0%" }
         )
       }
 
@@ -353,7 +354,7 @@ $modelBim = @{
         partitions = @( (New-DLPartition -Name "content-safety-partition" -EntityName "content_safety_results") )
         measures = @(
           @{ name = "Total Safety Scans"; expression = "COUNTROWS('Content Safety')" }
-          @{ name = "Block Rate"; expression = "DIVIDE(COUNTROWS(FILTER('Content Safety', 'Content Safety'[blocked] = TRUE())), COUNTROWS('Content Safety'), 0)"; formatString = "0.0%" }
+          @{ name = "Safety Block Rate"; expression = "DIVIDE(COUNTROWS(FILTER('Content Safety', 'Content Safety'[blocked] = TRUE())), COUNTROWS('Content Safety'), 0)"; formatString = "0.0%" }
         )
       }
 
@@ -374,7 +375,7 @@ $modelBim = @{
         measures = @(
           @{ name = "Total Overrides"; expression = "COUNTROWS('Teacher Overrides')" }
           @{ name = "Override Rate"; expression = "DIVIDE(COUNTROWS('Teacher Overrides'), COUNTROWS('Skill Mastery'), 0)"; formatString = "0.0%" }
-          @{ name = "Avg AI vs Human Gap"; expression = "AVERAGE('Teacher Overrides'[human_level]) - AVERAGE('Teacher Overrides'[ai_level])"; formatString = "0.00" }
+          @{ name = "AI-Human Gap"; expression = "AVERAGE('Teacher Overrides'[human_level]) - AVERAGE('Teacher Overrides'[ai_level])"; formatString = "0.00" }
         )
       }
 
@@ -395,7 +396,7 @@ $modelBim = @{
         measures = @(
           @{ name = "Total Questions"; expression = "COUNTROWS('Teacher Questions')" }
           @{ name = "Questions Answered"; expression = 'COUNTROWS(FILTER(''Teacher Questions'', ''Teacher Questions''[status] = "answered"))' }
-          @{ name = "Answer Rate"; expression = "DIVIDE([Questions Answered], [Total Questions], 0)"; formatString = "0.0%" }
+          @{ name = "Question Answer Rate"; expression = "DIVIDE([Questions Answered], [Total Questions], 0)"; formatString = "0.0%" }
         )
       }
 

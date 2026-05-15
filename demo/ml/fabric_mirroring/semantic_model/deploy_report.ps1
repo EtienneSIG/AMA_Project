@@ -18,7 +18,7 @@
 [CmdletBinding()]
 param(
   [string]$WorkspaceId     = '127a12ab-fa94-421b-bee3-4f534264d3ff',
-  [string]$SemanticModelId = '80a0d835-88b8-474d-a5ba-e8d420bd782e',
+  [string]$SemanticModelId = '0e7d0cc1-cfee-47fb-8bc1-7d2a290574fd',
   [string]$ReportName      = 'LearnEU - Adoption & Student Level Report'
 )
 
@@ -69,8 +69,7 @@ function New-Visual {
     [double]$X, [double]$Y, [double]$W, [double]$H,
     [int]$Z,
     [string]$VisualType,
-    [hashtable]$QueryState,
-    [string]$Title = $null
+    [hashtable]$QueryState
   )
   $visual = @{
     '$schema' = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json"
@@ -167,38 +166,38 @@ $page1Json = @{
 } | ConvertTo-Json -Depth 3
 
 # Page 1 visuals
-$v1_dau = New-Visual -Id "v1dau0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -Title "DAU" -QueryState @{
+$v1_dau = New-Visual -Id "v1dau0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Connection Logs" "DAU"); queryRef = "Connection Logs.DAU"; active = $true } ) }
 }
-$v1_mau = New-Visual -Id "v1mau0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -Title "MAU" -QueryState @{
+$v1_mau = New-Visual -Id "v1mau0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Connection Logs" "MAU"); queryRef = "Connection Logs.MAU"; active = $true } ) }
 }
-$v1_sticky = New-Visual -Id "v1stk0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -Title "Stickiness" -QueryState @{
+$v1_sticky = New-Visual -Id "v1stk0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Connection Logs" "Stickiness"); queryRef = "Connection Logs.Stickiness"; active = $true } ) }
 }
-$v1_unique = New-Visual -Id "v1unq0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -Title "Unique Users" -QueryState @{
+$v1_unique = New-Visual -Id "v1unq0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Connection Logs" "Unique Users"); queryRef = "Connection Logs.Unique Users"; active = $true } ) }
 }
-$v1_failrate = New-Visual -Id "v1frt0005" -X 900 -Y 20 -W 200 -H 120 -Z 1004 -VisualType "card" -Title "Login Failure Rate" -QueryState @{
+$v1_failrate = New-Visual -Id "v1frt0005" -X 900 -Y 20 -W 200 -H 120 -Z 1004 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Connection Logs" "Login Failure Rate"); queryRef = "Connection Logs.Login Failure Rate"; active = $true } ) }
 }
 # Logins by app (bar chart)
-$v1_byapp = New-Visual -Id "v1app0006" -X 20 -Y 160 -W 400 -H 280 -Z 1005 -VisualType "barChart" -Title "Logins by Application" -QueryState @{
-  Category = @{ projections = @( @{ field = (ColumnField "Connection Logs" "app_name"); queryRef = "Connection Logs.app_name"; active = $true } ) }
+$v1_byapp = New-Visual -Id "v1app0006" -X 20 -Y 160 -W 400 -H 280 -Z 1005 -VisualType "clusteredBarChart" -QueryState @{
+  Category = @{ projections = @( @{ field = (ColumnField "Connection Logs" "app"); queryRef = "Connection Logs.app"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Connection Logs" "Unique Users"); queryRef = "Connection Logs.Unique Users"; active = $true } ) }
 }
 # Logins by role (bar chart)
-$v1_byrole = New-Visual -Id "v1rol0007" -X 440 -Y 160 -W 400 -H 280 -Z 1006 -VisualType "barChart" -Title "Logins by Role" -QueryState @{
+$v1_byrole = New-Visual -Id "v1rol0007" -X 440 -Y 160 -W 400 -H 280 -Z 1006 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Connection Logs" "role"); queryRef = "Connection Logs.role"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Connection Logs" "Unique Users"); queryRef = "Connection Logs.Unique Users"; active = $true } ) }
 }
 # Logins trend (line chart)
-$v1_trend = New-Visual -Id "v1trd0008" -X 20 -Y 460 -W 820 -H 240 -Z 1007 -VisualType "lineChart" -Title "Login Trend (Daily)" -QueryState @{
-  Category = @{ projections = @( @{ field = (ColumnField "Connection Logs" "logged_at"); queryRef = "Connection Logs.logged_at"; active = $true } ) }
+$v1_trend = New-Visual -Id "v1trd0008" -X 20 -Y 460 -W 820 -H 240 -Z 1007 -VisualType "lineChart" -QueryState @{
+  Category = @{ projections = @( @{ field = (ColumnField "Connection Logs" "created_at"); queryRef = "Connection Logs.created_at"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Connection Logs" "DAU"); queryRef = "Connection Logs.DAU"; active = $true } ) }
 }
 # Market slicer
-$v1_slicer = New-Visual -Id "v1slc0009" -X 860 -Y 160 -W 400 -H 280 -Z 1008 -VisualType "slicer" -Title "Market" -QueryState @{
+$v1_slicer = New-Visual -Id "v1slc0009" -X 860 -Y 160 -W 400 -H 280 -Z 1008 -VisualType "slicer" -QueryState @{
   Values = @{ projections = @( @{ field = (ColumnField "Learners" "market"); queryRef = "Learners.market"; active = $true } ) }
 }
 
@@ -212,31 +211,31 @@ $page2Json = @{
   width = 1280.0
 } | ConvertTo-Json -Depth 3
 
-$v2_bymarket = New-Visual -Id "v2mkt0001" -X 20 -Y 20 -W 380 -H 320 -Z 1000 -VisualType "barChart" -Title "Students by Market" -QueryState @{
+$v2_bymarket = New-Visual -Id "v2mkt0001" -X 20 -Y 20 -W 380 -H 320 -Z 1000 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Learners" "market"); queryRef = "Learners.market"; active = $true } ) }
-  Y = @{ projections = @( @{ field = (MeasureField "Learner Activity" "Active Learners"); queryRef = "Learner Activity.Active Learners"; active = $true } ) }
+  Y = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Active Learners"); queryRef = "Item Attempts.Active Learners"; active = $true } ) }
 }
-$v2_bygrade = New-Visual -Id "v2grd0002" -X 420 -Y 20 -W 380 -H 320 -Z 1001 -VisualType "barChart" -Title "Students by Grade" -QueryState @{
+$v2_bygrade = New-Visual -Id "v2grd0002" -X 420 -Y 20 -W 380 -H 320 -Z 1001 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Learners" "grade"); queryRef = "Learners.grade"; active = $true } ) }
-  Y = @{ projections = @( @{ field = (MeasureField "Learner Activity" "Active Learners"); queryRef = "Learner Activity.Active Learners"; active = $true } ) }
+  Y = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Active Learners"); queryRef = "Item Attempts.Active Learners"; active = $true } ) }
 }
-$v2_bydecile = New-Visual -Id "v2dcl0003" -X 820 -Y 20 -W 440 -H 320 -Z 1002 -VisualType "barChart" -Title "Students by Decile" -QueryState @{
+$v2_bydecile = New-Visual -Id "v2dcl0003" -X 820 -Y 20 -W 440 -H 320 -Z 1002 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Learners" "decile"); queryRef = "Learners.decile"; active = $true } ) }
-  Y = @{ projections = @( @{ field = (MeasureField "Learner Activity" "Active Learners"); queryRef = "Learner Activity.Active Learners"; active = $true } ) }
+  Y = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Active Learners"); queryRef = "Item Attempts.Active Learners"; active = $true } ) }
 }
-$v2_sen = New-Visual -Id "v2sen0004" -X 20 -Y 360 -W 300 -H 320 -Z 1003 -VisualType "donutChart" -Title "SEN Distribution" -QueryState @{
+$v2_sen = New-Visual -Id "v2sen0004" -X 20 -Y 360 -W 300 -H 320 -Z 1003 -VisualType "donutChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Learners" "sen"); queryRef = "Learners.sen"; active = $true } ) }
-  Y = @{ projections = @( @{ field = (MeasureField "Learner Activity" "Active Learners"); queryRef = "Learner Activity.Active Learners"; active = $true } ) }
+  Y = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Active Learners"); queryRef = "Item Attempts.Active Learners"; active = $true } ) }
 }
-$v2_mastery_mkt = New-Visual -Id "v2mst0005" -X 340 -Y 360 -W 480 -H 320 -Z 1004 -VisualType "clusteredBarChart" -Title "Avg Mastery Level by Market" -QueryState @{
+$v2_mastery_mkt = New-Visual -Id "v2mst0005" -X 340 -Y 360 -W 480 -H 320 -Z 1004 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Learners" "market"); queryRef = "Learners.market"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Skill Mastery" "Avg Mastery Level"); queryRef = "Skill Mastery.Avg Mastery Level"; active = $true } ) }
 }
-$v2_table = New-Visual -Id "v2tbl0006" -X 840 -Y 360 -W 420 -H 320 -Z 1005 -VisualType "tableEx" -Title "Learner Summary" -QueryState @{
+$v2_table = New-Visual -Id "v2tbl0006" -X 840 -Y 360 -W 420 -H 320 -Z 1005 -VisualType "tableEx" -QueryState @{
   Values = @{ projections = @(
     @{ field = (ColumnField "Learners" "market"); queryRef = "Learners.market"; active = $true }
     @{ field = (ColumnField "Learners" "grade"); queryRef = "Learners.grade"; active = $true }
-    @{ field = (MeasureField "Learner Activity" "Active Learners"); queryRef = "Learner Activity.Active Learners"; active = $true }
+    @{ field = (MeasureField "Item Attempts" "Active Learners"); queryRef = "Item Attempts.Active Learners"; active = $true }
     @{ field = (MeasureField "Skill Mastery" "Avg Mastery Level"); queryRef = "Skill Mastery.Avg Mastery Level"; active = $true }
   ) }
 }
@@ -251,35 +250,35 @@ $page3Json = @{
   width = 1280.0
 } | ConvertTo-Json -Depth 3
 
-$v3_mastered = New-Visual -Id "v3mas0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -Title "Mastered Skills" -QueryState @{
+$v3_mastered = New-Visual -Id "v3mas0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Skill Mastery" "Mastered Count"); queryRef = "Skill Mastery.Mastered Count"; active = $true } ) }
 }
-$v3_struggling = New-Visual -Id "v3str0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -Title "Struggling Count" -QueryState @{
+$v3_struggling = New-Visual -Id "v3str0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Skill Mastery" "Struggling Count"); queryRef = "Skill Mastery.Struggling Count"; active = $true } ) }
 }
-$v3_accuracy = New-Visual -Id "v3acc0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -Title "Accuracy %" -QueryState @{
+$v3_accuracy = New-Visual -Id "v3acc0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Correctness Rate"); queryRef = "Item Attempts.Correctness Rate"; active = $true } ) }
 }
-$v3_attempts = New-Visual -Id "v3att0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -Title "Total Attempts" -QueryState @{
+$v3_attempts = New-Visual -Id "v3att0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Total Attempts"); queryRef = "Item Attempts.Total Attempts"; active = $true } ) }
 }
 # By domain
-$v3_bydomain = New-Visual -Id "v3dom0005" -X 20 -Y 160 -W 600 -H 280 -Z 1004 -VisualType "barChart" -Title "Mastery Level by Domain" -QueryState @{
+$v3_bydomain = New-Visual -Id "v3dom0005" -X 20 -Y 160 -W 600 -H 280 -Z 1004 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Skills" "domain"); queryRef = "Skills.domain"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Skill Mastery" "Avg Mastery Level"); queryRef = "Skill Mastery.Avg Mastery Level"; active = $true } ) }
 }
 # By chapter
-$v3_bychapter = New-Visual -Id "v3chp0006" -X 640 -Y 160 -W 620 -H 280 -Z 1005 -VisualType "barChart" -Title "Mastery Level by Chapter" -QueryState @{
+$v3_bychapter = New-Visual -Id "v3chp0006" -X 640 -Y 160 -W 620 -H 280 -Z 1005 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Skills" "chapter"); queryRef = "Skills.chapter"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Skill Mastery" "Avg Mastery Level"); queryRef = "Skill Mastery.Avg Mastery Level"; active = $true } ) }
 }
 # Correctness by difficulty
-$v3_diff = New-Visual -Id "v3dif0007" -X 20 -Y 460 -W 600 -H 240 -Z 1006 -VisualType "clusteredBarChart" -Title "Correctness by Difficulty" -QueryState @{
+$v3_diff = New-Visual -Id "v3dif0007" -X 20 -Y 460 -W 600 -H 240 -Z 1006 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Skills" "difficulty"); queryRef = "Skills.difficulty"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Item Attempts" "Correctness Rate"); queryRef = "Item Attempts.Correctness Rate"; active = $true } ) }
 }
 # Skill table
-$v3_table = New-Visual -Id "v3tbl0008" -X 640 -Y 460 -W 620 -H 240 -Z 1007 -VisualType "tableEx" -Title "Skills Detail" -QueryState @{
+$v3_table = New-Visual -Id "v3tbl0008" -X 640 -Y 460 -W 620 -H 240 -Z 1007 -VisualType "tableEx" -QueryState @{
   Values = @{ projections = @(
     @{ field = (ColumnField "Skills" "domain"); queryRef = "Skills.domain"; active = $true }
     @{ field = (ColumnField "Skills" "chapter"); queryRef = "Skills.chapter"; active = $true }
@@ -299,37 +298,37 @@ $page4Json = @{
   width = 1280.0
 } | ConvertTo-Json -Depth 3
 
-$v4_prompts = New-Visual -Id "v4prm0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -Title "Total Prompts" -QueryState @{
+$v4_prompts = New-Visual -Id "v4prm0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Ask History" "Total Prompts"); queryRef = "Ask History.Total Prompts"; active = $true } ) }
 }
-$v4_latency = New-Visual -Id "v4lat0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -Title "Avg Latency" -QueryState @{
+$v4_latency = New-Visual -Id "v4lat0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Ask History" "Avg Latency (s)"); queryRef = "Ask History.Avg Latency (s)"; active = $true } ) }
 }
-$v4_p95 = New-Visual -Id "v4p950003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -Title "P95 Latency" -QueryState @{
+$v4_p95 = New-Visual -Id "v4p950003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Ask History" "P95 Latency (s)"); queryRef = "Ask History.P95 Latency (s)"; active = $true } ) }
 }
-$v4_errrate = New-Visual -Id "v4err0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -Title "Error Rate" -QueryState @{
+$v4_errrate = New-Visual -Id "v4err0004" -X 680 -Y 20 -W 200 -H 120 -Z 1003 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Ask History" "Error Rate"); queryRef = "Ask History.Error Rate"; active = $true } ) }
 }
-$v4_safety = New-Visual -Id "v4saf0005" -X 900 -Y 20 -W 200 -H 120 -Z 1004 -VisualType "card" -Title "Safety Block Rate" -QueryState @{
+$v4_safety = New-Visual -Id "v4saf0005" -X 900 -Y 20 -W 200 -H 120 -Z 1004 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Content Safety" "Safety Block Rate"); queryRef = "Content Safety.Safety Block Rate"; active = $true } ) }
 }
 # Feedback positive rate
-$v4_feedback = New-Visual -Id "v4fbk0006" -X 20 -Y 160 -W 400 -H 280 -Z 1005 -VisualType "gauge" -Title "Positive Feedback Rate" -QueryState @{
-  Values = @{ projections = @( @{ field = (MeasureField "Ask Feedback" "Positive Feedback Rate"); queryRef = "Ask Feedback.Positive Feedback Rate"; active = $true } ) }
+$v4_feedback = New-Visual -Id "v4fbk0006" -X 20 -Y 160 -W 400 -H 280 -Z 1005 -VisualType "gauge" -QueryState @{
+  Y = @{ projections = @( @{ field = (MeasureField "Ask Feedback" "Positive Feedback Rate"); queryRef = "Ask Feedback.Positive Feedback Rate"; active = $true } ) }
 }
 # Token usage by model
-$v4_tokens = New-Visual -Id "v4tok0007" -X 440 -Y 160 -W 400 -H 280 -Z 1006 -VisualType "barChart" -Title "Tokens by Model" -QueryState @{
+$v4_tokens = New-Visual -Id "v4tok0007" -X 440 -Y 160 -W 400 -H 280 -Z 1006 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Ask History" "model"); queryRef = "Ask History.model"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Ask History" "Total Tokens"); queryRef = "Ask History.Total Tokens"; active = $true } ) }
 }
 # Latency trend
-$v4_trend = New-Visual -Id "v4trd0008" -X 20 -Y 460 -W 820 -H 240 -Z 1007 -VisualType "lineChart" -Title "Latency Trend" -QueryState @{
-  Category = @{ projections = @( @{ field = (ColumnField "Ask History" "asked_at"); queryRef = "Ask History.asked_at"; active = $true } ) }
+$v4_trend = New-Visual -Id "v4trd0008" -X 20 -Y 460 -W 820 -H 240 -Z 1007 -VisualType "lineChart" -QueryState @{
+  Category = @{ projections = @( @{ field = (ColumnField "Ask History" "created_at"); queryRef = "Ask History.created_at"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Ask History" "Avg Latency (s)"); queryRef = "Ask History.Avg Latency (s)"; active = $true } ) }
 }
 # Safety detail table
-$v4_table = New-Visual -Id "v4tbl0009" -X 860 -Y 160 -W 400 -H 540 -Z 1008 -VisualType "tableEx" -Title "Safety Events" -QueryState @{
+$v4_table = New-Visual -Id "v4tbl0009" -X 860 -Y 160 -W 400 -H 540 -Z 1008 -VisualType "tableEx" -QueryState @{
   Values = @{ projections = @(
     @{ field = (ColumnField "Content Safety" "category"); queryRef = "Content Safety.category"; active = $true }
     @{ field = (ColumnField "Content Safety" "action_taken"); queryRef = "Content Safety.action_taken"; active = $true }
@@ -347,22 +346,22 @@ $page5Json = @{
   width = 1280.0
 } | ConvertTo-Json -Depth 3
 
-$v5_overrides = New-Visual -Id "v5ovr0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -Title "Override Rate" -QueryState @{
+$v5_overrides = New-Visual -Id "v5ovr0001" -X 20 -Y 20 -W 200 -H 120 -Z 1000 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Teacher Overrides" "Override Rate"); queryRef = "Teacher Overrides.Override Rate"; active = $true } ) }
 }
-$v5_gap = New-Visual -Id "v5gap0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -Title "AI-Human Gap" -QueryState @{
+$v5_gap = New-Visual -Id "v5gap0002" -X 240 -Y 20 -W 200 -H 120 -Z 1001 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Teacher Overrides" "AI-Human Gap"); queryRef = "Teacher Overrides.AI-Human Gap"; active = $true } ) }
 }
-$v5_qrate = New-Visual -Id "v5qrt0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -Title "Question Answer Rate" -QueryState @{
+$v5_qrate = New-Visual -Id "v5qrt0003" -X 460 -Y 20 -W 200 -H 120 -Z 1002 -VisualType "card" -QueryState @{
   Values = @{ projections = @( @{ field = (MeasureField "Teacher Questions" "Question Answer Rate"); queryRef = "Teacher Questions.Question Answer Rate"; active = $true } ) }
 }
 # Overrides by skill domain
-$v5_bydomain = New-Visual -Id "v5dom0004" -X 20 -Y 160 -W 600 -H 280 -Z 1003 -VisualType "barChart" -Title "Overrides by Skill Domain" -QueryState @{
+$v5_bydomain = New-Visual -Id "v5dom0004" -X 20 -Y 160 -W 600 -H 280 -Z 1003 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Skills" "domain"); queryRef = "Skills.domain"; active = $true } ) }
   Y = @{ projections = @( @{ field = (MeasureField "Teacher Overrides" "Override Rate"); queryRef = "Teacher Overrides.Override Rate"; active = $true } ) }
 }
 # Teacher questions table
-$v5_table = New-Visual -Id "v5tbl0005" -X 640 -Y 160 -W 620 -H 280 -Z 1004 -VisualType "tableEx" -Title "Recent Teacher Questions" -QueryState @{
+$v5_table = New-Visual -Id "v5tbl0005" -X 640 -Y 160 -W 620 -H 280 -Z 1004 -VisualType "tableEx" -QueryState @{
   Values = @{ projections = @(
     @{ field = (ColumnField "Teacher Questions" "question_text"); queryRef = "Teacher Questions.question_text"; active = $true }
     @{ field = (ColumnField "Teacher Questions" "answer_text"); queryRef = "Teacher Questions.answer_text"; active = $true }
@@ -370,7 +369,7 @@ $v5_table = New-Visual -Id "v5tbl0005" -X 640 -Y 160 -W 620 -H 280 -Z 1004 -Visu
   ) }
 }
 # AI vs Teacher mastery comparison
-$v5_compare = New-Visual -Id "v5cmp0006" -X 20 -Y 460 -W 1240 -H 240 -Z 1005 -VisualType "clusteredBarChart" -Title "AI vs Teacher Mastery Assessment (by Skill)" -QueryState @{
+$v5_compare = New-Visual -Id "v5cmp0006" -X 20 -Y 460 -W 1240 -H 240 -Z 1005 -VisualType "clusteredBarChart" -QueryState @{
   Category = @{ projections = @( @{ field = (ColumnField "Skills" "domain"); queryRef = "Skills.domain"; active = $true } ) }
   Y = @{ projections = @(
     @{ field = (MeasureField "Teacher Overrides" "AI-Human Gap"); queryRef = "Teacher Overrides.AI-Human Gap"; active = $true }
