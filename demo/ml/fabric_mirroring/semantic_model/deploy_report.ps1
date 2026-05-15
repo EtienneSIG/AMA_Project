@@ -63,7 +63,42 @@ function New-CardVisual([hashtable]$pos, [string]$entity, [string]$measure, [str
                 Select  = @((New-MeasureSelect $alias $entity $measure))
             }
             objects = @{
-                labels = @(@{ properties = @{ show = @{ expr = @{ Literal = @{ Value = "true" } } } } })
+                labels = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        color = @{solid=@{color=@{expr=@{Literal=@{Value="'#00314A'"}}}}}
+                        fontSize = @{expr=@{Literal=@{Value="28D"}}}
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                    }
+                })
+                categoryLabels = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        color = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                        fontSize = @{expr=@{Literal=@{Value="10D"}}}
+                    }
+                })
+                background = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        color = @{solid=@{color=@{expr=@{Literal=@{Value="'#FFFFFF'"}}}}}
+                    }
+                })
+                visualContainerObjects = @{
+                    background = @(@{
+                        properties = @{
+                            show = @{expr=@{Literal=@{Value="true"}}}
+                            color = @{solid=@{color=@{expr=@{Literal=@{Value="'#FFFFFF'"}}}}}
+                        }
+                    })
+                    border = @(@{
+                        properties = @{
+                            show = @{expr=@{Literal=@{Value="true"}}}
+                            color = @{solid=@{color=@{expr=@{Literal=@{Value="'#E2E8F0'"}}}}}
+                            radius = @{expr=@{Literal=@{Value="8D"}}}
+                        }
+                    })
+                }
             }
         }
     }
@@ -103,6 +138,31 @@ function New-BarChartVisual([hashtable]$pos, [string]$catEntity, [string]$catCol
                     (New-MeasureSelect $effectiveAlias $measEntity $measure)
                 )
             }
+            objects = @{
+                dataPoint = @(@{
+                    properties = @{
+                        fill = @{ solid = @{ color = @{ expr = @{ Literal = @{ Value = "'#00314A'" } } } } }
+                    }
+                })
+                legend = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                    }
+                })
+                categoryAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
+                valueAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
+            }
         }
     }
     @{
@@ -141,6 +201,31 @@ function New-LineChartVisual([hashtable]$pos, [string]$catEntity, [string]$catCo
                     (New-MeasureSelect $effectiveAlias $measEntity $measure)
                 )
             }
+            objects = @{
+                dataPoint = @(@{
+                    properties = @{
+                        fill = @{ solid = @{ color = @{ expr = @{ Literal = @{ Value = "'#0D7377'" } } } } }
+                    }
+                })
+                legend = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                    }
+                })
+                categoryAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
+                valueAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
+            }
         }
     }
     @{
@@ -178,6 +263,31 @@ function New-DonutChartVisual([hashtable]$pos, [string]$catEntity, [string]$catC
                     (New-ColumnSelect $catAlias $catEntity $catColumn),
                     (New-MeasureSelect $effectiveAlias $measEntity $measure)
                 )
+            }
+            objects = @{
+                dataPoint = @(@{
+                    properties = @{
+                        fill = @{ solid = @{ color = @{ expr = @{ Literal = @{ Value = "'#14B8A6'" } } } } }
+                    }
+                })
+                legend = @(@{
+                    properties = @{
+                        show = @{expr=@{Literal=@{Value="true"}}}
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                    }
+                })
+                categoryAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
+                valueAxis = @(@{
+                    properties = @{
+                        fontFamily = @{expr=@{Literal=@{Value="'''Poppins'''"}}}
+                        labelColor = @{solid=@{color=@{expr=@{Literal=@{Value="'#64748B'"}}}}}
+                    }
+                })
             }
         }
     }
@@ -263,6 +373,40 @@ function New-GaugeVisual([hashtable]$pos, [string]$entity, [string]$measure, [st
     }
 }
 
+function New-TitleVisual([hashtable]$pos, [string]$titleText) {
+    $guid = New-GuidString
+    $config = @{
+        name = $guid
+        layouts = @(@{id=0; position=@{x=$pos.x;y=$pos.y;z=9999;width=$pos.w;height=$pos.h;tabOrder=0}})
+        singleVisual = @{
+            visualType = "textbox"
+            objects = @{
+                general = @(@{
+                    properties = @{
+                        paragraphs = @(@{
+                            textRuns = @(@{
+                                value = $titleText
+                                textStyle = @{
+                                    fontFamily = "Poppins"
+                                    fontSize = "20px"
+                                    fontWeight = "bold"
+                                    color = "#00314A"
+                                }
+                            })
+                        })
+                    }
+                })
+            }
+        }
+    }
+    @{
+        x = [int]$pos.x; y = [int]$pos.y; z = 9999
+        width = [int]$pos.w; height = [int]$pos.h
+        config = ($config | ConvertTo-Json -Depth 20 -Compress)
+        filters = "[]"
+    }
+}
+
 # ============================================================
 # Page 1: Adoption Overview
 # ============================================================
@@ -270,20 +414,23 @@ Write-Host "Building Page 1: Adoption Overview..."
 
 $page1Visuals = @()
 
+# Header: Title
+$page1Visuals += New-TitleVisual @{x=20;y=12;w=600;h=50} "EdTech Group — Adoption Overview"
+
 # Row 1 - KPI Cards
-$page1Visuals += New-CardVisual @{x=20;y=10;w=290;h=100} "Connection Logs" "DAU" "c"
-$page1Visuals += New-CardVisual @{x=330;y=10;w=290;h=100} "Connection Logs" "MAU" "c"
-$page1Visuals += New-CardVisual @{x=640;y=10;w=290;h=100} "Connection Logs" "Unique Users" "c"
-$page1Visuals += New-CardVisual @{x=950;y=10;w=290;h=100} "Connection Logs" "Stickiness" "c"
+$page1Visuals += New-CardVisual @{x=20;y=75;w=290;h=100} "Connection Logs" "DAU" "c"
+$page1Visuals += New-CardVisual @{x=330;y=75;w=290;h=100} "Connection Logs" "MAU" "c"
+$page1Visuals += New-CardVisual @{x=640;y=75;w=290;h=100} "Connection Logs" "Unique Users" "c"
+$page1Visuals += New-CardVisual @{x=950;y=75;w=290;h=100} "Connection Logs" "Stickiness" "c"
 
 # Row 2
-$page1Visuals += New-LineChartVisual @{x=20;y=130;w=610;h=280} "Connection Logs" "created_at" "c" "Connection Logs" "Total Logins" "c"
-$page1Visuals += New-BarChartVisual @{x=650;y=130;w=590;h=280} "Connection Logs" "app" "c" "Connection Logs" "Total Logins" "c"
+$page1Visuals += New-LineChartVisual @{x=20;y=185;w=610;h=280} "Connection Logs" "created_at" "c" "Connection Logs" "Total Logins" "c"
+$page1Visuals += New-BarChartVisual @{x=650;y=185;w=590;h=280} "Connection Logs" "app" "c" "Connection Logs" "Total Logins" "c"
 
 # Row 3
-$page1Visuals += New-DonutChartVisual @{x=20;y=430;w=400;h=260} "Connection Logs" "role" "c" "Connection Logs" "Unique Users" "c"
-$page1Visuals += New-CardVisual @{x=440;y=430;w=200;h=260} "Connection Logs" "Login Failure Rate" "c"
-$page1Visuals += New-TableVisual @{x=660;y=430;w=580;h=260} `
+$page1Visuals += New-DonutChartVisual @{x=20;y=480;w=400;h=260} "Connection Logs" "role" "c" "Connection Logs" "Unique Users" "c"
+$page1Visuals += New-CardVisual @{x=440;y=480;w=200;h=260} "Connection Logs" "Login Failure Rate" "c"
+$page1Visuals += New-TableVisual @{x=660;y=480;w=580;h=260} `
     @(@{entity="Connection Logs";property="app";alias="c"}, @{entity="Connection Logs";property="event";alias="c"}) `
     @(@{entity="Connection Logs";property="Total Logins";alias="c"})
 
@@ -294,19 +441,22 @@ Write-Host "Building Page 2: Student Demographics..."
 
 $page2Visuals = @()
 
+# Header: Title
+$page2Visuals += New-TitleVisual @{x=20;y=12;w=600;h=50} "EdTech Group — Student Demographics"
+
 # Row 1 - KPI Cards
-$page2Visuals += New-CardVisual @{x=20;y=10;w=400;h=100} "Item Attempts" "Active Learners" "i"
-$page2Visuals += New-CardVisual @{x=440;y=10;w=400;h=100} "Item Attempts" "Total Attempts" "i"
-$page2Visuals += New-CardVisual @{x=860;y=10;w=380;h=100} "Item Attempts" "Correctness Rate" "i"
+$page2Visuals += New-CardVisual @{x=20;y=75;w=400;h=100} "Item Attempts" "Active Learners" "i"
+$page2Visuals += New-CardVisual @{x=440;y=75;w=400;h=100} "Item Attempts" "Total Attempts" "i"
+$page2Visuals += New-CardVisual @{x=860;y=75;w=380;h=100} "Item Attempts" "Correctness Rate" "i"
 
 # Row 2
-$page2Visuals += New-BarChartVisual @{x=20;y=130;w=610;h=280} "Learners" "market" "l" "Item Attempts" "Active Learners" "i"
-$page2Visuals += New-BarChartVisual @{x=650;y=130;w=590;h=280} "Learners" "grade" "l" "Item Attempts" "Active Learners" "i"
+$page2Visuals += New-BarChartVisual @{x=20;y=185;w=610;h=280} "Learners" "market" "l" "Item Attempts" "Active Learners" "i"
+$page2Visuals += New-BarChartVisual @{x=650;y=185;w=590;h=280} "Learners" "grade" "l" "Item Attempts" "Active Learners" "i"
 
 # Row 3
-$page2Visuals += New-DonutChartVisual @{x=20;y=430;w=400;h=260} "Learners" "sen" "l" "Item Attempts" "Active Learners" "i"
-$page2Visuals += New-BarChartVisual @{x=440;y=430;w=400;h=260} "Learners" "decile" "l" "Item Attempts" "Correctness Rate" "i"
-$page2Visuals += New-TableVisual @{x=860;y=430;w=380;h=260} `
+$page2Visuals += New-DonutChartVisual @{x=20;y=480;w=400;h=260} "Learners" "sen" "l" "Item Attempts" "Active Learners" "i"
+$page2Visuals += New-BarChartVisual @{x=440;y=480;w=400;h=260} "Learners" "decile" "l" "Item Attempts" "Correctness Rate" "i"
+$page2Visuals += New-TableVisual @{x=860;y=480;w=380;h=260} `
     @(@{entity="Learners";property="market";alias="l"}, @{entity="Learners";property="grade";alias="l"}) `
     @(@{entity="Item Attempts";property="Active Learners";alias="i"}, @{entity="Item Attempts";property="Correctness Rate";alias="i"})
 
@@ -317,20 +467,23 @@ Write-Host "Building Page 3: Skill Mastery Progression..."
 
 $page3Visuals = @()
 
+# Header: Title
+$page3Visuals += New-TitleVisual @{x=20;y=12;w=600;h=50} "EdTech Group — Skill Mastery Progression"
+
 # Row 1 - KPI Cards
-$page3Visuals += New-CardVisual @{x=20;y=10;w=290;h=100} "Skill Mastery" "Avg Mastery Level" "s"
-$page3Visuals += New-CardVisual @{x=330;y=10;w=290;h=100} "Skill Mastery" "Mastered Count" "s"
-$page3Visuals += New-CardVisual @{x=640;y=10;w=290;h=100} "Skill Mastery" "Struggling Count" "s"
-$page3Visuals += New-CardVisual @{x=950;y=10;w=290;h=100} "Skill Mastery" "Skills Attempted" "s"
+$page3Visuals += New-CardVisual @{x=20;y=75;w=290;h=100} "Skill Mastery" "Avg Mastery Level" "s"
+$page3Visuals += New-CardVisual @{x=330;y=75;w=290;h=100} "Skill Mastery" "Mastered Count" "s"
+$page3Visuals += New-CardVisual @{x=640;y=75;w=290;h=100} "Skill Mastery" "Struggling Count" "s"
+$page3Visuals += New-CardVisual @{x=950;y=75;w=290;h=100} "Skill Mastery" "Skills Attempted" "s"
 
 # Row 2
-$page3Visuals += New-BarChartVisual @{x=20;y=130;w=610;h=280} "Skills" "domain" "k" "Skill Mastery" "Avg Mastery Level" "s"
-$page3Visuals += New-LineChartVisual @{x=650;y=130;w=590;h=280} "Learner Activity" "day" "a" "Learner Activity" "Daily Attempts Total" "a"
+$page3Visuals += New-BarChartVisual @{x=20;y=185;w=610;h=280} "Skills" "domain" "k" "Skill Mastery" "Avg Mastery Level" "s"
+$page3Visuals += New-LineChartVisual @{x=650;y=185;w=590;h=280} "Learner Activity" "day" "a" "Learner Activity" "Daily Attempts Total" "a"
 
 # Row 3
-$page3Visuals += New-BarChartVisual @{x=20;y=430;w=610;h=260} "Skills" "bloom" "k" "Skill Mastery" "Avg Mastery Level" "s"
-$page3Visuals += New-GaugeVisual @{x=650;y=430;w=290;h=260} "Skill Mastery" "Mastery Accuracy" "s"
-$page3Visuals += New-CardVisual @{x=960;y=430;w=280;h=260} "Item Attempts" "Avg Difficulty" "i"
+$page3Visuals += New-BarChartVisual @{x=20;y=480;w=610;h=260} "Skills" "bloom" "k" "Skill Mastery" "Avg Mastery Level" "s"
+$page3Visuals += New-GaugeVisual @{x=650;y=480;w=290;h=260} "Skill Mastery" "Mastery Accuracy" "s"
+$page3Visuals += New-CardVisual @{x=960;y=480;w=280;h=260} "Item Attempts" "Avg Difficulty" "i"
 
 # ============================================================
 # Page 4: AI Quality & Safety
@@ -339,22 +492,25 @@ Write-Host "Building Page 4: AI Quality & Safety..."
 
 $page4Visuals = @()
 
+# Header: Title
+$page4Visuals += New-TitleVisual @{x=20;y=12;w=600;h=50} "EdTech Group — AI Quality & Safety"
+
 # Row 1 - KPI Cards
-$page4Visuals += New-CardVisual @{x=20;y=10;w=290;h=100} "Ask History" "Total Prompts" "h"
-$page4Visuals += New-CardVisual @{x=330;y=10;w=290;h=100} "Ask History" "Avg Latency (s)" "h"
-$page4Visuals += New-CardVisual @{x=640;y=10;w=290;h=100} "Ask History" "Error Rate" "h"
-$page4Visuals += New-CardVisual @{x=950;y=10;w=290;h=100} "Ask History" "Total Tokens" "h"
+$page4Visuals += New-CardVisual @{x=20;y=75;w=290;h=100} "Ask History" "Total Prompts" "h"
+$page4Visuals += New-CardVisual @{x=330;y=75;w=290;h=100} "Ask History" "Avg Latency (s)" "h"
+$page4Visuals += New-CardVisual @{x=640;y=75;w=290;h=100} "Ask History" "Error Rate" "h"
+$page4Visuals += New-CardVisual @{x=950;y=75;w=290;h=100} "Ask History" "Total Tokens" "h"
 
 # Row 2
-$page4Visuals += New-BarChartVisual @{x=20;y=130;w=400;h=280} "Ask History" "model" "h" "Ask History" "Total Prompts" "h"
-$page4Visuals += New-DonutChartVisual @{x=440;y=130;w=400;h=280} "Ask Feedback" "rating" "f" "Ask Feedback" "Total Feedback" "f"
-$page4Visuals += New-CardVisual @{x=860;y=130;w=380;h=130} "Content Safety" "Total Safety Scans" "y"
-$page4Visuals += New-CardVisual @{x=860;y=270;w=380;h=140} "Content Safety" "Safety Block Rate" "y"
+$page4Visuals += New-BarChartVisual @{x=20;y=185;w=400;h=280} "Ask History" "model" "h" "Ask History" "Total Prompts" "h"
+$page4Visuals += New-DonutChartVisual @{x=440;y=185;w=400;h=280} "Ask Feedback" "rating" "f" "Ask Feedback" "Total Feedback" "f"
+$page4Visuals += New-CardVisual @{x=860;y=185;w=380;h=130} "Content Safety" "Total Safety Scans" "y"
+$page4Visuals += New-CardVisual @{x=860;y=325;w=380;h=140} "Content Safety" "Safety Block Rate" "y"
 
 # Row 3
-$page4Visuals += New-CardVisual @{x=20;y=430;w=290;h=260} "Ask Feedback" "Helpful Rate" "f"
-$page4Visuals += New-CardVisual @{x=330;y=430;w=290;h=260} "Ask History" "AI Prompts Per User" "h"
-$page4Visuals += New-BarChartVisual @{x=640;y=430;w=600;h=260} "Content Safety" "direction" "y" "Content Safety" "Total Safety Scans" "y"
+$page4Visuals += New-CardVisual @{x=20;y=480;w=290;h=260} "Ask Feedback" "Helpful Rate" "f"
+$page4Visuals += New-CardVisual @{x=330;y=480;w=290;h=260} "Ask History" "AI Prompts Per User" "h"
+$page4Visuals += New-BarChartVisual @{x=640;y=480;w=600;h=260} "Content Safety" "direction" "y" "Content Safety" "Total Safety Scans" "y"
 
 # ============================================================
 # Page 5: Teacher Engagement
@@ -363,30 +519,52 @@ Write-Host "Building Page 5: Teacher Engagement..."
 
 $page5Visuals = @()
 
+# Header: Title
+$page5Visuals += New-TitleVisual @{x=20;y=12;w=600;h=50} "EdTech Group — Teacher Engagement"
+
 # Row 1 - KPI Cards
-$page5Visuals += New-CardVisual @{x=20;y=10;w=290;h=100} "Teacher Questions" "Total Questions" "q"
-$page5Visuals += New-CardVisual @{x=330;y=10;w=290;h=100} "Teacher Questions" "Questions Answered" "q"
-$page5Visuals += New-CardVisual @{x=640;y=10;w=290;h=100} "Teacher Questions" "Question Answer Rate" "q"
-$page5Visuals += New-CardVisual @{x=950;y=10;w=290;h=100} "Teacher Overrides" "Total Overrides" "o"
+$page5Visuals += New-CardVisual @{x=20;y=75;w=290;h=100} "Teacher Questions" "Total Questions" "q"
+$page5Visuals += New-CardVisual @{x=330;y=75;w=290;h=100} "Teacher Questions" "Questions Answered" "q"
+$page5Visuals += New-CardVisual @{x=640;y=75;w=290;h=100} "Teacher Questions" "Question Answer Rate" "q"
+$page5Visuals += New-CardVisual @{x=950;y=75;w=290;h=100} "Teacher Overrides" "Total Overrides" "o"
 
 # Row 2
-$page5Visuals += New-BarChartVisual @{x=20;y=130;w=610;h=280} "Teacher Questions" "subject" "q" "Teacher Questions" "Total Questions" "q"
-$page5Visuals += New-BarChartVisual @{x=650;y=130;w=590;h=280} "Teacher Questions" "status" "q" "Teacher Questions" "Total Questions" "q"
+$page5Visuals += New-BarChartVisual @{x=20;y=185;w=610;h=280} "Teacher Questions" "subject" "q" "Teacher Questions" "Total Questions" "q"
+$page5Visuals += New-BarChartVisual @{x=650;y=185;w=590;h=280} "Teacher Questions" "status" "q" "Teacher Questions" "Total Questions" "q"
 
 # Row 3
-$page5Visuals += New-CardVisual @{x=20;y=430;w=290;h=260} "Teacher Overrides" "Override Rate" "o"
-$page5Visuals += New-CardVisual @{x=330;y=430;w=290;h=260} "Teacher Overrides" "AI-Human Gap" "o"
-$page5Visuals += New-BarChartVisual @{x=640;y=430;w=600;h=260} "Skills" "domain" "k" "Teacher Overrides" "Total Overrides" "o"
+$page5Visuals += New-CardVisual @{x=20;y=480;w=290;h=260} "Teacher Overrides" "Override Rate" "o"
+$page5Visuals += New-CardVisual @{x=330;y=480;w=290;h=260} "Teacher Overrides" "AI-Human Gap" "o"
+$page5Visuals += New-BarChartVisual @{x=640;y=480;w=600;h=260} "Skills" "domain" "k" "Teacher Overrides" "Total Overrides" "o"
 
 # ============================================================
 # Build report.json
 # ============================================================
 Write-Host "Assembling report.json..."
 
-$reportConfig = '{"version":"5.53","themeCollection":{"baseTheme":{"name":"CY24SU06","reportVersionAtImport":"5.53","type":2}},"activeSectionIndex":0,"defaultDrillFilterOtherVisuals":true,"publicCustomVisuals":[]}'
+$themeObj = @{
+    version = "5.53"
+    themeCollection = @{
+        baseTheme = @{
+            name = "CY24SU06"
+            reportVersionAtImport = "5.53"
+            type = 2
+        }
+    }
+    activeSectionIndex = 0
+    defaultDrillFilterOtherVisuals = $true
+    publicCustomVisuals = @()
+    objects = @{
+        page = @(@{
+            properties = @{
+                background = @{ solid = @{ color = @{ expr = @{ Literal = @{ Value = "'#F0F4F8'" } } } } }
+            }
+        })
+    }
+}
+$reportConfig = ($themeObj | ConvertTo-Json -Depth 20 -Compress)
 
 $reportJson = @{
-    resourcePackages   = @()
     sections           = @(
         @{
             name             = "page1"
