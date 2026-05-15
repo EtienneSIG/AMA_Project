@@ -286,3 +286,21 @@ CREATE TABLE IF NOT EXISTS parent_links (
 );
 CREATE INDEX IF NOT EXISTS idx_parent_links_parent ON parent_links (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parent_links_child  ON parent_links (child_email);
+
+-- Parental consent (GDPR Art. 8). Active consent = granted = true AND withdrawn_at IS NULL.
+CREATE TABLE IF NOT EXISTS parental_consents (
+  id            BIGSERIAL PRIMARY KEY,
+  parent_email  TEXT NOT NULL,
+  child_email   TEXT NOT NULL,
+  consent_type  TEXT NOT NULL DEFAULT 'gdpr_art8',
+  granted       BOOLEAN NOT NULL DEFAULT false,
+  granted_at    TIMESTAMPTZ,
+  withdrawn_at  TIMESTAMPTZ,
+  ip            TEXT,
+  user_agent    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (parent_email, child_email, consent_type)
+);
+CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
+CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);

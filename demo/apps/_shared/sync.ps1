@@ -14,6 +14,12 @@ foreach ($a in $apps) {
     $publicDir = Join-Path $appDir 'public'
     if (-not (Test-Path $publicDir)) { New-Item -ItemType Directory -Force -Path $publicDir | Out-Null }
     Copy-Item -Force -Path (Join-Path $here 'login.html') -Destination (Join-Path $publicDir 'login.html')
+    # CSRF helper — intercepts fetch() to inject X-CSRF-Token header
+    $csrfSrc = Join-Path $here 'public/csrf.js'
+    if (Test-Path $csrfSrc) { Copy-Item -Force -Path $csrfSrc -Destination (Join-Path $publicDir 'csrf.js') }
+    # Consent-pending page (GDPR Art. 8 — learner gate)
+    $consentSrc = Join-Path $here 'public/consent-pending.html'
+    if (Test-Path $consentSrc) { Copy-Item -Force -Path $consentSrc -Destination (Join-Path $publicDir 'consent-pending.html') }
     # Sync the shared db client (Postgres helpers + schema.sql)
     $dbDest = Join-Path $appDir 'db'
     if (-not (Test-Path $dbDest)) { New-Item -ItemType Directory -Force -Path $dbDest | Out-Null }

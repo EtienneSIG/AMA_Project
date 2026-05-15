@@ -89,13 +89,17 @@ CREATE INDEX IF NOT EXISTS idx_glossary_lang ON glossary_terms (language);
 CREATE TABLE IF NOT EXISTS learners (
   learner_id  UUID        PRIMARY KEY,
   pseudonym   TEXT        NOT NULL UNIQUE,
+  email       TEXT,
   market      TEXT        NOT NULL,             -- DE | NL
   grade       INTEGER     NOT NULL,
   decile      INTEGER     NOT NULL,             -- 1..10 (deprivation decile)
   sen         BOOLEAN     NOT NULL,             -- special educational needs
+  age_group   TEXT        CHECK (age_group IN ('10-12','13-15','16-18')),
+  gender      TEXT        CHECK (gender IN ('M','F','Non-binary','Prefer not to say')),
   loaded_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_learners_market ON learners (market, grade);
+CREATE INDEX IF NOT EXISTS idx_learners_email  ON learners (email);
 
 -- Per-item attempts written by the ONNX adaptive loop in learner-web.
 -- Used to compute next-item recommendations and to show progress in the admin UI.
@@ -282,3 +286,21 @@ CREATE TABLE IF NOT EXISTS parent_links (
 );
 CREATE INDEX IF NOT EXISTS idx_parent_links_parent ON parent_links (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parent_links_child  ON parent_links (child_email);
+
+-- Parental consent (GDPR Art. 8). Active consent = granted = true AND withdrawn_at IS NULL.
+CREATE TABLE IF NOT EXISTS parental_consents (
+  id            BIGSERIAL PRIMARY KEY,
+  parent_email  TEXT NOT NULL,
+  child_email   TEXT NOT NULL,
+  consent_type  TEXT NOT NULL DEFAULT 'gdpr_art8',
+  granted       BOOLEAN NOT NULL DEFAULT false,
+  granted_at    TIMESTAMPTZ,
+  withdrawn_at  TIMESTAMPTZ,
+  ip            TEXT,
+  user_agent    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (parent_email, child_email, consent_type)
+);
+CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
+CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);

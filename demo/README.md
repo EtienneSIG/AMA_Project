@@ -1,8 +1,8 @@
 # LearnEU Demo
 
-Deployable scaffold of the **Case Study 33** demo — adaptive learning, curriculum localisation, automated assessment — using only Azure services committed in the case study.
+Deployable demo of the **Case Study 33** platform — adaptive learning, curriculum localisation, automated assessment — using only Azure services committed in the case study.
 
-> **Status:** scaffold only. No resources are deployed by checking out this folder. Provisioning happens explicitly via `azd up`.
+> **Status:** ✅ **Fully deployed.** All 7 stages completed — 4 apps live, Postgres seeded, APIM → AOAI chat path verified, ONNX adaptive model running client-side. See [DEPLOYMENT-REPORT.md](DEPLOYMENT-REPORT.md) for details. To redeploy from scratch, run `azd up`.
 
 ---
 
@@ -43,7 +43,7 @@ demo/
 └── scripts/                     # seed_curricula, seed_learners, run_demo, acceptance_tests
 ```
 
-Modules marked **`STUB`** in their header are skeletons with the right surface (params/outputs) but minimal implementation — fill in before `azd up`.
+All modules are fully implemented. Modules previously marked **`STUB`** have been completed during the Stage 2–4 deployment cycle.
 
 ---
 
@@ -58,7 +58,7 @@ See [`../plan/09-step-by-step-tutorial.md`](../plan/09-step-by-step-tutorial.md#
 
 ---
 
-## Quick start (scaffold-only path)
+## Quick start
 
 ```powershell
 # 1. Configure
@@ -69,11 +69,14 @@ Copy-Item .env.template .env.local
 azd auth login
 azd env new learneu-demo
 
-# 3. Preview only — DOES NOT DEPLOY
+# 3. Preview (optional — does not deploy)
 azd provision --preview
+
+# 4. Deploy everything
+azd up
 ```
 
-`azd provision --preview` runs a what-if and prints the resources that *would* be created. Nothing is provisioned until you run `azd up` explicitly.
+`azd provision --preview` runs a what-if and prints the resources that *would* be created. `azd up` provisions infrastructure and deploys all 4 apps.
 
 ---
 

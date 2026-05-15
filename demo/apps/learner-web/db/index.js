@@ -327,7 +327,23 @@ async function _seedDemoCohortLocked(p) {
     );
   }
 
-  // Resolve item -> skill mapping (we need real skill ids that exist in `skills`).
+  // 5a-consent. Seed GDPR Art. 8 parental consents for most parent-child pairs.
+  // Leave parent3→student8 and parent4→student5 WITHOUT consent for demo purposes.
+  const CONSENT_SKIP = new Set([
+    'parent3@learneu.demo|student8@learneu.demo',
+    'parent4@learneu.demo|student5@learneu.demo'
+  ]);
+  for (const l of DEMO_PARENT_LINKS) {
+    if (CONSENT_SKIP.has(l.parent + '|' + l.child)) continue;
+    await p.query(
+      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, granted_at)
+       VALUES ($1, $2, 'gdpr_art8', true, now() - INTERVAL '7 days')
+       ON CONFLICT (parent_email, child_email, consent_type) DO NOTHING`,
+      [l.parent, l.child]
+    );
+  }
+
+  // Resolve item -> skill mapping(we need real skill ids that exist in `skills`).
   const itemMap = await p.query(
     `SELECT i.item_id, i.skill_id FROM item_skills i JOIN skills s ON s.id = i.skill_id`
   );
@@ -1003,6 +1019,54 @@ async function getLearnerStreak({ email, windowDays = 30 }) {
   return { streak, totalAttempts, totalCorrect, accuracy, mastered, skillsSeen, badges, windowDays };
 }
 
+// --- Parental consent (GDPR Art. 8) ----------------------------------------
+
+async function getConsentsForParent({ parentEmail }) {
+  const r = await q(
+    `SELECT id, parent_email, child_email, consent_type, granted, granted_at, withdrawn_at, ip, user_agent, created_at, updated_at
+       FROM parental_consents WHERE parent_email = $1 ORDER BY created_at`,
+    [String(parentEmail).toLowerCase()]
+  );
+  return r ? r.rows : null;
+}
+
+async function upsertConsent({ parentEmail, childEmail, consentType, granted, ip, userAgent }) {
+  const pEmail = String(parentEmail).toLowerCase();
+  const cEmail = String(childEmail).toLowerCase();
+  const cType = consentType || 'gdpr_art8';
+  let r;
+  if (granted) {
+    r = await q(
+      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, granted_at, ip, user_agent, updated_at)
+       VALUES ($1, $2, $3, true, now(), $4, $5, now())
+       ON CONFLICT (parent_email, child_email, consent_type) DO UPDATE
+         SET granted = true, granted_at = now(), withdrawn_at = NULL, ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, updated_at = now()
+       RETURNING *`,
+      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256)]
+    );
+  } else {
+    r = await q(
+      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, withdrawn_at, ip, user_agent, updated_at)
+       VALUES ($1, $2, $3, false, now(), $4, $5, now())
+       ON CONFLICT (parent_email, child_email, consent_type) DO UPDATE
+         SET granted = false, withdrawn_at = now(), ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, updated_at = now()
+       RETURNING *`,
+      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256)]
+    );
+  }
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function hasActiveConsentForLearner({ childEmail }) {
+  const r = await q(
+    `SELECT 1 FROM parental_consents
+     WHERE child_email = $1 AND consent_type = 'gdpr_art8' AND granted = true AND withdrawn_at IS NULL
+     LIMIT 1`,
+    [String(childEmail).toLowerCase()]
+  );
+  return !!(r && r.rows && r.rows.length);
+}
+
 // --- Skill catalogue (Feature 2) ------------------------------------------
 
 // List the skill catalogue with optional filters and per-skill counts of
@@ -1165,6 +1229,9 @@ module.exports = {
   listLearnerActivity,
   recomputeAllMastery,
   getLearnerStreak,
+  getConsentsForParent,
+  upsertConsent,
+  hasActiveConsentForLearner,
   listSkillsCatalogue,
   getSkillById,
   logAskFeedback,

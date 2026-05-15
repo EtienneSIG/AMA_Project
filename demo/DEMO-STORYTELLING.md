@@ -99,9 +99,19 @@ Three roles, **three distinct UIs**, **one regulated backend** (APIM → AOAI We
 ### What you do
 
 1. **Hero speaks GDPR Art. 8** straight away — let the visitor read it for two seconds.
-2. **Prompt** (English, French, Dutch or German — all work):
+2. **Consent banner** — point out the amber banner at the top: *"Sophie's child still needs consent. Let me show the flow."*
+3. Click **Grant Consent** → read the GDPR Art. 8 disclosure modal aloud: what data, why, AI involvement, EU hosting, right to withdraw.
+4. Tick the checkbox, grant consent → banner disappears, consent status turns green.
+5. **Prompt** (English, French, Dutch or German — all work):
    > `Hello, my daughter is 12 and wants to use LearnEU. What do you collect, where is it stored, and how do I withdraw my consent?`
-3. **Response:** plain-language reformulation — *"notice the answer doesn't invent a location: it says West Europe because the system prompt instructs it to."*
+6. **Response:** plain-language reformulation — *"notice the answer doesn't invent a location: it says West Europe because the system prompt instructs it to."*
+7. **Show withdrawal** — click **Withdraw Consent** in the child tab, confirm → *"instant, auditable, GDPR-compliant."*
+
+### Learner gate demo (optional)
+
+> *"And the other side of consent: if consent is missing, the learner cannot log in."*
+
+Switch to the **Learner Web** and log in as `student@learneu.demo`. If consent was withdrawn, the app shows a "Waiting for Parental Consent" page — no data, no AI, nothing. Re-grant consent in the Parent Portal and refresh — the learner is unblocked.
 
 ### The parental-trust pitch
 

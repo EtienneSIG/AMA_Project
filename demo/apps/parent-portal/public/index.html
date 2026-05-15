@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <title>LearnEU — Parent Portal · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -187,6 +188,28 @@
   .tq-item .pending { background:#FEF3C7; color:#92400E; padding:.1rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; }
   .tq-item .answered { background:#D1FAE5; color:#065F46; padding:.1rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; }
   .ask-wrap { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; }
+  /* --- Consent banner & modal (GDPR Art. 8) --- */
+  .consent-banner { background:#FEF3C7; border:1px solid #FCD34D; border-radius:12px; padding:1.1rem 1.4rem; margin:-1rem auto 1.2rem; max-width:1320px; display:none; }
+  .consent-banner.show { display:block; }
+  .consent-banner h3 { color:#92400E; margin:0 0 .4rem; font-size:1rem; }
+  .consent-banner p { color:#78350F; margin:0 0 .6rem; font-size:.88rem; }
+  .consent-banner .child-list { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .consent-banner .child-item { display:inline-flex; align-items:center; gap:.5rem; background:#fff; border:1px solid #FCD34D; padding:.4rem .8rem; border-radius:8px; }
+  .consent-banner .child-item .name { font-weight:600; color:#0F1B2D; font-size:.9rem; }
+  .consent-banner .child-item .btn-grant { background:#F26334; color:#fff; border:0; padding:.3rem .7rem; border-radius:999px; font-size:.78rem; font-weight:600; cursor:pointer; font-family:inherit; }
+  .consent-banner .child-item .btn-grant:hover { background:#D44E22; }
+  .consent-modal .modal { max-width:560px; }
+  .consent-modal .consent-details { background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:.9rem 1rem; margin:.8rem 0; font-size:.85rem; color:var(--grey); line-height:1.6; }
+  .consent-modal .consent-details h4 { margin:0 0 .3rem; font-size:.9rem; color:var(--navy); }
+  .consent-modal .consent-details ul { margin:.3rem 0 .6rem 1.2rem; padding:0; }
+  .consent-modal .consent-details li { margin:.15rem 0; }
+  .consent-modal .consent-check { display:flex; align-items:flex-start; gap:.6rem; margin:.8rem 0; padding:.7rem .9rem; background:#EEF2F7; border-radius:8px; font-size:.85rem; color:var(--navy); }
+  .consent-modal .consent-check input[type="checkbox"] { margin-top:.15rem; transform:scale(1.2); accent-color:#F26334; }
+  .consent-status { display:inline-flex; align-items:center; gap:.35rem; padding:.15rem .6rem; border-radius:999px; font-size:.72rem; font-weight:600; }
+  .consent-status.granted { background:#D1FAE5; color:#065F46; }
+  .consent-status.required { background:#FEE2E2; color:#991B1B; }
+  .consent-withdraw { background:transparent; border:1.5px solid #E53E3E; color:#E53E3E; padding:.25rem .6rem; border-radius:999px; font-size:.72rem; font-weight:600; cursor:pointer; font-family:inherit; margin-left:.4rem; }
+  .consent-withdraw:hover { background:#FEE2E2; }
 </style>
 </head>
 <body>
@@ -220,6 +243,11 @@
     <p>Manage parental consent (GDPR Art. 8), submit data access requests, and follow your child's progress — fully EU-hosted and aligned with EU AI Act Annex III §3 (education).</p>
   </div>
 </section>
+<div class="consent-banner" id="consentBanner" style="margin-left:1.5rem;margin-right:1.5rem;">
+  <h3>⚠️ Parental Consent Required (GDPR Art. 8)</h3>
+  <p>One or more of your children under 16 still need your consent before they can use LearnEU. Without consent, they cannot access the learning platform.</p>
+  <div class="child-list" id="consentBannerList"></div>
+</div>
 <nav class="tabbar" role="tablist">
   <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab">💬 Ask the assistant</button>
   <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab">🧒 My child's progress</button>
@@ -313,6 +341,44 @@
       <button class="btn ghost" onclick="signOut(event)">Sign out</button>
       <button class="btn ghost" onclick="closeProfile()">Close</button>
       <button class="btn" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg consent-modal" id="consentModal" onclick="if(event.target.id==='consentModal')closeConsentModal()">
+  <div class="modal" role="dialog" aria-label="Grant parental consent">
+    <h2>Grant Parental Consent</h2>
+    <p class="role-line">For: <strong id="consentChildName">—</strong> (<code id="consentChildEmail">—</code>)</p>
+    <div class="consent-details">
+      <h4>What data is processed</h4>
+      <ul>
+        <li>Learning activity and progress (answers, scores, time on task)</li>
+        <li>AI-powered tutoring interactions (questions asked, explanations received)</li>
+        <li>Content safety monitoring (to protect your child from harmful content)</li>
+      </ul>
+      <h4>Purpose</h4>
+      <ul>
+        <li>Personalised learning and adaptive difficulty</li>
+        <li>AI-powered tutoring aligned to the national curriculum</li>
+        <li>Progress reporting to you (parent) and the teacher</li>
+      </ul>
+      <h4>AI involvement</h4>
+      <ul>
+        <li>AI-powered tutoring system (Azure OpenAI, GPT-series models)</li>
+        <li>Automated content safety monitoring (Azure AI Content Safety)</li>
+        <li>Adaptive item selection using machine learning (ONNX runtime, local)</li>
+      </ul>
+      <h4>Data residency</h4>
+      <p style="margin:0;">All data is processed and stored in the <strong>EU West Europe</strong> region (Netherlands). No data leaves the EU.</p>
+    </div>
+    <p style="font-size:.82rem;color:var(--grey);margin:.6rem 0 .4rem;">You may withdraw this consent at any time through this portal. Withdrawal does not affect the lawfulness of processing performed before withdrawal.</p>
+    <label class="consent-check">
+      <input type="checkbox" id="consentConfirmCheck" onchange="document.getElementById('consentGrantBtn').disabled = !this.checked" />
+      <span>I confirm I am the parent or legal guardian of <strong id="consentCheckName">this child</strong> and I consent to the processing of their personal data as described above, in accordance with GDPR Article 8.</span>
+    </label>
+    <div class="actions">
+      <span class="saved" id="consentSaved">Consent recorded</span>
+      <button class="btn ghost" onclick="closeConsentModal()">Decline</button>
+      <button class="btn" id="consentGrantBtn" onclick="grantConsentFromModal()" disabled>Grant Consent</button>
     </div>
   </div>
 </div>
@@ -511,13 +577,14 @@ window.addEventListener('load', () => {
   if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
   const ta = document.getElementById('prompt');
   if (ta) ta.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); chat(); } });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeProfile(); closeSheets(); closeConsentModal(); } });
   refreshStatus();
   loadMe();
   loadChildren();
 });
 
 // ===== Feature 6 — child progress tab =====
+let childrenData = []; // cached from /api/parent/children
 function setTab(name) {
   document.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('active', b.dataset.tabBtn === name));
   document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
@@ -531,11 +598,13 @@ async function loadChildren() {
     const j = await r.json();
     if (!j.enabled) { sel.innerHTML = '<option value="">(database offline)</option>'; return; }
     const kids = j.children || [];
+    childrenData = kids;
     if (!kids.length) { sel.innerHTML = '<option value="">(no children linked)</option>'; return; }
     sel.innerHTML = kids.map(k => `<option value="${escapeHtml(k.childEmail)}">${escapeHtml(k.displayName || k.childEmail)}</option>`).join('');
     const first = kids[0];
     document.getElementById('childRel').textContent = first.relationship ? '· ' + first.relationship : '';
     loadChildDashboard(first.childEmail);
+    showConsentBanner();
   } catch (e) { sel.innerHTML = '<option value="">(error)</option>'; }
 }
 function chapterTitle(id) {
@@ -613,6 +682,104 @@ async function loadChildDashboard(childEmail) {
         <div class="when">${when}${ans}</div>
       </div>`;
     }).join('');
+  }
+  // Consent status for this child
+  renderConsentStatusInDashboard(childEmail);
+}
+
+// ===== GDPR Art. 8 — Consent management =====
+let _consentModalChild = null;
+
+function getChildConsent(childEmail) {
+  const kid = childrenData.find(k => k.childEmail === childEmail);
+  if (!kid || !kid.consent) return null;
+  return kid.consent.gdpr_art8 || null;
+}
+
+function hasActiveConsent(childEmail) {
+  const c = getChildConsent(childEmail);
+  return c && c.granted && !c.withdrawnAt;
+}
+
+function showConsentBanner() {
+  const banner = document.getElementById('consentBanner');
+  const list = document.getElementById('consentBannerList');
+  if (!banner || !list) return;
+  const needConsent = childrenData.filter(k => k.requiresConsent && !hasActiveConsent(k.childEmail));
+  if (!needConsent.length) { banner.classList.remove('show'); return; }
+  list.innerHTML = needConsent.map(k =>
+    `<div class="child-item"><span class="name">${escapeHtml(k.displayName)}</span><button class="btn-grant" onclick="openConsentModal('${escapeHtml(k.childEmail)}','${escapeHtml(k.displayName)}')">Grant Consent</button></div>`
+  ).join('');
+  banner.classList.add('show');
+}
+
+function openConsentModal(childEmail, childName) {
+  _consentModalChild = childEmail;
+  document.getElementById('consentChildName').textContent = childName;
+  document.getElementById('consentChildEmail').textContent = childEmail;
+  document.getElementById('consentCheckName').textContent = childName;
+  document.getElementById('consentConfirmCheck').checked = false;
+  document.getElementById('consentGrantBtn').disabled = true;
+  document.getElementById('consentSaved').classList.remove('show');
+  document.getElementById('consentModal').classList.add('open');
+}
+
+function closeConsentModal() {
+  document.getElementById('consentModal').classList.remove('open');
+  _consentModalChild = null;
+}
+
+async function grantConsentFromModal() {
+  if (!_consentModalChild) return;
+  const btn = document.getElementById('consentGrantBtn');
+  btn.disabled = true;
+  btn.textContent = 'Granting…';
+  try {
+    const r = await fetch('/api/parent/consents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ childEmail: _consentModalChild, consentType: 'gdpr_art8', granted: true })
+    });
+    if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.error || 'Failed'); btn.disabled = false; btn.textContent = 'Grant Consent'; return; }
+    const saved = document.getElementById('consentSaved');
+    saved.classList.add('show');
+    // Refresh children data
+    await loadChildren();
+    setTimeout(() => { closeConsentModal(); }, 1200);
+  } catch (e) { alert(String(e)); }
+  btn.textContent = 'Grant Consent';
+}
+
+async function withdrawConsent(childEmail) {
+  const kid = childrenData.find(k => k.childEmail === childEmail);
+  const name = kid ? kid.displayName : childEmail;
+  if (!confirm(`Withdraw consent for ${name}?\n\nThis will prevent your child from accessing LearnEU until you grant consent again.`)) return;
+  try {
+    const r = await fetch('/api/parent/consents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ childEmail, consentType: 'gdpr_art8', granted: false })
+    });
+    if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.error || 'Failed'); return; }
+    await loadChildren();
+  } catch (e) { alert(String(e)); }
+}
+
+function renderConsentStatusInDashboard(childEmail) {
+  const kid = childrenData.find(k => k.childEmail === childEmail);
+  if (!kid || !kid.requiresConsent) return;
+  // Insert consent status into the child picker area
+  const picker = document.querySelector('.child-picker');
+  if (!picker) return;
+  let statusEl = document.getElementById('consentStatusInline');
+  if (!statusEl) { statusEl = document.createElement('span'); statusEl.id = 'consentStatusInline'; picker.appendChild(statusEl); }
+  const c = getChildConsent(childEmail);
+  const active = c && c.granted && !c.withdrawnAt;
+  if (active) {
+    const date = c.grantedAt ? new Date(c.grantedAt).toLocaleDateString() : '';
+    statusEl.innerHTML = `<span class="consent-status granted">✓ Consent granted${date ? ' · ' + date : ''}</span><button class="consent-withdraw" onclick="withdrawConsent('${escapeHtml(childEmail)}')">Withdraw</button>`;
+  } else {
+    statusEl.innerHTML = `<span class="consent-status required">⚠ Consent required</span> <a href="#" style="font-size:.78rem;font-weight:600;" onclick="event.preventDefault();openConsentModal('${escapeHtml(childEmail)}','${escapeHtml(kid.displayName)}')">Grant now</a>`;
   }
 }
 </script>

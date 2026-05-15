@@ -42,7 +42,35 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use(auth.gateMiddleware(ALLOWED));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// --- Learner consent gate (GDPR Art. 8) — only for student-facing app ---
+if (APP_ROLE === 'student') {
+  const CONSENT_EXEMPT = new Set(['/login.html', '/logo.svg', '/favicon.ico', '/consent-pending.html', '/csrf.js']);
+  app.use(async (req, res, next) => {
+    if (!req.user || req.user.role !== 'student') return next();
+    if (req.path.startsWith('/api/auth/') || req.path === '/api/health') return next();
+    if (CONSENT_EXEMPT.has(req.path)) return next();
+    const age = req.user.age;
+    if (!age || age >= 16) return next();
+    if (db.enabled) {
+      const hasConsent = await db.hasActiveConsentForLearner({ childEmail: req.user.email });
+      if (hasConsent) return next();
+    }
+    if (req.path.startsWith('/api/')) {
+      return res.status(403).json({ error: 'parental_consent_required', message: 'Parental consent (GDPR Art. 8) is required for learners under 16. Ask your parent to grant consent through the Parent Portal.' });
+    }
+    return res.redirect('/consent-pending.html');
+  });
+}
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    // Cache static assets aggressively; skip for HTML (always revalidate)
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    else res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
+  }
+}));
 
 function buildSystemPrompt(u) {
   const base = `You are LearnEU, an EU-compliant assistant deployed in West Europe. Respond in ${u.language || 'en'} unless the user writes in another language. Use concise markdown.
@@ -404,6 +432,12 @@ app.get('/api/parent/children', async (req, res) => {
   if (!db.enabled) return res.json({ enabled: false, children: [] });
   if (!isParentOrAdmin(u)) return res.status(403).json({ error: 'parent only' });
   const rows = await db.listChildrenForParent({ parentEmail: u.email }) || [];
+  const consents = await db.getConsentsForParent({ parentEmail: u.email }) || [];
+  const consentMap = {};
+  for (const c of consents) {
+    if (!consentMap[c.child_email]) consentMap[c.child_email] = {};
+    consentMap[c.child_email][c.consent_type] = { granted: c.granted, grantedAt: c.granted_at, withdrawnAt: c.withdrawn_at };
+  }
   // Enrich with display name from the in-memory user store (auth.js) — never includes any PII
   // beyond the demo seed users (no real children).
   const auth = require('./auth');
@@ -413,6 +447,9 @@ app.get('/api/parent/children', async (req, res) => {
       childEmail: r.childEmail,
       displayName: usr ? [usr.firstName, usr.lastName].filter(Boolean).join(' ').trim() : r.childEmail,
       relationship: r.relationship,
+      age: usr ? usr.age : null,
+      requiresConsent: usr ? (usr.age < 16) : false,
+      consent: consentMap[r.childEmail] || {},
       since: r.createdAt
     };
   });
@@ -449,6 +486,36 @@ app.get('/api/parent/child/:child/teacher-questions', async (req, res) => {
   const childEmail = await ensureLinked(req, res); if (!childEmail) return;
   const rows = await db.listTeacherQuestionsForLearnerReadOnly({ childEmail, limit: 20 });
   res.json({ enabled: true, rows: rows || [] });
+});
+
+// --- Parental consent (GDPR Art. 8) ---
+app.get('/api/parent/consents', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, consents: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const rows = await db.getConsentsForParent({ parentEmail: req.user.email });
+  res.json({ enabled: true, consents: rows || [] });
+});
+
+app.post('/api/parent/consents', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  const consentType = String(req.body?.consentType || 'gdpr_art8');
+  const granted = Boolean(req.body?.granted);
+  if (!childEmail) return res.status(400).json({ error: 'childEmail required' });
+  if (req.user.role !== 'admin') {
+    const linked = await db.isParentOfChild({ parentEmail: req.user.email, childEmail });
+    if (!linked) return res.status(403).json({ error: 'not linked to this learner' });
+  }
+  const row = await db.upsertConsent({
+    parentEmail: req.user.email,
+    childEmail,
+    consentType,
+    granted,
+    ip: (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.ip,
+    userAgent: (req.headers['user-agent'] || '').slice(0, 256)
+  });
+  res.json({ ok: true, consent: row });
 });
 // Admin-only rebuild of the mastery rollup from item_attempts.
 app.post('/api/learner/mastery/recompute', async (req, res) => {
