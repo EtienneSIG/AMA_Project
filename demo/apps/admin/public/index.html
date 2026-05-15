@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <title>LearnEU — Admin Console · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -11,7 +12,11 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body { margin:0; min-height:100vh; display:flex; flex-direction:column; font-family:'Inter',system-ui,sans-serif; color:var(--grey); background:var(--bg); line-height:1.55; }
-  main { flex: 1 0 auto; max-width: 1200px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
+  main { flex: 1 0 auto; max-width: 1200px; margin: 0 auto 3rem; padding: 0 1.5rem; position: relative; }
+  .tabbar { max-width:1200px; margin:-2rem auto 1.1rem; padding:0 1.5rem; display:flex; flex-wrap:wrap; gap:.45rem; position:relative; z-index:2; }
+  .tabbar button { background:#fff; border:1px solid var(--line); color:var(--navy); padding:.55rem 1.05rem; border-radius:999px; font-family:'Poppins',sans-serif; font-weight:600; font-size:.82rem; cursor:pointer; box-shadow:0 6px 18px rgba(15,27,45,0.08); transition:background .15s, color .15s, border-color .15s; }
+  .tabbar button:hover { border-color: var(--navy); }
+  .tabbar button.active { background:var(--orange); color:#fff; border-color:var(--orange); box-shadow:0 6px 18px rgba(242,99,52,0.25); }
   h1, h2, h3 { font-family:'Poppins',sans-serif; color:var(--navy); margin:0 0 .5rem; line-height:1.2; }
   h1 { font-size:2.1rem; font-weight:700; }
   h2 { font-size:1.25rem; font-weight:600; }
@@ -88,14 +93,22 @@
     <p>Live state of the three role-gated portals. Restart on demand. All actions performed via the admin app's managed identity (Website Contributor on each site, scoped to <code style="background:rgba(255,255,255,.12);padding:.1rem .35rem;border-radius:4px;color:#fff">rg-learneu-demo</code>).</p>
   </div>
 </section>
+<div class="tabbar" id="tabbar" role="tablist">
+  <button data-tab="overview" class="active" onclick="setTab('overview')">Overview</button>
+  <button data-tab="users" onclick="setTab('users')">Users &amp; sheets</button>
+  <button data-tab="activity" onclick="setTab('activity')">Activity</button>
+  <button data-tab="safety" onclick="setTab('safety')">Safety &amp; Quality</button>
+  <button data-tab="data" onclick="setTab('data')">Reference data</button>
+  <button data-tab="diagnostics" onclick="setTab('diagnostics')">Diagnostics</button>
+</div>
 <main>
-  <div class="grid" id="cards">
+  <div class="grid" id="cards" data-group="overview">
     <div class="card"><em>Loading…</em></div>
     <div class="card"><em>Loading…</em></div>
     <div class="card"><em>Loading…</em></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="users">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Users <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/users</span></h2>
       <button class="btn secondary" onclick="loadUsers()">Reload</button>
@@ -103,7 +116,7 @@
     <div id="users-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="users">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Items per portal <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/items · live aggregate from sibling /api/health</span></h2>
       <button class="btn secondary" onclick="loadItems()">Reload</button>
@@ -111,7 +124,7 @@
     <div id="items-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="activity">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Recent deployments <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/deployments/:name · ARM</span></h2>
       <select id="dep-site" onchange="loadDeployments()" style="padding:.45rem .7rem;border-radius:8px;border:1px solid var(--line);font-family:inherit;">
@@ -123,7 +136,7 @@
     <div id="dep-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="activity">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Recent connections <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/connections · Postgres</span></h2>
       <button class="btn secondary" onclick="loadConnLogs()">Reload</button>
@@ -131,7 +144,7 @@
     <div id="conn-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="activity">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Recent asks <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/asks · Postgres</span></h2>
       <button class="btn secondary" onclick="loadAskLogs()">Reload</button>
@@ -139,7 +152,7 @@
     <div id="ask-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="users">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Saved sheets per portal <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/logs/sheets · Postgres</span></h2>
       <button class="btn secondary" onclick="loadSheetLogs()">Reload</button>
@@ -147,7 +160,7 @@
     <div id="sheet-table">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="safety">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Content Safety <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/cs/* · Azure AI Content Safety</span></h2>
       <span id="cs-status" class="badge">…</span>
@@ -161,7 +174,7 @@
     <div id="cs-recent">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="safety">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>ONNX adaptive model <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/onnx/* · client-side inference in learner-web</span></h2>
       <button class="btn secondary" onclick="loadOnnx()">Reload</button>
@@ -173,7 +186,7 @@
     <div id="onnx-attempts">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="data">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Reference data <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/data/* · Postgres-backed seed catalogue</span></h2>
       <button class="btn secondary" onclick="loadDataPanels()">Reload</button>
@@ -186,7 +199,7 @@
     <div id="data-learners">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="safety">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Quality telemetry <span style="font-weight:400;color:var(--grey);font-size:.85rem;">last 24 h · /api/admin/quality/*</span></h2>
       <div>
@@ -198,7 +211,7 @@
     <div id="qualityFeedback">Loading…</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-group="diagnostics">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
       <div>
@@ -227,6 +240,12 @@ function toast(msg, kind) {
 }
 
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function setTab(g) {
+  document.querySelectorAll('[data-group]').forEach(el => { el.style.display = (el.dataset.group === g ? '' : 'none'); });
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === g));
+  try { history.replaceState(null, '', '#' + g); } catch (_) {}
+}
 
 async function loadCards() {
   const cards = document.getElementById('cards');
@@ -364,6 +383,9 @@ async function loadDeployments() {
   loadOnnx();
   loadDataPanels();
   loadQuality();
+  const initial = (location.hash || '').replace(/^#/, '');
+  const valid = new Set(['overview','users','activity','safety','data','diagnostics']);
+  setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); }, 30000);
 })();
 
