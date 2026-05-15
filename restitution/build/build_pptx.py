@@ -1,36 +1,31 @@
-"""Build the AMA restitution .pptx from restitution/slides/*.md.
+"""Build the LearnEU AMA restitution .pptx from restitution/slides/*.md.
 
-Reads every slide-NN-<slug>.md, opens the official template
-`Subject/Azure Master Architect_Prezo_Template_v01.pptx`, and emits
-`restitution/build/LearnEU-AMA-Restitution.pptx`.
+Strategy
+--------
+The official template ships with placeholder-heavy layouts (3 Columns,
+Right Content, etc.) whose text frames carry "Lorem ipsum" defaults.
+Filling only one of those placeholders left the others visible on the
+exported slide. To produce a clean deck we instead use the **Title Only**
+layout as a near-blank canvas and draw the body ourselves with shapes,
+keeping the template's fonts, master colours and brand chrome.
 
-Each slide spec must follow the format defined by the
-`restitution-deck-builder` agent:
+For each `restitution/slides/slide-NN-*.md` we extract:
+  * Title (from the H1 line)
+  * Headline / Sub-headline / Layout hint (metadata bullets)
+  * One or more "## Body bullets" sections (optionally with
+    `(left -- caption)` / `(right -- caption)` qualifiers)
+  * Optional `## Visual`, `## Demo cue`, `## Speaker notes`
 
-    # Slide N · Section · Title
-    - **Layout (template):** Title | Agenda | Content 1-col | ...
-    - **Headline:** ...
-    - **Sub-headline:** ...
-    - **Rubric coverage:** ...
-    - **Source refs:** ...
-
-    ## Body bullets [(left — ...) | (right — ...)]
-    - bullet
-    - bullet
-
-    ## Visual
-    free text
-
-    ## Speaker notes ...
-    free text
-
-The script picks a real template layout per slide:
-- slide 1                          -> 'Title slide'
-- slide 2                          -> 'Agenda'
-- slide 20 (closing)               -> '1_Closing logo slide'
-- explicit 'Content 2-col'         -> '3 Columns'
-- explicit 'Architecture' / 'Demo' -> 'Title Only'
-- everything else                  -> 'Right Content'
+Render rules
+  * Slide 1  -> "Title slide" layout (title + subtitle + small body box)
+  * Slide 20 -> "1_Closing logo slide" layout (title + subtitle + recap)
+  * Everything else -> "Title Only" + custom drawing:
+      - Sub-headline strip under the title
+      - 1, 2 or 3 cards depending on body sections
+      - Each card has an optional caption header in brand orange
+      - Bullet text auto-shrinks if the section has many bullets
+  * Speaker notes go in the notes pane, with a `---` footer giving
+    rubric coverage / visual / demo cue / source refs for the speaker.
 """
 from __future__ import annotations
 
@@ -39,167 +34,314 @@ import sys
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.util import Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import MSO_ANCHOR
+from pptx.util import Emu, Pt
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "Subject" / "Azure Master Architect_Prezo_Template_v01.pptx"
 SLIDES_DIR = ROOT / "restitution" / "slides"
 OUT = ROOT / "restitution" / "build" / "LearnEU-AMA-Restitution.pptx"
 
+# Brand palette (sampled from template chrome)
+ORANGE = RGBColor(0xF2, 0x8C, 0x00)
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+SOFT = RGBColor(0xC8, 0xD4, 0xE6)
+CARD_FILL = RGBColor(0x12, 0x2A, 0x4A)
+CARD_LINE = RGBColor(0x2A, 0x4A, 0x78)
+
+# 16:9 deck => 12 192 000 x 6 858 000 EMU
+SLIDE_W = 12_192_000
+SLIDE_H = 6_858_000
+
+
+# ----------------------------- parsing ---------------------------------
+
+
+def _meta(md: str, name: str) -> str:
+    rx = re.compile(rf"^-\s+\*\*{re.escape(name)}.*?:\*\*\s*(.+)$", re.MULTILINE)
+    m = rx.search(md)
+    return m.group(1).strip() if m else ""
+
+
+def _section(md: str, name: str) -> str:
+    m = re.search(
+        rf"^##\s+{re.escape(name)}[^\n]*\n((?:(?!^##\s).+\n?)*)", md, re.MULTILINE
+    )
+    return m.group(1).strip() if m else ""
+
+
+def _strip_md(s: str) -> str:
+    s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+    s = re.sub(r"`(.+?)`", r"\1", s)
+    return s.strip()
+
 
 def parse_slide(md: str) -> dict:
-    """Extract structured fields from a slide markdown file."""
-    out = {
-        "title": "",
-        "layout": "",
-        "headline": "",
-        "subheadline": "",
-        "rubric": "",
-        "sources": "",
-        "bullets": [],
-        "visual": "",
-        "notes": "",
-        "demo_cue": "",
+    out: dict = {
+        "title_line": "",
+        "headline": _meta(md, "Headline"),
+        "subheadline": _meta(md, "Sub-headline"),
+        "layout_hint": _meta(md, "Layout (template)"),
+        "rubric": _meta(md, "Rubric coverage"),
+        "sources": _meta(md, "Source refs"),
+        "visual": _section(md, "Visual"),
+        "demo_cue": _section(md, "Demo cue"),
+        "notes": _section(md, "Speaker notes"),
+        "columns": [],  # [{caption, bullets[]}, ...]
     }
-    # Title line: # Slide N · Section · Title
-    m = re.search(r"^#\s+Slide\s+\d+\s*·\s*[^·]+·\s*(.+)$", md, re.MULTILINE)
+    m = re.search(r"^#\s+Slide\s+\d+\s*\xb7\s*[^\xb7]+\xb7\s*(.+)$", md, re.MULTILINE)
     if m:
-        out["title"] = m.group(1).strip()
+        out["title_line"] = m.group(1).strip()
 
-    def field(name: str) -> str:
-        rx = re.compile(rf"^-\s+\*\*{re.escape(name)}.*?:\*\*\s*(.+)$", re.MULTILINE)
-        m = rx.search(md)
-        return m.group(1).strip() if m else ""
-
-    out["layout"] = field("Layout (template)")
-    out["headline"] = field("Headline")
-    out["subheadline"] = field("Sub-headline")
-    out["rubric"] = field("Rubric coverage")
-    out["sources"] = field("Source refs")
-
-    # All "## Body bullets" sections (may be 1 or 2 columns)
-    bullets: list[str] = []
     for sec in re.finditer(
-        r"^##\s+Body bullets[^\n]*\n((?:(?!^##\s).+\n?)*)", md, re.MULTILINE
+        r"^##\s+Body bullets(?:\s*\(([^)]*)\))?\s*\n((?:(?!^##\s).+\n?)*)",
+        md,
+        re.MULTILINE,
     ):
-        block = sec.group(1)
-        for line in block.splitlines():
+        caption_raw = (sec.group(1) or "").strip()
+        caption = ""
+        if caption_raw:
+            parts = re.split(r"\s*[\u2014\u2013-]\s*", caption_raw, maxsplit=1)
+            caption = parts[1].strip().capitalize() if len(parts) == 2 else caption_raw
+        bullets: list[str] = []
+        for line in sec.group(2).splitlines():
             line = line.strip()
             if line.startswith("- "):
-                bullets.append(line[2:].strip())
-    out["bullets"] = bullets
-
-    def section(name: str) -> str:
-        m = re.search(
-            rf"^##\s+{re.escape(name)}[^\n]*\n((?:(?!^##\s).+\n?)*)",
-            md,
-            re.MULTILINE,
-        )
-        return m.group(1).strip() if m else ""
-
-    out["visual"] = section("Visual")
-    out["demo_cue"] = section("Demo cue")
-    # Speaker notes header may have "(FR or EN per user choice)" qualifier
-    m = re.search(
-        r"^##\s+Speaker notes[^\n]*\n((?:(?!^##\s).+\n?)*)", md, re.MULTILINE
-    )
-    if m:
-        out["notes"] = m.group(1).strip()
+                bullets.append(_strip_md(line[2:]))
+        out["columns"].append({"caption": caption, "bullets": bullets})
     return out
 
 
-def pick_layout(prs: Presentation, slide_idx: int, layout_hint: str):
-    """Map our spec's layout name to a real layout in the template."""
-    layouts = {l.name: l for l in prs.slide_layouts}
-    hint = (layout_hint or "").lower()
-    if slide_idx == 1:
-        return layouts.get("Title slide")
-    if slide_idx == 2 or "agenda" in hint:
-        return layouts.get("Agenda")
-    if slide_idx == 20 or "closing" in hint:
-        return (
-            layouts.get("1_Closing logo slide")
-            or layouts.get("2_Closing logo slide")
-        )
-    if "2-col" in hint or "two col" in hint:
-        return layouts.get("3 Columns") or layouts.get("Right Content")
-    if "architecture" in hint or "demo" in hint:
-        return layouts.get("Title Only") or layouts.get("Right Content")
-    return layouts.get("Right Content") or layouts.get("Title Only")
+# ----------------------------- drawing ---------------------------------
 
 
-def first_text_placeholder(slide, exclude_idx: set[int]):
-    """Return the first body-ish placeholder not in exclude_idx, or None."""
-    for ph in slide.placeholders:
-        if ph.placeholder_format.idx in exclude_idx:
-            continue
-        if ph.has_text_frame:
-            return ph
-    return None
-
-
-def set_title(slide, text: str) -> int | None:
-    """Set the slide title; return the placeholder idx that was used."""
-    title = slide.shapes.title
-    if title is not None:
-        title.text = text or ""
-        return title.placeholder_format.idx
-    # Fallback: first placeholder
-    for ph in slide.placeholders:
-        if ph.has_text_frame:
-            ph.text = text or ""
-            return ph.placeholder_format.idx
-    return None
-
-
-def set_body(slide, bullets: list[str], subheadline: str, used_idx: set[int]):
-    body = first_text_placeholder(slide, used_idx)
-    if body is None:
-        return
-    tf = body.text_frame
-    tf.clear()
-    lines: list[tuple[str, int]] = []
-    if subheadline:
-        lines.append((subheadline, 0))
-    for b in bullets:
-        lines.append((b, 1 if subheadline else 0))
+def _set_text(tf, lines: list[tuple[str, int, int, RGBColor, bool]]) -> None:
+    """lines = [(text, level, font_pt, color, bold)]"""
+    tf.word_wrap = True
+    tf.margin_left = Emu(120_000)
+    tf.margin_right = Emu(120_000)
+    tf.margin_top = Emu(80_000)
+    tf.margin_bottom = Emu(80_000)
     if not lines:
+        tf.text = ""
         return
-    # First line goes into the existing single paragraph
-    first_text, first_lvl = lines[0]
-    tf.paragraphs[0].text = first_text
-    tf.paragraphs[0].level = first_lvl
-    for run in tf.paragraphs[0].runs:
-        run.font.size = Pt(20 if first_lvl == 0 else 16)
-    for text, lvl in lines[1:]:
-        p = tf.add_paragraph()
+    first = True
+    for text, level, size, color, bold in lines:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
         p.text = text
-        p.level = lvl
+        p.level = level
         for run in p.runs:
-            run.font.size = Pt(16 if lvl >= 1 else 18)
+            run.font.size = Pt(size)
+            run.font.bold = bold
+            run.font.color.rgb = color
 
 
-def set_notes(slide, notes: str, footer: str = "") -> None:
-    if not notes and not footer:
+def add_subhead(slide, text: str) -> None:
+    if not text:
+        return
+    box = slide.shapes.add_textbox(
+        Emu(640_000), Emu(950_000), Emu(SLIDE_W - 1_280_000), Emu(360_000)
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = _strip_md(text)
+    for run in p.runs:
+        run.font.size = Pt(18)
+        run.font.italic = True
+        run.font.color.rgb = SOFT
+
+
+def _add_card(slide, x, y, w, h, caption: str, bullets: list[str]) -> None:
+    card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, w, h)
+    card.fill.solid()
+    card.fill.fore_color.rgb = CARD_FILL
+    card.line.color.rgb = CARD_LINE
+    card.line.width = Emu(12_700)
+    card.shadow.inherit = False
+    tf = card.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_left = Emu(220_000)
+    tf.margin_right = Emu(220_000)
+    tf.margin_top = Emu(180_000)
+    tf.margin_bottom = Emu(180_000)
+    n = len(bullets)
+    body_pt = 18 if n <= 5 else 16 if n <= 7 else 14
+    cap_pt = 16
+    lines: list[tuple[str, int, int, RGBColor, bool]] = []
+    if caption:
+        lines.append((caption.upper(), 0, cap_pt, ORANGE, True))
+    for b in bullets:
+        lines.append(("\u2022 " + b, 0, body_pt, WHITE, False))
+    _set_text(tf, lines)
+
+
+def render_content(slide, columns: list[dict]) -> None:
+    body_top = 1_400_000
+    body_h = SLIDE_H - body_top - 360_000
+    margin = 600_000
+    if not columns:
+        return
+    if len(columns) == 1:
+        _add_card(
+            slide,
+            Emu(margin),
+            Emu(body_top),
+            Emu(SLIDE_W - 2 * margin),
+            Emu(body_h),
+            columns[0]["caption"],
+            columns[0]["bullets"],
+        )
+        return
+    cols = columns[:3]
+    gap = 240_000
+    total_w = SLIDE_W - 2 * margin - gap * (len(cols) - 1)
+    card_w = total_w // len(cols)
+    for i, c in enumerate(cols):
+        x = margin + i * (card_w + gap)
+        _add_card(
+            slide,
+            Emu(x),
+            Emu(body_top),
+            Emu(card_w),
+            Emu(body_h),
+            c["caption"],
+            c["bullets"],
+        )
+
+
+def set_title(slide, text: str) -> None:
+    if slide.shapes.title is not None:
+        slide.shapes.title.text = text or ""
+        for p in slide.shapes.title.text_frame.paragraphs:
+            for run in p.runs:
+                run.font.color.rgb = WHITE
+
+
+def set_notes(slide, spec: dict) -> None:
+    parts: list[str] = []
+    if spec["notes"]:
+        parts.append(spec["notes"])
+    meta = []
+    if spec["rubric"]:
+        meta.append(f"Rubric: {spec['rubric']}")
+    if spec["visual"]:
+        meta.append(f"Visual: {spec['visual']}")
+    if spec["demo_cue"]:
+        meta.append(f"Demo cue: {spec['demo_cue']}")
+    if spec["sources"]:
+        meta.append(f"Source refs: {spec['sources']}")
+    if meta:
+        parts.append("---\n" + "\n".join(meta))
+    if not parts:
         return
     tf = slide.notes_slide.notes_text_frame
-    tf.clear()
-    full = notes
-    if footer:
-        full = (notes + "\n\n" + footer).strip()
-    tf.text = full
+    tf.text = "\n\n".join(parts)
+
+
+def layout_by_name(prs: Presentation, *names: str):
+    by = {l.name: l for l in prs.slide_layouts}
+    for n in names:
+        if n in by:
+            return by[n]
+    return prs.slide_layouts[0]
+
+
+# ----------------------------- per-slide builders ----------------------
+
+
+def _wipe_other_placeholders(slide) -> None:
+    for ph in list(slide.placeholders):
+        if ph.placeholder_format.idx == 0:
+            continue
+        if ph.has_text_frame:
+            ph.text_frame.text = ""
+
+
+def build_title_slide(prs: Presentation, spec: dict):
+    layout = layout_by_name(prs, "Title slide")
+    s = prs.slides.add_slide(layout)
+    set_title(s, spec["headline"])
+    _wipe_other_placeholders(s)
+    box = s.shapes.add_textbox(
+        Emu(640_000), Emu(2_900_000), Emu(SLIDE_W - 1_280_000), Emu(1_400_000)
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    lines: list[tuple[str, int, int, RGBColor, bool]] = []
+    if spec["subheadline"]:
+        lines.append((_strip_md(spec["subheadline"]), 0, 22, SOFT, False))
+    if spec["columns"]:
+        for b in spec["columns"][0]["bullets"]:
+            lines.append((b, 0, 16, WHITE, False))
+    _set_text(tf, lines)
+    return s
+
+
+def build_closing_slide(prs: Presentation, spec: dict):
+    layout = layout_by_name(prs, "1_Closing logo slide", "2_Closing logo slide")
+    s = prs.slides.add_slide(layout)
+    for ph in list(s.placeholders):
+        if ph.has_text_frame:
+            ph.text_frame.text = ""
+    box = s.shapes.add_textbox(
+        Emu(640_000), Emu(900_000), Emu(SLIDE_W - 1_280_000), Emu(900_000)
+    )
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = spec["headline"] or ""
+    for run in p.runs:
+        run.font.size = Pt(40)
+        run.font.bold = True
+        run.font.color.rgb = WHITE
+    sub = s.shapes.add_textbox(
+        Emu(640_000), Emu(1_900_000), Emu(SLIDE_W - 1_280_000), Emu(500_000)
+    )
+    sp = sub.text_frame.paragraphs[0]
+    sp.text = _strip_md(spec["subheadline"] or "")
+    for run in sp.runs:
+        run.font.size = Pt(20)
+        run.font.italic = True
+        run.font.color.rgb = SOFT
+    if spec["columns"]:
+        body_top = 2_600_000
+        body_h = SLIDE_H - body_top - 700_000
+        _add_card(
+            s,
+            Emu(900_000),
+            Emu(body_top),
+            Emu(SLIDE_W - 1_800_000),
+            Emu(body_h),
+            "Self-score 57 / 60",
+            spec["columns"][0]["bullets"],
+        )
+    return s
+
+
+def build_content_slide(prs: Presentation, spec: dict):
+    layout = layout_by_name(prs, "Title Only")
+    s = prs.slides.add_slide(layout)
+    _wipe_other_placeholders(s)
+    set_title(s, spec["headline"])
+    add_subhead(s, spec["subheadline"])
+    render_content(s, spec["columns"])
+    return s
+
+
+# --------------------------------- main --------------------------------
 
 
 def main() -> int:
     if not TEMPLATE.exists():
-        print(f"ERROR: template not found: {TEMPLATE}", file=sys.stderr)
+        print(f"ERROR: template missing: {TEMPLATE}", file=sys.stderr)
         return 2
-    if not SLIDES_DIR.is_dir():
-        print(f"ERROR: slides dir not found: {SLIDES_DIR}", file=sys.stderr)
-        return 2
-
     prs = Presentation(str(TEMPLATE))
-    # Wipe any existing slides shipped in the template (drop rel + sldId)
+
     sldIdLst = prs.slides._sldIdLst  # noqa: SLF001
     for sldId in list(sldIdLst):
         rId = sldId.attrib[
@@ -210,7 +352,7 @@ def main() -> int:
 
     md_files = sorted(SLIDES_DIR.glob("slide-*.md"))
     if not md_files:
-        print(f"ERROR: no slide-*.md files in {SLIDES_DIR}", file=sys.stderr)
+        print(f"ERROR: no slide files in {SLIDES_DIR}", file=sys.stderr)
         return 2
 
     for path in md_files:
@@ -219,34 +361,28 @@ def main() -> int:
             continue
         idx = int(m.group(1))
         spec = parse_slide(path.read_text(encoding="utf-8"))
-        layout = pick_layout(prs, idx, spec["layout"])
-        if layout is None:
-            print(f"WARN: no layout for slide {idx}, skipping")
-            continue
-        slide = prs.slides.add_slide(layout)
-        title_text = spec["headline"] or spec["title"]
-        used_title_idx = set_title(slide, title_text)
-        used = {used_title_idx} if used_title_idx is not None else set()
-        # Closing slide: just title, no body
-        if idx not in (1, 20):
-            set_body(slide, spec["bullets"], spec["subheadline"], used)
-        footer_lines = []
-        if spec["rubric"]:
-            footer_lines.append(f"[Rubric coverage] {spec['rubric']}")
-        if spec["visual"]:
-            footer_lines.append(f"[Visual] {spec['visual']}")
-        if spec["demo_cue"]:
-            footer_lines.append(f"[Demo cue] {spec['demo_cue']}")
-        if spec["sources"]:
-            footer_lines.append(f"[Source refs] {spec['sources']}")
-        set_notes(slide, spec["notes"], "\n".join(footer_lines))
+        if idx == 1:
+            slide = build_title_slide(prs, spec)
+            ltag = "TitleSlide"
+        elif idx == 20:
+            slide = build_closing_slide(prs, spec)
+            ltag = "Closing"
+        else:
+            slide = build_content_slide(prs, spec)
+            ltag = "TitleOnly+cards"
+        set_notes(slide, spec)
+        ncols = len(spec["columns"])
+        nb = sum(len(c["bullets"]) for c in spec["columns"])
         print(
-            f"slide {idx:02d} · layout='{layout.name}' · {title_text[:60]}"
+            f"slide {idx:02d} \xb7 {ltag:18s} \xb7 cols={ncols} bullets={nb} \xb7 "
+            f"{(spec['headline'] or spec['title_line'])[:55]}"
         )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(OUT))
-    print(f"\nSaved: {OUT}  ({OUT.stat().st_size:,} bytes, {len(md_files)} slides)")
+    print(
+        f"\nSaved: {OUT}  ({OUT.stat().st_size:,} bytes, {len(md_files)} slides)"
+    )
     return 0
 
 
