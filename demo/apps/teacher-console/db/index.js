@@ -284,7 +284,9 @@ const DEMO_STUDENTS = [
 ];
 const DEMO_PARENT_LINKS = [
   { parent: 'parent@learneu.demo',  child: 'student@learneu.demo',  rel: 'parent' },
+  { parent: 'parent@learneu.demo',  child: 'student6@learneu.demo', rel: 'parent' },
   { parent: 'parent1@learneu.demo', child: 'student1@learneu.demo', rel: 'parent' },
+  { parent: 'parent1@learneu.demo', child: 'student7@learneu.demo', rel: 'parent' },
   { parent: 'parent2@learneu.demo', child: 'student2@learneu.demo', rel: 'parent' },
   { parent: 'parent3@learneu.demo', child: 'student3@learneu.demo', rel: 'parent' },
   { parent: 'parent3@learneu.demo', child: 'student8@learneu.demo', rel: 'parent' },
