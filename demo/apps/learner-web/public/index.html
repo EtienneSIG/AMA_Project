@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <title>LearnEU — Learner Web · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -291,7 +292,10 @@
     <div class="collapsed-stub" onclick="toggleExplDrawer()" title="Show the Explanation panel">☰ Explanation</div>
     <div class="explhead">
       <h2>Explanation<span class="saved-badge" id="sheetSaved">Saved to sheets</span></h2>
-      <button class="btn btn-sm" id="saveSheetBtn" onclick="saveSheet()" disabled title="Save current explanation as a Study sheet">Save to Study sheet</button>
+      <div style="display:flex;gap:.4rem;align-items:center;">
+        <button class="btn btn-sm secondary" id="quizCurrentBtn" onclick="quizCurrent()" disabled title="Save this explanation as a sheet and generate a 5-question revision quiz">🧠 Quiz me</button>
+        <button class="btn btn-sm" id="saveSheetBtn" onclick="saveSheet()" disabled title="Save current explanation as a Study sheet">Save to Study sheet</button>
+      </div>
     </div>
     <div class="reply" id="reply">Ask a question to see the explanation here. Diagrams and worked examples will appear inline.</div>
     <div class="meta" id="meta"></div>
@@ -608,9 +612,11 @@ async function chat() {
   const out = document.getElementById('reply');
   const meta = document.getElementById('meta');
   const saveBtn = document.getElementById('saveSheetBtn');
+  const quizBtn = document.getElementById('quizCurrentBtn');
   out.innerHTML = '<em>Thinking…</em>';
   meta.textContent = '';
   if (saveBtn) saveBtn.disabled = true;
+  if (quizBtn) quizBtn.disabled = true;
   lastAnswer = '';
   lastAskId = null;
   resetFeedbackBar();
@@ -621,7 +627,9 @@ async function chat() {
     if (!data.answer) { out.textContent = JSON.stringify(data, null, 2); return; }
     lastAnswer = data.answer;
     lastAskId = (typeof data.askId === 'number') ? data.askId : null;
+    lastSavedSheetId = null;
     if (saveBtn) saveBtn.disabled = false;
+    if (quizBtn) quizBtn.disabled = false;
     if (typeof showExplDrawerIfHidden === 'function') showExplDrawerIfHidden();
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks: true, gfm: true });
@@ -688,17 +696,33 @@ async function sendFeedback(rating, btn) {
 }
 
 // --- Study sheets ---
-async function saveSheet() {
-  if (!lastAnswer) return;
+let lastSavedSheetId = null;
+async function saveSheet({ silent = false } = {}) {
+  if (!lastAnswer) return null;
+  if (lastSavedSheetId) return lastSavedSheetId;
   const btn = document.getElementById('saveSheetBtn');
   if (btn) btn.disabled = true;
   try {
     const title = (lastPrompt || '').trim().slice(0, 80) || 'Untitled sheet';
     const r = await fetch('/api/sheets', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ title, prompt: lastPrompt, answer: lastAnswer }) });
-    if (!r.ok) { const j = await r.json().catch(()=>({})); alert(j.error || 'Save failed'); if (btn) btn.disabled = false; return; }
+    if (!r.ok) { const j = await r.json().catch(()=>({})); if (!silent) alert(j.error || 'Save failed'); if (btn) btn.disabled = false; return null; }
+    const j = await r.json().catch(()=>({}));
+    lastSavedSheetId = j?.sheet?.id || null;
     const badge = document.getElementById('sheetSaved');
     if (badge) { badge.classList.add('show'); setTimeout(()=>badge.classList.remove('show'), 1800); }
-  } catch (e) { alert(String(e)); if (btn) btn.disabled = false; }
+    return lastSavedSheetId;
+  } catch (e) { if (!silent) alert(String(e)); if (btn) btn.disabled = false; return null; }
+}
+async function quizCurrent() {
+  if (!lastAnswer) return;
+  const btn = document.getElementById('quizCurrentBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const id = lastSavedSheetId || await saveSheet({ silent: true });
+    if (!id) { alert('Could not save the sheet — quiz needs a saved sheet to generate questions.'); return; }
+    const title = (lastPrompt || '').trim().slice(0, 80) || 'Current explanation';
+    await startQuiz(id, title, btn);
+  } finally { if (btn) btn.disabled = false; }
 }
 function openSheets() { document.getElementById('sheetsModal').classList.add('open'); refreshSheets(); }
 function closeSheets() { document.getElementById('sheetsModal').classList.remove('open'); }
@@ -742,6 +766,8 @@ async function loadSheet(id) {
     } else { out.textContent = lastAnswer; }
     document.getElementById('meta').textContent = 'Loaded sheet · ' + new Date(j.sheet.createdAt).toLocaleString();
     const sb = document.getElementById('saveSheetBtn'); if (sb) sb.disabled = true;
+    lastSavedSheetId = j.sheet.id;
+    const qb = document.getElementById('quizCurrentBtn'); if (qb) qb.disabled = false;
     closeSheets();
   } catch (e) { alert(String(e)); }
 }
