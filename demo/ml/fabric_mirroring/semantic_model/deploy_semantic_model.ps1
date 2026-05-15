@@ -536,27 +536,31 @@ $body = @{
 
 $createUrl = "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/semanticModels"
 try {
-  $response = Invoke-RestMethod -Uri $createUrl -Headers $headers -Method Post -Body $body -StatusCodeVariable 'statusCode'
+  $response = Invoke-RestMethod -Uri $createUrl -Headers $headers -Method Post -Body $body -StatusCodeVariable 'statusCode' -ResponseHeadersVariable 'respHeaders'
 
   # Handle 202 Accepted (long-running operation)
   if ($statusCode -eq 202) {
     Write-Host "  Accepted (LRO). Polling for completion..." -ForegroundColor Yellow
-    $opId = $response.id
-    if (-not $opId -and $response.headers) { $opId = $response.headers['x-ms-operation-id'] }
-    $opUrl = "https://api.fabric.microsoft.com/v1/operations/$opId"
-    $maxWait = 120; $waited = 0
-    do {
-      Start-Sleep -Seconds 5; $waited += 5
-      $opStatus = Invoke-RestMethod -Uri $opUrl -Headers $headers -Method Get
-      Write-Host "  Status: $($opStatus.status) ($waited`s)" -ForegroundColor DarkGray
-    } while ($opStatus.status -notin @('Succeeded','Failed','Cancelled') -and $waited -lt $maxWait)
-
-    if ($opStatus.status -ne 'Succeeded') {
-      Write-Host "==> Operation did not succeed: $($opStatus.status)" -ForegroundColor Red
-      Write-Host ($opStatus | ConvertTo-Json -Depth 5)
-      throw "Semantic model creation failed."
+    $opUrl = if ($respHeaders -and $respHeaders['Location']) { $respHeaders['Location'][0] }
+             elseif ($respHeaders -and $respHeaders['x-ms-operation-id']) { "https://api.fabric.microsoft.com/v1/operations/$($respHeaders['x-ms-operation-id'][0])" }
+             else { $null }
+    if ($opUrl) {
+      $maxWait = 120; $waited = 0
+      do {
+        Start-Sleep -Seconds 5; $waited += 5
+        $opStatus = Invoke-RestMethod -Uri $opUrl -Headers $headers -Method Get
+        $st = if ($opStatus.status) { $opStatus.status } else { "unknown" }
+        Write-Host "  Status: $st ($waited`s)" -ForegroundColor DarkGray
+      } while ($st -notin @('Succeeded','Failed','Cancelled') -and $waited -lt $maxWait)
+      if ($st -eq 'Failed') {
+        Write-Host "==> Operation failed:" -ForegroundColor Red
+        Write-Host ($opStatus | ConvertTo-Json -Depth 5)
+        throw "Semantic model creation failed."
+      }
+    } else {
+      Write-Host "  No operation URL returned; checking workspace for model..." -ForegroundColor Yellow
+      Start-Sleep -Seconds 10
     }
-    $response = $opStatus
   }
 
   Write-Host ""
@@ -577,13 +581,13 @@ try {
   Write-Host "       - Teacher Engagement (overrides, question response time)"
 } catch {
   $errResp = $_.Exception.Response
-  if ($errResp) {
-    $stream = $errResp.GetResponseStream()
-    $reader = [System.IO.StreamReader]::new($stream)
-    $errBody = $reader.ReadToEnd()
-    $reader.Close()
+  if ($errResp -and $errResp.Content) {
+    $errBody = $errResp.Content.ReadAsStringAsync().Result
     Write-Host "==> ERROR creating semantic model:" -ForegroundColor Red
     Write-Host $errBody
+  } elseif ($_.ErrorDetails.Message) {
+    Write-Host "==> ERROR creating semantic model:" -ForegroundColor Red
+    Write-Host $_.ErrorDetails.Message
   } else {
     Write-Host "==> ERROR: $_" -ForegroundColor Red
   }
