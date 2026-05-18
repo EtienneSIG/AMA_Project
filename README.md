@@ -7,12 +7,61 @@
 Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subject/case-study-33-edtech-personalised-learning.md)
 
 ---
+## Reproduce this project with Spec Kit
 
+This repository is driven by [GitHub Spec Kit](https://github.com/github/spec-kit).
+A fresh contributor can rebuild every artefact (specs, plans, tasks,
+implementation) with the same toolchain:
+
+```powershell
+# 1) Install uv (https://docs.astral.sh/uv/)
+irm https://astral.sh/uv/install.ps1 | iex
+$env:Path = "$HOME\.local\bin;$env:Path"
+
+# 2) Install the Specify CLI
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# 3) Clone and enter the repo
+git clone https://github.com/EtienneSIG/AMA_Project.git
+cd AMA_Project
+
+# 4) (one-off, only if .specify/ is missing) re-initialise Spec Kit in place
+#    specify init --here --integration copilot --force
+```
+
+In VS Code with GitHub Copilot Chat installed, the following slash commands
+are available (defined under `.github/prompts/`):
+
+| Command | Purpose |
+|---|---|
+| `/speckit.constitution` | Amend `.specify/memory/constitution.md` (seven LearnEU principles). |
+| `/speckit.specify` | Create a new `specs/<NNN-feature>/spec.md` from a prompt. |
+| `/speckit.clarify` | Resolve every `[NEEDS CLARIFICATION]` in the spec. |
+| `/speckit.plan` | Produce `specs/<NNN-feature>/plan.md` (AI Act articles, DPIA delta, oversight surface). |
+| `/speckit.checklist` | Generate the GDPR / AI Act / RAI checklist. |
+| `/speckit.tasks` | Produce `specs/<NNN-feature>/tasks.md`, each task assigned to an accountable agent in `agents/`. |
+| `/speckit.analyze` | Cross-check spec / plan / tasks consistency. |
+| `/speckit.implement` | Execute the tasks once the Responsible AI Evaluator and Cross-Agent QA Verifier have signed off. |
+
+The mandatory order is: **constitution → specify → clarify → plan →
+checklist → tasks → analyze → implement**. Feature branches are created by
+`.specify/scripts/powershell/create-new-feature.ps1` and named
+`NNN-short-name`.
+
+See [specs/001-learner-tabbed-workspace/spec.md](specs/001-learner-tabbed-workspace/spec.md)
+for a worked example back-ported from `demo/feature/learner feature.md`.
+
+---
 ## What's in this folder
 
 ```
 AMA_Project/
 ├── README.md                ← you are here
+├── .specify/                ← Spec Kit core (templates, scripts, memory/constitution.md)
+├── .github/
+│   ├── copilot-instructions.md  ← LearnEU agent guidance & hard constraints
+│   └── prompts/             ← installed /speckit.* slash-command prompts
+├── specs/                   ← one folder per feature (NNN-short-name/spec.md, plan.md, tasks.md)
 ├── agents/                  ← 9 specialist Copilot chat modes for this case
 │   ├── edtech-program-orchestrator.chatmode.md
 │   ├── eu-ai-act-compliance-officer.chatmode.md
