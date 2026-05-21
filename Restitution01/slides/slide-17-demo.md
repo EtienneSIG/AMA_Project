@@ -1,8 +1,10 @@
 # Slide 17 · Demo · Live walkthrough
 
 - **Layout (template):** Demo cue
-- **Headline:** 7 minutes · 3 personas · 1 live backend
-- **Sub-headline:** Teacher → Learner → Parent · `rg-learneu-demo` · West Europe
+- **Render:** hero
+- **Image:** bg-hero-orange.png
+- **Headline:** Live in 7 minutes.
+- **Sub-headline:** Teacher → Learner → Parent · one backend · West Europe
 - **CXO focus:** CXO · CMO · CEO · COO
 - **Source refs:** demo/DEMO-STORYTELLING.md · restitution/demo-storyboard.md
 
@@ -15,7 +17,7 @@
 - 07:00 · Back to slides
 
 ## Visual
-4 persona thumbnails on a stopwatch ribbon; live URLs in 14 pt monospace beneath each.
+Hero orange. Single line, monumental.
 
 ## Demo cue
 - Pre-flight: open 4 tabs (admin / teacher / learner / parent), confirm green pills
