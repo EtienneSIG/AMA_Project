@@ -1,25 +1,28 @@
-# Slide 7 · Outcomes · What changes for whom
+# Slide 7 · Outcomes · Three personas, three wins
 
-- **Layout (template):** Content 2-col
-- **Headline:** Three personas, three measurable wins
-- **Sub-headline:** Learner · Teacher · Parent — each gets less of what they hate
+- **Layout (template):** Persona
+- **Render:** persona
+- **Image:** bg-dark-grid.png
+- **Images:** persona-learner.png, persona-teacher.png, persona-parent.png
+- **Headline:** Less of what they hate. More of what works.
+- **Sub-headline:** Lucas, Mr Klein, Sophie — three quantified wins
 - **CXO focus:** CXO · CMO · CHRO
-- **Source refs:** demo/DEMO-STORYTELLING.md · plan/02-workstreams.md
+- **Source refs:** demo/DEMO-STORYTELLING.md
 
-## Body bullets (left — Learner & Parent)
-- Learner: content at the right difficulty (target P-correct ≈ 0.7)
-- Learner: instant formative feedback, never punitive grading
-- Parent: portal in native language, GDPR Art. 8 controls in one click
-- Parent: human teacher remains the decision-maker — by contract
+## Body bullets (left — Lucas)
+- Content at his level (P-correct ≈ 0.7)
+- Instant formative feedback
+- Never punitive grading
 
-## Body bullets (right — Teacher)
-- Teacher: 45% admin time back — recoverable for actual teaching
-- Teacher: every AI suggestion comes with explanation + one-click override
-- Teacher: classroom-level dashboard in Power BI, no data engineering needed
-- Teacher: opt-out per assignment, per class, per pupil — always available
+## Body bullets (middle — Mr Klein)
+- 45% admin time back
+- Every AI hint is explainable
+- One-click override, always
 
-## Visual
-3 persona cards (Learner / Teacher / Parent), each with a "before → after" arrow and one quantified win.
+## Body bullets (right — Sophie)
+- Native-language portal
+- GDPR Art. 8 controls in one click
+- Human teacher decides — by contract
 
 ## Speaker notes
-On résume l'expérience produit en trois personas. L'apprenant gagne un contenu calibré (probabilité de réussite visée environ 0,7, c'est la zone de progression maximale d'après les sciences de l'apprentissage). L'enseignant récupère 45 % de son temps administratif, mais surtout garde la main : chaque suggestion IA est explicable et révocable en un clic. Le parent obtient un portail dans sa langue, des contrôles GDPR Article 8 explicites, et la garantie écrite qu'un humain reste le décideur. On verra les trois en démo dans dix minutes.
+Trois personas, trois gains chiffrés. Lucas — un élève de 12 ans en Allemagne — reçoit du contenu calibré sur sa zone de progression maximale. Mr Klein récupère 45 % de son temps administratif et garde la main : chaque suggestion IA est explicable et révocable. Sophie, sa mère, a un portail dans sa langue avec les contrôles GDPR Article 8 en hero. On verra les trois en démo dans dix minutes.

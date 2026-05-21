@@ -1,10 +1,17 @@
-"""Build the LearnEU CXO restitution .pptx from Restitution01/slides/*.md.
+"""Build the LearnEU CXO TED-style restitution .pptx.
 
-Adapted from `restitution/build/build_pptx.py`. Differences:
-  * Reads Restitution01/slides/ and writes Restitution01/build/LearnEU-CXO-Restitution.pptx.
-  * Slide 1 -> Title layout, Slide 21 -> Closing layout (the "Ask of the board"
-    slide), every other slide -> Title Only + custom cards.
-  * Closing card caption is "What we ask of the board".
+Reads Restitution01/slides/*.md, recognises a `Render` directive in each
+slide's metadata, and chooses one of several visual layouts:
+
+  * hero        -> full-bleed image + giant centered title + sub-line
+  * stat        -> full-bleed stat background image (the number IS the slide)
+  * quote       -> dark background + pulled quote + attribution
+  * image       -> full-bleed background + title + 3-5 bullets overlaid
+  * persona     -> 3 persona portrait tiles in a strip + one-line wins
+  * cards       -> classic dark navy cards (original layout, kept for appendices)
+
+Backgrounds live in Restitution01/assets/*.png and are produced by
+`Restitution01/build/gen_assets.py`.
 """
 from __future__ import annotations
 
@@ -21,6 +28,7 @@ from pptx.util import Emu, Pt
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "Subject" / "Azure Master Architect_Prezo_Template_v01.pptx"
 SLIDES_DIR = ROOT / "Restitution01" / "slides"
+ASSETS = ROOT / "Restitution01" / "assets"
 OUT = ROOT / "Restitution01" / "build" / "LearnEU-CXO-Restitution.pptx"
 
 # Brand palette (sampled from template chrome)
@@ -66,6 +74,11 @@ def parse_slide(md: str) -> dict:
         "headline": _meta(md, "Headline"),
         "subheadline": _meta(md, "Sub-headline"),
         "layout_hint": _meta(md, "Layout (template)"),
+        "render": _meta(md, "Render") or "cards",
+        "image": _meta(md, "Image"),
+        "images": _meta(md, "Images"),
+        "quote": _section(md, "Quote"),
+        "attribution": _meta(md, "Attribution"),
         "cxo_focus": _meta(md, "CXO focus"),
         "sources": _meta(md, "Source refs"),
         "visual": _section(md, "Visual"),
@@ -311,7 +324,182 @@ def build_content_slide(prs: Presentation, spec: dict):
     return s
 
 
+# ----------------------------- TED-style layouts -----------------------
+
+
+def _blank_slide(prs: Presentation):
+    """Pick a blank-ish layout and clear it."""
+    layout = layout_by_name(prs, "Blank", "Title Only", "Title slide")
+    s = prs.slides.add_slide(layout)
+    for ph in list(s.placeholders):
+        if ph.has_text_frame:
+            ph.text_frame.text = ""
+    return s
+
+
+def _add_fullbleed_image(slide, image_name: str) -> None:
+    path = ASSETS / image_name
+    if not path.exists():
+        return
+    slide.shapes.add_picture(str(path), 0, 0, width=Emu(SLIDE_W), height=Emu(SLIDE_H))
+
+
+def _add_textbox(slide, x, y, w, h, text, size, color, bold=False, italic=False,
+                 align_center=True):
+    box = slide.shapes.add_textbox(Emu(x), Emu(y), Emu(w), Emu(h))
+    tf = box.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = text
+    if align_center:
+        from pptx.enum.text import PP_ALIGN
+        p.alignment = PP_ALIGN.CENTER
+    for run in p.runs:
+        run.font.size = Pt(size)
+        run.font.bold = bold
+        run.font.italic = italic
+        run.font.color.rgb = color
+    return box
+
+
+def build_hero_slide(prs: Presentation, spec: dict):
+    """Giant title centred on a full-bleed background image."""
+    s = _blank_slide(prs)
+    _add_fullbleed_image(s, spec["image"] or "bg-hero-navy.png")
+    title = _strip_md(spec["headline"] or "")
+    sub = _strip_md(spec["subheadline"] or "")
+    _add_textbox(s, 600_000, 2_300_000, SLIDE_W - 1_200_000, 2_100_000,
+                 title, 72, WHITE, bold=True)
+    if sub:
+        _add_textbox(s, 600_000, 4_400_000, SLIDE_W - 1_200_000, 700_000,
+                     sub, 26, SOFT, italic=True)
+    return s
+
+
+def build_stat_slide(prs: Presentation, spec: dict):
+    """Stat backgrounds already contain the big number; we just add the title bar."""
+    s = _blank_slide(prs)
+    _add_fullbleed_image(s, spec["image"] or "stat-gap.png")
+    if spec["headline"]:
+        _add_textbox(s, 600_000, 360_000, SLIDE_W - 1_200_000, 540_000,
+                     _strip_md(spec["headline"]), 30, WHITE, bold=True)
+    if spec["subheadline"]:
+        _add_textbox(s, 600_000, 5_900_000, SLIDE_W - 1_200_000, 540_000,
+                     _strip_md(spec["subheadline"]), 22, SOFT, italic=True)
+    return s
+
+
+def build_quote_slide(prs: Presentation, spec: dict):
+    """Pull quote on a dark gradient."""
+    s = _blank_slide(prs)
+    _add_fullbleed_image(s, spec["image"] or "bg-hero-navy.png")
+    _add_textbox(s, 800_000, 800_000, 400_000, 800_000,
+                 "\u201C", 220, ORANGE, bold=True, align_center=False)
+    quote = _strip_md((spec["quote"] or spec["headline"] or "").strip())
+    _add_textbox(s, 1_200_000, 1_600_000, SLIDE_W - 2_400_000, 3_400_000,
+                 quote, 44, WHITE, bold=False)
+    attr = _strip_md(spec["attribution"] or "")
+    if attr:
+        _add_textbox(s, 600_000, 5_500_000, SLIDE_W - 1_200_000, 500_000,
+                     "\u2014 " + attr, 22, SOFT, italic=True)
+    return s
+
+
+def build_image_slide(prs: Presentation, spec: dict):
+    """Full-bleed image + title strip + up to 5 short bullets (left-aligned)."""
+    s = _blank_slide(prs)
+    _add_fullbleed_image(s, spec["image"] or "bg-dark-grid.png")
+    _add_textbox(s, 600_000, 600_000, SLIDE_W - 1_200_000, 800_000,
+                 _strip_md(spec["headline"] or ""), 44, WHITE, bold=True,
+                 align_center=False)
+    if spec["subheadline"]:
+        _add_textbox(s, 600_000, 1_500_000, SLIDE_W - 1_200_000, 540_000,
+                     _strip_md(spec["subheadline"]), 22, SOFT, italic=True,
+                     align_center=False)
+    # bullets from first column
+    if spec["columns"]:
+        bullets = spec["columns"][0]["bullets"][:5]
+        box = slide_textbox(s, 800_000, 2_400_000,
+                            SLIDE_W - 1_600_000, SLIDE_H - 2_800_000)
+        tf = box.text_frame
+        tf.word_wrap = True
+        first = True
+        for b in bullets:
+            p = tf.paragraphs[0] if first else tf.add_paragraph()
+            first = False
+            p.text = "\u2022  " + b
+            for run in p.runs:
+                run.font.size = Pt(26)
+                run.font.color.rgb = WHITE
+            p.space_after = Pt(14)
+    return s
+
+
+def slide_textbox(slide, x, y, w, h):
+    return slide.shapes.add_textbox(Emu(x), Emu(y), Emu(w), Emu(h))
+
+
+def build_persona_slide(prs: Presentation, spec: dict):
+    """Three persona portrait tiles in a strip + a small one-liner per tile."""
+    s = _blank_slide(prs)
+    _add_fullbleed_image(s, spec["image"] or "bg-dark-grid.png")
+    _add_textbox(s, 600_000, 360_000, SLIDE_W - 1_200_000, 540_000,
+                 _strip_md(spec["headline"] or ""), 36, WHITE, bold=True)
+    if spec["subheadline"]:
+        _add_textbox(s, 600_000, 920_000, SLIDE_W - 1_200_000, 480_000,
+                     _strip_md(spec["subheadline"]), 22, SOFT, italic=True)
+    # 3 tile slots
+    imgs = [n.strip() for n in (spec["images"] or "").split(",") if n.strip()]
+    if len(imgs) < 3:
+        imgs = ["persona-learner.png", "persona-teacher.png", "persona-parent.png"]
+    cols = spec["columns"][:3] if spec["columns"] else []
+    margin = 400_000
+    gap = 280_000
+    tile_w = (SLIDE_W - 2 * margin - gap * 2) // 3
+    tile_h = 3_400_000
+    y = 1_700_000
+    for i in range(3):
+        x = margin + i * (tile_w + gap)
+        img_path = ASSETS / imgs[i]
+        if img_path.exists():
+            s.shapes.add_picture(str(img_path), Emu(x), Emu(y),
+                                 width=Emu(tile_w), height=Emu(tile_h))
+        if i < len(cols):
+            bullets = cols[i]["bullets"][:3]
+            box = slide_textbox(s, x, y + tile_h + 100_000, tile_w, 1_200_000)
+            tf = box.text_frame
+            tf.word_wrap = True
+            first = True
+            for b in bullets:
+                p = tf.paragraphs[0] if first else tf.add_paragraph()
+                first = False
+                p.text = b
+                from pptx.enum.text import PP_ALIGN
+                p.alignment = PP_ALIGN.CENTER
+                for run in p.runs:
+                    run.font.size = Pt(18)
+                    run.font.color.rgb = WHITE
+    return s
+
+
+# --------------------------------- main --------------------------------
+
+
+RENDERERS = {
+    "hero": build_hero_slide,
+    "stat": build_stat_slide,
+    "quote": build_quote_slide,
+    "image": build_image_slide,
+    "persona": build_persona_slide,
+    "cards": build_content_slide,
+}
+
+
 def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:
+        pass
     if not TEMPLATE.exists():
         print(f"ERROR: template missing: {TEMPLATE}", file=sys.stderr)
         return 2
@@ -336,20 +524,23 @@ def main() -> int:
             continue
         idx = int(m.group(1))
         spec = parse_slide(path.read_text(encoding="utf-8"))
-        if idx == TITLE_SLIDE_IDX:
+        render = (spec.get("render") or "cards").lower()
+        if idx == TITLE_SLIDE_IDX and render == "cards":
+            # Default behaviour for the title slide if no Render directive
             slide = build_title_slide(prs, spec)
             ltag = "TitleSlide"
-        elif idx == CLOSING_SLIDE_IDX:
+        elif idx == CLOSING_SLIDE_IDX and render == "cards":
             slide = build_closing_slide(prs, spec)
             ltag = "Closing"
         else:
-            slide = build_content_slide(prs, spec)
-            ltag = "TitleOnly+cards"
+            renderer = RENDERERS.get(render, build_content_slide)
+            slide = renderer(prs, spec)
+            ltag = render
         set_notes(slide, spec)
         ncols = len(spec["columns"])
         nb = sum(len(c["bullets"]) for c in spec["columns"])
         print(
-            f"slide {idx:02d} \xb7 {ltag:18s} \xb7 cols={ncols} bullets={nb} \xb7 "
+            f"slide {idx:02d} \xb7 {ltag:10s} \xb7 cols={ncols} bullets={nb} \xb7 "
             f"{(spec['headline'] or spec['title_line'])[:55]}"
         )
 
