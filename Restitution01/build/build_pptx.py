@@ -3,15 +3,16 @@
 Reads Restitution01/slides/*.md, recognises a `Render` directive in each
 slide's metadata, and chooses one of several visual layouts:
 
-  * hero        -> full-bleed image + giant centered title + sub-line
-  * stat        -> full-bleed stat background image (the number IS the slide)
+  * hero        -> solid hero background + giant centered title + sub-line
+  * stat        -> solid background + huge editable stat number + label
   * quote       -> dark background + pulled quote + attribution
-  * image       -> full-bleed background + title + 3-5 bullets overlaid
-  * persona     -> 3 persona portrait tiles in a strip + one-line wins
+  * image       -> solid background + title + 3-5 bullets overlaid
+  * persona     -> 3 rounded-rectangle persona tiles with avatar circles
   * cards       -> classic dark navy cards (original layout, kept for appendices)
 
-Backgrounds live in Restitution01/assets/*.png and are produced by
-`Restitution01/build/gen_assets.py`.
+Every visual element is a native PowerPoint shape (rectangle, oval,
+text box) — no raster images — so the user can edit colour, size,
+copy and layout directly in PowerPoint.
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +38,11 @@ WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 SOFT = RGBColor(0xC8, 0xD4, 0xE6)
 CARD_FILL = RGBColor(0x12, 0x2A, 0x4A)
 CARD_LINE = RGBColor(0x2A, 0x4A, 0x78)
+NAVY = RGBColor(0x12, 0x2A, 0x4A)
+TEAL = RGBColor(0x0E, 0x5A, 0x5A)
+PINK = RGBColor(0xB2, 0x3A, 0x6F)
+GREEN = RGBColor(0x1F, 0x6B, 0x3A)
+INK = RGBColor(0x0F, 0x1B, 0x2D)
 
 SLIDE_W = 12_192_000
 SLIDE_H = 6_858_000
@@ -44,6 +50,41 @@ SLIDE_H = 6_858_000
 TITLE_SLIDE_IDX = 1
 CLOSING_SLIDE_IDX = 21  # "Ask of the board"
 CLOSING_CAPTION = "What we ask of the board"
+
+# -- Native-shape themes: each background "image" name maps to a solid
+# fill + a couple of decorative orbs. The slide markdown still references
+# names like "bg-hero-navy.png" so we don't have to rewrite every slide.
+BG_THEMES = {
+    "bg-hero-navy.png":   {"fill": NAVY,   "orbs": [(ORANGE, 0.35), (TEAL, 0.20)]},
+    "bg-hero-orange.png": {"fill": ORANGE, "orbs": [(NAVY,   0.35), (WHITE, 0.10)]},
+    "bg-hero-teal.png":   {"fill": TEAL,   "orbs": [(ORANGE, 0.30), (WHITE, 0.10)]},
+    "bg-hero-pink.png":   {"fill": PINK,   "orbs": [(ORANGE, 0.30), (WHITE, 0.10)]},
+    "bg-hero-green.png":  {"fill": GREEN,  "orbs": [(ORANGE, 0.30), (WHITE, 0.10)]},
+    "bg-dark-grid.png":   {"fill": INK,    "orbs": [(NAVY,   0.25)]},
+}
+
+# -- Native stat tiles: each "stat-*.png" reference becomes a coloured
+# background + a giant editable number + an editable label.
+STAT_THEMES = {
+    "stat-gap.png":       {"bg": NAVY,   "num": "40%",     "label": "outcome gap, today"},
+    "stat-admin.png":     {"bg": ORANGE, "num": "−45%",    "label": "teacher admin time"},
+    "stat-12mo.png":      {"bg": TEAL,   "num": "12 → 6",  "label": "months → weeks per market"},
+    "stat-learners.png":  {"bg": NAVY,   "num": "4.1M",    "label": "EU learners in scope"},
+    "stat-reduction.png": {"bg": ORANGE, "num": "−26pp",   "label": "outcome gap closed"},
+    "stat-value.png":     {"bg": GREEN,  "num": "€55M",    "label": "annual run-rate value"},
+    "stat-6wk.png":       {"bg": TEAL,   "num": "6 wk",    "label": "localisation per market"},
+    "stat-gdpr.png":      {"bg": NAVY,   "num": "100%",    "label": "GDPR Art. 8 compliance"},
+}
+
+# -- Native persona tiles
+PERSONA_THEMES = {
+    "persona-learner.png": {"tint": RGBColor(0x1B, 0x3C, 0x70), "initial": "L",
+                             "name": "Lucas", "tag": "12 · Berlin"},
+    "persona-teacher.png": {"tint": RGBColor(0x8F, 0x52, 0x10), "initial": "K",
+                             "name": "Mr Klein", "tag": "Year-7 maths"},
+    "persona-parent.png":  {"tint": RGBColor(0x1F, 0x6B, 0x3A), "initial": "S",
+                             "name": "Sophie", "tag": "Lucas' mother"},
+}
 
 
 # ----------------------------- parsing ---------------------------------
@@ -337,11 +378,41 @@ def _blank_slide(prs: Presentation):
     return s
 
 
-def _add_fullbleed_image(slide, image_name: str) -> None:
-    path = ASSETS / image_name
-    if not path.exists():
-        return
-    slide.shapes.add_picture(str(path), 0, 0, width=Emu(SLIDE_W), height=Emu(SLIDE_H))
+def _add_shape(slide, shape_type, x, y, w, h, fill, line=None, line_w_pt=None):
+    """Add a native PowerPoint auto-shape with solid fill (no picture)."""
+    shp = slide.shapes.add_shape(shape_type, Emu(x), Emu(y), Emu(w), Emu(h))
+    shp.fill.solid()
+    shp.fill.fore_color.rgb = fill
+    if line is None:
+        shp.line.fill.background()
+    else:
+        shp.line.color.rgb = line
+        if line_w_pt is not None:
+            shp.line.width = Pt(line_w_pt)
+    if shp.has_text_frame:
+        shp.text_frame.text = ""
+    return shp
+
+
+def _add_bg(slide, image_name: str) -> None:
+    """Draw the slide background as native shapes (rect + decorative orbs).
+
+    `image_name` is kept for backward compatibility with slide markdown
+    that still references e.g. `bg-hero-navy.png` — we just look up a
+    theme and draw shapes."""
+    theme = BG_THEMES.get((image_name or "").strip(), BG_THEMES["bg-hero-navy.png"])
+    # Background plate
+    _add_shape(slide, MSO_SHAPE.RECTANGLE, 0, 0, SLIDE_W, SLIDE_H, theme["fill"])
+    # Decorative orbs (large, soft) — fully editable circles
+    orbs = theme.get("orbs", [])
+    spots = [
+        (SLIDE_W - 2_400_000, -1_200_000, 4_400_000),
+        (-1_400_000, SLIDE_H - 2_600_000, 4_000_000),
+        (SLIDE_W // 2 + 1_500_000, SLIDE_H - 1_800_000, 2_400_000),
+    ]
+    for i, (color, _alpha) in enumerate(orbs[:3]):
+        x, y, d = spots[i]
+        _add_shape(slide, MSO_SHAPE.OVAL, x, y, d, d, color)
 
 
 def _add_textbox(slide, x, y, w, h, text, size, color, bold=False, italic=False,
@@ -352,7 +423,6 @@ def _add_textbox(slide, x, y, w, h, text, size, color, bold=False, italic=False,
     p = tf.paragraphs[0]
     p.text = text
     if align_center:
-        from pptx.enum.text import PP_ALIGN
         p.alignment = PP_ALIGN.CENTER
     for run in p.runs:
         run.font.size = Pt(size)
@@ -363,9 +433,9 @@ def _add_textbox(slide, x, y, w, h, text, size, color, bold=False, italic=False,
 
 
 def build_hero_slide(prs: Presentation, spec: dict):
-    """Giant title centred on a full-bleed background image."""
+    """Giant title centred on a full-bleed native background."""
     s = _blank_slide(prs)
-    _add_fullbleed_image(s, spec["image"] or "bg-hero-navy.png")
+    _add_bg(s, spec["image"] or "bg-hero-navy.png")
     title = _strip_md(spec["headline"] or "")
     sub = _strip_md(spec["subheadline"] or "")
     _add_textbox(s, 600_000, 2_300_000, SLIDE_W - 1_200_000, 2_100_000,
@@ -377,12 +447,28 @@ def build_hero_slide(prs: Presentation, spec: dict):
 
 
 def build_stat_slide(prs: Presentation, spec: dict):
-    """Stat backgrounds already contain the big number; we just add the title bar."""
+    """Solid background + giant editable stat number + label.
+
+    The big number and label are real text boxes — change the wording
+    or font directly in PowerPoint."""
     s = _blank_slide(prs)
-    _add_fullbleed_image(s, spec["image"] or "stat-gap.png")
+    img = (spec["image"] or "stat-gap.png").strip()
+    theme = STAT_THEMES.get(img, STAT_THEMES["stat-gap.png"])
+    # Background plate
+    _add_shape(s, MSO_SHAPE.RECTANGLE, 0, 0, SLIDE_W, SLIDE_H, theme["bg"])
+    # Subtle decorative orb in the top-right corner (editable circle)
+    _add_shape(s, MSO_SHAPE.OVAL,
+               SLIDE_W - 1_400_000, -1_600_000, 3_600_000, 3_600_000, WHITE)
+    # Headline ribbon
     if spec["headline"]:
         _add_textbox(s, 600_000, 360_000, SLIDE_W - 1_200_000, 540_000,
                      _strip_md(spec["headline"]), 30, WHITE, bold=True)
+    # Big number
+    _add_textbox(s, 600_000, 1_700_000, SLIDE_W - 1_200_000, 2_800_000,
+                 theme["num"], 240, WHITE, bold=True)
+    # Big label
+    _add_textbox(s, 600_000, 4_900_000, SLIDE_W - 1_200_000, 700_000,
+                 theme["label"], 32, WHITE, italic=True)
     if spec["subheadline"]:
         _add_textbox(s, 600_000, 5_900_000, SLIDE_W - 1_200_000, 540_000,
                      _strip_md(spec["subheadline"]), 22, SOFT, italic=True)
@@ -390,13 +476,13 @@ def build_stat_slide(prs: Presentation, spec: dict):
 
 
 def build_quote_slide(prs: Presentation, spec: dict):
-    """Pull quote on a dark gradient."""
+    """Pull quote on a solid native background."""
     s = _blank_slide(prs)
-    _add_fullbleed_image(s, spec["image"] or "bg-hero-navy.png")
-    _add_textbox(s, 800_000, 800_000, 400_000, 800_000,
+    _add_bg(s, spec["image"] or "bg-hero-navy.png")
+    _add_textbox(s, 800_000, 800_000, 1_400_000, 1_400_000,
                  "\u201C", 220, ORANGE, bold=True, align_center=False)
     quote = _strip_md((spec["quote"] or spec["headline"] or "").strip())
-    _add_textbox(s, 1_200_000, 1_600_000, SLIDE_W - 2_400_000, 3_400_000,
+    _add_textbox(s, 1_200_000, 1_900_000, SLIDE_W - 2_400_000, 3_100_000,
                  quote, 44, WHITE, bold=False)
     attr = _strip_md(spec["attribution"] or "")
     if attr:
@@ -406,9 +492,9 @@ def build_quote_slide(prs: Presentation, spec: dict):
 
 
 def build_image_slide(prs: Presentation, spec: dict):
-    """Full-bleed image + title strip + up to 5 short bullets (left-aligned)."""
+    """Solid native background + title strip + up to 5 short bullets."""
     s = _blank_slide(prs)
-    _add_fullbleed_image(s, spec["image"] or "bg-dark-grid.png")
+    _add_bg(s, spec["image"] or "bg-dark-grid.png")
     _add_textbox(s, 600_000, 600_000, SLIDE_W - 1_200_000, 800_000,
                  _strip_md(spec["headline"] or ""), 44, WHITE, bold=True,
                  align_center=False)
@@ -416,7 +502,6 @@ def build_image_slide(prs: Presentation, spec: dict):
         _add_textbox(s, 600_000, 1_500_000, SLIDE_W - 1_200_000, 540_000,
                      _strip_md(spec["subheadline"]), 22, SOFT, italic=True,
                      align_center=False)
-    # bullets from first column
     if spec["columns"]:
         bullets = spec["columns"][0]["bullets"][:5]
         box = slide_textbox(s, 800_000, 2_400_000,
@@ -440,15 +525,14 @@ def slide_textbox(slide, x, y, w, h):
 
 
 def build_persona_slide(prs: Presentation, spec: dict):
-    """Three persona portrait tiles in a strip + a small one-liner per tile."""
+    """Three native persona tiles: rounded rectangle + avatar circle + initial."""
     s = _blank_slide(prs)
-    _add_fullbleed_image(s, spec["image"] or "bg-dark-grid.png")
+    _add_bg(s, spec["image"] or "bg-dark-grid.png")
     _add_textbox(s, 600_000, 360_000, SLIDE_W - 1_200_000, 540_000,
                  _strip_md(spec["headline"] or ""), 36, WHITE, bold=True)
     if spec["subheadline"]:
         _add_textbox(s, 600_000, 920_000, SLIDE_W - 1_200_000, 480_000,
                      _strip_md(spec["subheadline"]), 22, SOFT, italic=True)
-    # 3 tile slots
     imgs = [n.strip() for n in (spec["images"] or "").split(",") if n.strip()]
     if len(imgs) < 3:
         imgs = ["persona-learner.png", "persona-teacher.png", "persona-parent.png"]
@@ -460,13 +544,27 @@ def build_persona_slide(prs: Presentation, spec: dict):
     y = 1_700_000
     for i in range(3):
         x = margin + i * (tile_w + gap)
-        img_path = ASSETS / imgs[i]
-        if img_path.exists():
-            s.shapes.add_picture(str(img_path), Emu(x), Emu(y),
-                                 width=Emu(tile_w), height=Emu(tile_h))
+        theme = PERSONA_THEMES.get(imgs[i], PERSONA_THEMES["persona-learner.png"])
+        # Tile background (rounded rectangle)
+        _add_shape(s, MSO_SHAPE.ROUNDED_RECTANGLE,
+                   x, y, tile_w, tile_h, theme["tint"])
+        # Avatar circle
+        avatar_d = 1_500_000
+        ax = x + (tile_w - avatar_d) // 2
+        ay = y + 300_000
+        _add_shape(s, MSO_SHAPE.OVAL, ax, ay, avatar_d, avatar_d, WHITE)
+        # Initial letter inside the avatar
+        _add_textbox(s, ax, ay + 150_000, avatar_d, avatar_d - 150_000,
+                     theme["initial"], 96, theme["tint"], bold=True)
+        # Name + tag under the avatar
+        _add_textbox(s, x, ay + avatar_d + 200_000, tile_w, 500_000,
+                     theme["name"], 28, WHITE, bold=True)
+        _add_textbox(s, x, ay + avatar_d + 700_000, tile_w, 400_000,
+                     theme["tag"], 16, SOFT, italic=True)
+        # Bullets caption below the tile
         if i < len(cols):
             bullets = cols[i]["bullets"][:3]
-            box = slide_textbox(s, x, y + tile_h + 100_000, tile_w, 1_200_000)
+            box = slide_textbox(s, x, y + tile_h + 100_000, tile_w, 1_400_000)
             tf = box.text_frame
             tf.word_wrap = True
             first = True
@@ -474,10 +572,9 @@ def build_persona_slide(prs: Presentation, spec: dict):
                 p = tf.paragraphs[0] if first else tf.add_paragraph()
                 first = False
                 p.text = b
-                from pptx.enum.text import PP_ALIGN
                 p.alignment = PP_ALIGN.CENTER
                 for run in p.runs:
-                    run.font.size = Pt(18)
+                    run.font.size = Pt(16)
                     run.font.color.rgb = WHITE
     return s
 
