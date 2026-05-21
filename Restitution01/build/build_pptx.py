@@ -579,12 +579,66 @@ def build_persona_slide(prs: Presentation, spec: dict):
     return s
 
 
+def build_statgrid_slide(prs: Presentation, spec: dict):
+    """2x2 grid of huge editable stat tiles.
+
+    Reads up to 4 bullets in the form `<number> | <label>` from the
+    slide's columns (left col first, then right col). Each tile is a
+    rounded rectangle + a giant number + a label, all native shapes.
+    Falls back to plain bullets if the `|` separator is missing.
+    """
+    s = _blank_slide(prs)
+    _add_bg(s, spec["image"] or "bg-hero-navy.png")
+    _add_textbox(s, 600_000, 280_000, SLIDE_W - 1_200_000, 540_000,
+                 _strip_md(spec["headline"] or ""), 32, WHITE, bold=True)
+    if spec["subheadline"]:
+        _add_textbox(s, 600_000, 820_000, SLIDE_W - 1_200_000, 480_000,
+                     _strip_md(spec["subheadline"]), 20, SOFT, italic=True)
+
+    # Flatten up to 4 bullets across columns
+    bullets: list[str] = []
+    for c in spec["columns"]:
+        bullets.extend(c["bullets"])
+    bullets = bullets[:4]
+
+    palette = [ORANGE, TEAL, NAVY, GREEN]
+    margin = 600_000
+    gap = 280_000
+    grid_top = 1_500_000
+    grid_h = SLIDE_H - grid_top - 600_000
+    tile_w = (SLIDE_W - 2 * margin - gap) // 2
+    tile_h = (grid_h - gap) // 2
+
+    for i, b in enumerate(bullets):
+        row, col = divmod(i, 2)
+        x = margin + col * (tile_w + gap)
+        y = grid_top + row * (tile_h + gap)
+        if "|" in b:
+            number, label = b.split("|", 1)
+        elif ":" in b:
+            number, label = b.split(":", 1)
+        else:
+            number, label = b, ""
+        number = _strip_md(number).strip()
+        label = _strip_md(label).strip()
+        _add_shape(s, MSO_SHAPE.ROUNDED_RECTANGLE,
+                   x, y, tile_w, tile_h, palette[i % len(palette)])
+        _add_textbox(s, x, y + 200_000, tile_w, tile_h // 2,
+                     number, 96, WHITE, bold=True)
+        if label:
+            _add_textbox(s, x + 300_000, y + tile_h // 2 + 400_000,
+                         tile_w - 600_000, tile_h // 2 - 500_000,
+                         label, 20, WHITE, italic=True)
+    return s
+
+
 # --------------------------------- main --------------------------------
 
 
 RENDERERS = {
     "hero": build_hero_slide,
     "stat": build_stat_slide,
+    "statgrid": build_statgrid_slide,
     "quote": build_quote_slide,
     "image": build_image_slide,
     "persona": build_persona_slide,
