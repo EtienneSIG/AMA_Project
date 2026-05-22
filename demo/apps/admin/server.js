@@ -317,5 +317,93 @@ app.get('/api/admin/quality/feedback', async (req, res) => {
   res.json({ enabled: true, rows: rows || [] });
 });
 
+// --- Fairness dashboard (Feature 010 — EU AI Act Annex IV / RAI release gate) ---
+// Aggregate: acceptance_rate, cs_violation_rate, override_rate per cohort
+// n < 10 suppression (FR-005 / FR-008 — never expose individual data).
+app.get('/api/admin/fairness', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const windowDays = Math.min(Math.max(parseInt(req.query.window, 10) || 30, 1), 365);
+  const r = await db._query(`
+    SELECT
+      COALESCE(l.market,            'Unknown') AS country,
+      COALESCE(l.gender,            'Unknown') AS gender,
+      COALESCE(l.sen::text,         'false')   AS sen_status,
+      count(a.id)::int                         AS n,
+      CASE WHEN count(a.id) >= 10 THEN
+        round(100.0 * sum(CASE WHEN a.status = 200 THEN 1 ELSE 0 END)
+              / NULLIF(count(a.id), 0), 1)
+      END AS acceptance_rate,
+      CASE WHEN count(a.id) >= 10 THEN
+        round(100.0 * count(c.id) FILTER (WHERE c.blocked)
+              / NULLIF(count(c.id), 0), 1)
+      END AS cs_violation_rate,
+      CASE WHEN count(a.id) >= 10 THEN
+        round(100.0 * count(DISTINCT ov.id)
+              / NULLIF(count(a.id), 0), 1)
+      END AS override_rate
+    FROM learners l
+    LEFT JOIN ask_history a
+           ON a.email = l.email
+          AND a.created_at >= now() - ($1 * INTERVAL '1 day')
+    LEFT JOIN content_safety_results c ON c.ask_id = a.id
+    LEFT JOIN teacher_overrides ov
+           ON ov.learner_email = l.email
+          AND ov.created_at   >= now() - ($1 * INTERVAL '1 day')
+    GROUP BY l.market, l.gender, l.sen
+    ORDER BY country, gender, sen_status
+  `, [windowDays]);
+  const rows = r ? r.rows : [];
+  // Compute per-metric disparity (max − min over cohorts with n≥10).
+  const metrics = ['acceptance_rate', 'cs_violation_rate', 'override_rate'];
+  const disparity = {};
+  for (const m of metrics) {
+    const vals = rows.map(r2 => r2[m]).filter(v => v !== null && v !== undefined);
+    if (vals.length >= 2) {
+      const diff = Math.max(...vals) - Math.min(...vals);
+      disparity[m] = { value: Math.round(diff * 10) / 10, flag: diff > 5 };
+    } else {
+      disparity[m] = { value: null, flag: false };
+    }
+  }
+  res.json({ enabled: true, window: windowDays, rows, disparity });
+});
+
+// CSV export for Annex IV technical file.
+app.get('/api/admin/fairness/csv', async (req, res) => {
+  if (!db.enabled) return res.status(503).send('DB not configured');
+  const windowDays = Math.min(Math.max(parseInt(req.query.window, 10) || 30, 1), 365);
+  const r = await db._query(`
+    SELECT
+      COALESCE(l.market,    'Unknown') AS country,
+      COALESCE(l.gender,    'Unknown') AS gender,
+      COALESCE(l.sen::text, 'false')   AS sen_status,
+      count(a.id)::int                 AS n,
+      CASE WHEN count(a.id) >= 10 THEN round(100.0 * sum(CASE WHEN a.status=200 THEN 1 ELSE 0 END)/NULLIF(count(a.id),0),1) END AS acceptance_rate,
+      CASE WHEN count(a.id) >= 10 THEN round(100.0 * count(c.id) FILTER (WHERE c.blocked)/NULLIF(count(c.id),0),1) END AS cs_violation_rate,
+      CASE WHEN count(a.id) >= 10 THEN round(100.0 * count(DISTINCT ov.id)/NULLIF(count(a.id),0),1) END AS override_rate
+    FROM learners l
+    LEFT JOIN ask_history a ON a.email=l.email AND a.created_at>=now()-($1*INTERVAL '1 day')
+    LEFT JOIN content_safety_results c ON c.ask_id=a.id
+    LEFT JOIN teacher_overrides ov ON ov.learner_email=l.email AND ov.created_at>=now()-($1*INTERVAL '1 day')
+    GROUP BY l.market, l.gender, l.sen
+    ORDER BY country, gender, sen_status
+  `, [windowDays]);
+  const rows = r ? r.rows : [];
+  const ts = new Date().toISOString();
+  const winStart = new Date(Date.now() - windowDays * 86400000).toISOString().slice(0, 10);
+  const winEnd   = new Date().toISOString().slice(0, 10);
+  const header = 'country,language,sen_status,gender,n,acceptance_rate,cs_violation_rate,override_rate,window_start,window_end,exported_at';
+  const csvRows = rows.map(row =>
+    [row.country, row.country, row.sen_status, row.gender,
+     row.n, row.acceptance_rate ?? '', row.cs_violation_rate ?? '', row.override_rate ?? '',
+     winStart, winEnd, ts
+    ].join(',')
+  );
+  const fname = `fairness-${ts.slice(0,16).replace(/[-:T]/g,'')}.csv`;
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+  res.send([header, ...csvRows].join('\n'));
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));
