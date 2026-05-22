@@ -354,6 +354,19 @@
 </div>
 </div><!-- /tab progress -->
 
+<div class="card" id="weekPlanCard" style="margin-top:.75rem;">
+  <div class="explhead">
+    <h2>📅 My week plan <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">teacher-approved · EU AI Act Art. 14</span></h2>
+    <button class="btn btn-sm secondary" onclick="loadWeekPlan()" title="Refresh">Refresh</button>
+  </div>
+  <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Your teacher reviews AI-drafted study plans before they reach you — human oversight guaranteed by EU AI Act Art. 14.</p>
+  <div id="weekPlanContent">
+    <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+  </div>
+  <button class="btn btn-sm" style="margin-top:.9rem;" onclick="draftWeekPlan()" id="draftPlanBtn">✨ Request a new week plan</button>
+  <div id="draftPlanStatus" style="font-size:.82rem;margin-top:.5rem;min-height:1.2rem;"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 <script>
 // Adaptive item picker — loads learner.onnx and runs inference client-side.
@@ -785,6 +798,7 @@ window.addEventListener('load', () => {
   loadMe();
   loadTeacherQuestions();
   loadMastery();
+  loadWeekPlan();
 });
 
 // --- Ask your teacher (async Q&A stored in Postgres) ---------------------
@@ -905,6 +919,54 @@ async function loadMastery() {
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
 }
 
+async function loadWeekPlan() {
+  const el = document.getElementById('weekPlanContent');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/learner/weekplan/current', { credentials: 'include' });
+    const d = await r.json();
+    if (!d.plan) {
+      el.innerHTML = '<p style="opacity:.6;font-size:.88rem;">No accepted plan yet. Click "Request a new week plan" — a teacher will review it before it appears here.</p>';
+      return;
+    }
+    const days = Array.isArray(d.plan.days) ? d.plan.days : [];
+    const reviewedAt = d.plan.reviewed_at ? new Date(d.plan.reviewed_at).toLocaleDateString('en-GB') : '?';
+    el.innerHTML = '<div style="font-size:.78rem;color:var(--grey);margin-bottom:.6rem;">Approved by ' + (d.plan.teacher_email || 'teacher') + ' on ' + reviewedAt + '</div>'
+      + days.map(day => '<div style="border:1px solid var(--line);border-radius:8px;padding:.65rem .85rem;margin-bottom:.45rem;">'
+        + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;">'
+        + '<span style="background:var(--teal);color:#fff;font-size:.65rem;font-weight:700;padding:.1rem .4rem;border-radius:999px;">Day ' + day.day + '</span>'
+        + '<strong style="font-size:.9rem;color:var(--navy);">' + (day.item || '') + '</strong></div>'
+        + '<div style="font-size:.78rem;color:var(--grey);">' + (day.rationale || '') + '</div>'
+        + '</div>').join('');
+  } catch (e) {
+    el.innerHTML = '<p style="color:var(--orange);font-size:.85rem;">Could not load week plan.</p>';
+  }
+}
+
+async function draftWeekPlan() {
+  const btn  = document.getElementById('draftPlanBtn');
+  const stat = document.getElementById('draftPlanStatus');
+  btn.disabled = true;
+  stat.textContent = 'Requesting plan from AI agent… (Content Safety scan + teacher queue)';
+  try {
+    const r = await fetch('/api/weekplan/draft', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json',
+        'X-CSRF-Token': window._csrfToken || '' },
+      body: '{}'
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      stat.textContent = '⚠ ' + (d.error || 'Error requesting plan');
+    } else {
+      stat.textContent = '✓ Plan drafted and sent to your teacher for review. It will appear here once approved.';
+    }
+  } catch (e) {
+    stat.textContent = '⚠ Network error: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
 // --- Tabbed workspace (Feature 4b) -------------------------------------
 function setTab(name) {
   document.querySelectorAll('[data-tab]').forEach(el => el.classList.toggle('active', el.getAttribute('data-tab') === name));
@@ -913,7 +975,7 @@ function setTab(name) {
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  if (name === 'progress') loadMastery();
+  if (name === 'progress') { loadMastery(); loadWeekPlan(); }
   if (name === 'ask-teacher') loadTeacherQuestions();
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });

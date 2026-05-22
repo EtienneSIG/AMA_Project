@@ -304,3 +304,25 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 );
 CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);
+
+-- Week plans (Feature 012 — agentic surface, EU AI Act Art. 12 logging).
+-- Every plan draft is proposed → (accepted | rejected) by a teacher before publication.
+-- status: proposed | accepted | rejected
+CREATE TABLE IF NOT EXISTS week_plans (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  learner_email   TEXT        NOT NULL,
+  status          TEXT        NOT NULL DEFAULT 'proposed'
+                              CHECK (status IN ('proposed','accepted','rejected')),
+  days            JSONB       NOT NULL,  -- [{day,skill_id,item,rationale}]
+  model_version   TEXT,
+  prompt_hash     TEXT,                 -- SHA-256 of the AOAI prompt; never the prompt itself
+  cs_verdict      TEXT,                 -- 'accept' | 'reject'
+  teacher_email   TEXT,
+  teacher_comment TEXT,
+  reviewed_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS prompt_hash TEXT;
+CREATE INDEX IF NOT EXISTS idx_week_plans_learner ON week_plans (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_week_plans_status  ON week_plans (status, created_at DESC);

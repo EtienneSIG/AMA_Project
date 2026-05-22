@@ -577,5 +577,197 @@ app.post('/api/teacher-questions/:id/answer', async (req, res) => {
   res.json({ row });
 });
 
+// ============================================================
+// Feature 012 — Week-Plan Composer Agent
+// EU AI Act Art. 12: every agent action is logged with metadata.
+// Teacher-in-the-loop: plans are NEVER auto-published to learners.
+// ============================================================
+
+// Crypto for prompt hashing (no PII stored — only hash).
+const crypto = require('crypto');
+
+// Agent step: draft a 5-day week plan for the current learner.
+// POST /api/weekplan/draft        (student or teacher/admin can trigger)
+// Body: { learnerId?: email }  — defaults to req.user.email
+app.post('/api/weekplan/draft', async (req, res) => {
+  if (!APIM || !KEY || KEY.startsWith('@Microsoft.KeyVault'))
+    return res.status(503).json({ error: 'APIM not configured' });
+  if (!db.enabled)
+    return res.status(503).json({ error: 'DB not configured' });
+
+  const u = req.user;
+  const targetEmail = (u.role === 'teacher' || u.role === 'admin')
+    ? (req.body?.learnerId || u.email)
+    : u.email;
+
+  // 1. Get mastery state — select ZPD skills (level < 0.85, sort by difficulty asc).
+  const mastRow = await db.getMasteryForLearner({ email: targetEmail });
+  const zdpSkills = (mastRow || [])
+    .filter(s => (s.level || 0) < 0.85)
+    .sort((a, b) => (a.difficulty || 0) - (b.difficulty || 0))
+    .slice(0, 5);
+
+  if (zdpSkills.length === 0)
+    return res.json({ message: 'Learner has mastered all skills — no plan needed.' });
+
+  // 2. Compose AOAI prompt (no learner PII — only skill metadata).
+  const skillLines = zdpSkills.map(s =>
+    `- ${s.label} [${s.skillId}] (mastery ${Math.round((s.level || 0) * 100)}%, difficulty ${Math.round((s.difficulty || 0) * 100)}%)`
+  ).join('\n');
+  const agentPrompt = `You are a pedagogical planning agent for K-12 math.
+Create a 5-day study plan for a learner working on these skills:
+${skillLines}
+
+Rules:
+1. One skill per day (days 1-5). Use exactly the skill_id provided.
+2. Each day: a one-sentence practice task ("item") and a one-sentence pedagogical rationale.
+3. Progress from easiest to hardest (ZPD principle).
+4. Return ONLY valid JSON — no markdown, no explanation:
+{"days":[{"day":1,"skill_id":"...","item":"...","rationale":"..."},...]}`;
+
+  const promptHash = crypto.createHash('sha256').update(agentPrompt).digest('hex').slice(0, 16);
+
+  // 3. Call AOAI via APIM.
+  const body = {
+    messages: [
+      { role: 'system', content: 'You are a pedagogical planner. Return ONLY valid JSON as instructed.' },
+      { role: 'user',   content: agentPrompt }
+    ],
+    max_completion_tokens: 800,
+    response_format: { type: 'json_object' }
+  };
+  const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
+  let rawAnswer, modelVersion;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': KEY },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      return res.status(502).json({ error: 'AOAI error', detail: t.slice(0, 300) });
+    }
+    const data = await r.json();
+    rawAnswer    = data?.choices?.[0]?.message?.content ?? '{}';
+    modelVersion = data?.model || DEP;
+  } catch (err) {
+    return res.status(502).json({ error: 'upstream error', detail: String(err) });
+  }
+
+  // 4. Content Safety scan on the AOAI output.
+  const scanResult = await cs.analyze(rawAnswer);
+  db.logContentSafety({ email: u.email, app: APP_NAME, direction: 'output',
+    blocked: Boolean(scanResult.blocked), severities: scanResult.severities, raw: scanResult.raw
+  }).catch(() => {});
+
+  if (scanResult.blocked) {
+    // Art. 12: log and drop — never persist a plan that fails Content Safety.
+    db.logAsk({ email: u.email, role: u.role, app: APP_NAME,
+      prompt: `[week-plan-draft:${promptHash}]`, answer: '', model: modelVersion,
+      usage: null, latencyMs: 0, status: 451,
+      error: 'content_safety_rejected'
+    }).catch(() => {});
+    return res.status(451).json({ error: 'content_safety_rejected',
+      detail: 'The plan draft was rejected by Content Safety and was not saved.' });
+  }
+
+  // 5. Parse JSON from AOAI response.
+  let planDays;
+  try {
+    const parsed = JSON.parse(rawAnswer);
+    planDays = Array.isArray(parsed.days) ? parsed.days : [];
+  } catch {
+    return res.status(502).json({ error: 'invalid_plan_json', raw: rawAnswer.slice(0, 200) });
+  }
+  if (planDays.length === 0)
+    return res.status(502).json({ error: 'empty_plan', raw: rawAnswer.slice(0, 200) });
+
+  // 6. Persist as 'proposed' — Art. 12 metadata stored, teacher must review before publish.
+  const planId = await db._query(`
+    INSERT INTO week_plans (learner_email, status, days, model_version, prompt_hash, cs_verdict)
+    VALUES ($1, 'proposed', $2, $3, $4, 'accept')
+    RETURNING id, created_at
+  `, [targetEmail, JSON.stringify(planDays), modelVersion, promptHash]);
+
+  const plan = planId?.rows?.[0];
+  res.json({
+    id: plan?.id,
+    status: 'proposed',
+    days: planDays,
+    model_version: modelVersion,
+    prompt_hash: promptHash,
+    cs_verdict: 'accept',
+    created_at: plan?.created_at,
+    message: 'Plan drafted and queued for teacher review. It will not be visible to the learner until a teacher accepts it.'
+  });
+});
+
+// Teacher: list pending week plans for review.
+// GET /api/teacher/weekplans?status=proposed   (default)
+app.get('/api/teacher/weekplans', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'teachers_only' });
+  const status = req.query.status || 'proposed';
+  const r = await db._query(`
+    SELECT id, learner_email, status, days, model_version, prompt_hash,
+           cs_verdict, teacher_email, teacher_comment, reviewed_at, created_at
+    FROM week_plans
+    WHERE status = $1
+    ORDER BY created_at DESC
+    LIMIT 50
+  `, [status]);
+  res.json({ enabled: true, rows: r ? r.rows : [] });
+});
+
+// Teacher: accept a proposed week plan (publishes to learner).
+// POST /api/teacher/weekplans/:id/accept
+app.post('/api/teacher/weekplans/:id/accept', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'db_required' });
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'teachers_only' });
+  const r = await db._query(`
+    UPDATE week_plans
+    SET status='accepted', teacher_email=$1, teacher_comment=$2,
+        reviewed_at=now(), updated_at=now()
+    WHERE id=$3 AND status='proposed'
+    RETURNING id, status, learner_email, reviewed_at
+  `, [req.user.email, req.body?.comment || null, req.params.id]);
+  if (!r?.rows?.[0]) return res.status(404).json({ error: 'plan_not_found_or_already_reviewed' });
+  res.json({ success: true, plan: r.rows[0] });
+});
+
+// Teacher: reject a proposed week plan.
+// POST /api/teacher/weekplans/:id/reject
+app.post('/api/teacher/weekplans/:id/reject', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'db_required' });
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin')
+    return res.status(403).json({ error: 'teachers_only' });
+  const r = await db._query(`
+    UPDATE week_plans
+    SET status='rejected', teacher_email=$1, teacher_comment=$2,
+        reviewed_at=now(), updated_at=now()
+    WHERE id=$3 AND status='proposed'
+    RETURNING id, status, learner_email, reviewed_at
+  `, [req.user.email, req.body?.comment || null, req.params.id]);
+  if (!r?.rows?.[0]) return res.status(404).json({ error: 'plan_not_found_or_already_reviewed' });
+  res.json({ success: true, plan: r.rows[0] });
+});
+
+// Learner: get the most recent accepted week plan.
+// GET /api/learner/weekplan/current
+app.get('/api/learner/weekplan/current', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, plan: null });
+  const r = await db._query(`
+    SELECT id, learner_email, days, model_version, teacher_email, reviewed_at, created_at
+    FROM week_plans
+    WHERE learner_email = $1 AND status = 'accepted'
+    ORDER BY reviewed_at DESC
+    LIMIT 1
+  `, [req.user.email]);
+  res.json({ enabled: true, plan: r?.rows?.[0] || null });
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[${APP_ROLE}] listening on :${port} (allowedRoles=${ALLOWED.join(',')}, APIM=${APIM || 'unset'})`));

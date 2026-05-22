@@ -118,6 +118,9 @@ Seed demo users (password `DemoPass2026!`):
 - **Checkpoint B** — `0158140` Stage 5: seed curricula/glossary/learners; allow-list pgcrypto + admin `/api/data/reseed` endpoint
 - **Checkpoint C** — `53d1627` Stage 6: acceptance tests 5 PASS / 4 PARTIAL / 2 SKIP / 0 FAIL
 - **Checkpoint D** — Stage 7: this report + reconciled state docs
+- **Checkpoint 001** — `specs/001-learner-tabbed-workspace` ✅ scaffolding landed
+- **Checkpoint 010** — `010-per-cohort-fairness-dashboard` ✅ **PASS** — Fairness dashboard live at `/fairness.html` in admin app; SQL aggregate over learners×ask_history×content_safety_results×teacher_overrides; n<10 suppression baked in; disparity >5pp banner triggers for RAI release gate; CSV export for Annex IV technical file.
+- **Checkpoint 012** — `012-week-plan-composer-agent` ✅ **PASS** — Week-plan composer agent live: POST /api/weekplan/draft chains mastery→AOAI→Content Safety; persists as `proposed` with Art.12 metadata; teacher accept/reject queue; learner card in "My progress" tab. No plan auto-publishes (Art.14 human oversight).
 
 ---
 
