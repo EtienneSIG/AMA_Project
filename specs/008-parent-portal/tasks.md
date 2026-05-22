@@ -13,6 +13,17 @@ description: "Task list for spec 008 — Parent Portal (GDPR Art. 8 guardian con
 
 ---
 
+> **Implementation status (2026-05-22)**: the Parent Portal app shell + a
+> simple `parental_consents` table + consent-gate middleware are already
+> shipped (see `demo/apps/parent-portal/server.js` + `db/schema.sql` line 291).
+> The chained-hash `consent_ledger` + capability-flag endpoint + Service Bus
+> notification + 5-language localisation called for by US1–US3 below are
+> **NEW work** that cannot land in a single PR. This tasks.md is the
+> authoritative backlog for that follow-up implementation work.
+>
+> **Net-new in this commit**: spec/plan/tasks/checklists scaffolding + this
+> status note. No production code changed.
+
 ## Phase 1: Setup
 
 - [ ] T001 Confirm branch `008-parent-portal` clean; add IN-PROGRESS row to `demo/DEPLOYMENT-REPORT.md`. — **@edtech-program-orchestrator**
