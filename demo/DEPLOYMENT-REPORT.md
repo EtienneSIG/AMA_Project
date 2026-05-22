@@ -118,6 +118,7 @@ Seed demo users (password `DemoPass2026!`):
 - **Checkpoint B** — `0158140` Stage 5: seed curricula/glossary/learners; allow-list pgcrypto + admin `/api/data/reseed` endpoint
 - **Checkpoint C** — `53d1627` Stage 6: acceptance tests 5 PASS / 4 PARTIAL / 2 SKIP / 0 FAIL
 - **Checkpoint D** — Stage 7: this report + reconciled state docs
+- **Checkpoint 001** — `001-learner-tabbed-workspace` ✅ **PASS** — back-fill spec for the shipped tabbed workspace; live smoke `demo/scripts/verify-chapter.ps1` = 0/8 blank chapters (0%); 3 tabs (Test/Ask/Progress) live with per-chapter mastery grouping. Net-new artefacts: `verify-chapter.ps1` + spec/plan/tasks/checklists.
 
 ---
 
