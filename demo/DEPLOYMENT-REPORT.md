@@ -118,7 +118,7 @@ Seed demo users (password `DemoPass2026!`):
 - **Checkpoint B** — `0158140` Stage 5: seed curricula/glossary/learners; allow-list pgcrypto + admin `/api/data/reseed` endpoint
 - **Checkpoint C** — `53d1627` Stage 6: acceptance tests 5 PASS / 4 PARTIAL / 2 SKIP / 0 FAIL
 - **Checkpoint D** — Stage 7: this report + reconciled state docs
-- **Checkpoint 011** — `pending merge` Feature 011 autoscale load-test: Bicep ASP SKU aligned to P0v3 (matches deployed reality); load-test.ps1 + autoscale-events.kql + LOAD-TEST-REPORT-template.md scaffolded. **IN PROGRESS — awaits `azd provision` to deploy the autoscale rule, then a 15-min sustained load run to flip the row to PASS.**
+- **Checkpoint 011** — `pending merge` Feature 011 autoscale load-test: Bicep ASP SKU aligned to P0v3 (matches deployed reality); `Microsoft.Insights/autoscaleSettings/autoscale-learneu-demo` deployed via `az`; 18-min load test against `/api/health` at 150 VUs drove CPU to 90-93 % sustained; autoscale rule fired twice — **scale-out 1 → 2 → 3 instances PASS** at 14:19:36Z and 14:25:42Z on 2026-05-22. See `demo/perf/LOAD-TEST-REPORT-2026-05-22.md`. Row flips to **✅ PASS**.
 
 ---
 

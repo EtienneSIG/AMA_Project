@@ -1,0 +1,22 @@
+{
+  "run_id": "9f221dba213e",
+  "started_at": "2026-05-22T14:04:50.6784207Z",
+  "ended_at": null,
+  "target_url": "https://app-learner-web-learneu-demo.azurewebsites.net",
+  "target_concurrency": 100,
+  "duration_minutes": 15,
+  "sustained_cpu_window": "PT10M",
+  "seed": 42,
+  "operation_id": "76df1772-62d3-413d-a9b9-7668be6d56fb",
+  "requests_attempted": 0,
+  "requests_succeeded": 0,
+  "requests_failed": 0,
+  "latency_ms": {
+    "p95": null,
+    "p99": null,
+    "p50": null
+  },
+  "rps": null,
+  "pii_assertion": "PASS — generator emits only GET /login.html with deterministic User-Agent header",
+  "verdict": "PENDING — see autoscale-events.kql for scale-out evidence"
+}

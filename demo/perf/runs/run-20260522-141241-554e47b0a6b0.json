@@ -1,0 +1,22 @@
+{
+  "run_id": "554e47b0a6b0",
+  "started_at": "2026-05-22T14:12:41.4482447Z",
+  "ended_at": null,
+  "target_url": "https://app-learner-web-learneu-demo.azurewebsites.net",
+  "target_concurrency": 150,
+  "duration_minutes": 18,
+  "sustained_cpu_window": "PT10M",
+  "seed": 42,
+  "operation_id": "ec215144-39d0-47e0-b1c8-393e684ff64a",
+  "requests_attempted": 0,
+  "requests_succeeded": 0,
+  "requests_failed": 0,
+  "latency_ms": {
+    "p50": null,
+    "p99": null,
+    "p95": null
+  },
+  "rps": null,
+  "pii_assertion": "PASS — generator emits only GET /api/health (public, no user input) with deterministic User-Agent header",
+  "verdict": "PENDING — see autoscale-events.kql for scale-out evidence"
+}

@@ -96,7 +96,7 @@ $manifest = [ordered]@{
     requests_failed         = 0
     latency_ms              = @{ p50 = $null; p95 = $null; p99 = $null }
     rps                     = $null
-    pii_assertion           = 'PASS — generator emits only GET /login.html with deterministic User-Agent header'
+    pii_assertion           = 'PASS — generator emits only GET /api/health (public, no user input) with deterministic User-Agent header'
     verdict                 = 'PENDING — see autoscale-events.kql for scale-out evidence'
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestFile -Encoding UTF8
@@ -106,7 +106,7 @@ Write-Host "Op id   : $opId  (use with autoscale-events.kql)"
 
 # -------- Deterministic worker --------
 $rng = [System.Random]::new($Seed)
-$thinkTimesMs = 1..$Concurrency | ForEach-Object { $rng.Next(50, 400) }
+$thinkTimesMs = 1..$Concurrency | ForEach-Object { $rng.Next(10, 60) }
 
 $client = [System.Net.Http.HttpClient]::new()
 $client.Timeout = [TimeSpan]::FromSeconds(20)
@@ -122,7 +122,7 @@ Write-Host "Press Ctrl+C to abort safely.`n"
 $jobs = 1..$Concurrency | ForEach-Object {
     $vu = $_
     $think = $thinkTimesMs[$vu - 1]
-    Start-ThreadJob -StreamingHost $Host -ScriptBlock {
+    Start-ThreadJob -ThrottleLimit ($Concurrency + 4) -StreamingHost $Host -ScriptBlock {
         param($url, $endAt, $thinkMs, $vu)
         $sw = [System.Diagnostics.Stopwatch]::new()
         $localOk = 0; $localFail = 0; $localAttempts = 0
@@ -134,7 +134,7 @@ $jobs = 1..$Concurrency | ForEach-Object {
             $localAttempts++
             $sw.Restart()
             try {
-                $resp = $client.GetAsync("$url/login.html").GetAwaiter().GetResult()
+                $resp = $client.GetAsync("$url/api/health").GetAwaiter().GetResult()
                 $sw.Stop()
                 if ($resp.IsSuccessStatusCode) { $localOk++ } else { $localFail++ }
                 $localLat.Add($sw.Elapsed.TotalMilliseconds)
@@ -165,8 +165,8 @@ foreach ($r in $results) {
     foreach ($l in $r.lat) { $latencies.Add($l) }
 }
 
-$sorted = $latencies.ToArray() | Sort-Object
-function _pct($arr, $p) { if ($arr.Count -eq 0) { return $null } $i = [math]::Floor(($arr.Count - 1) * $p); return [math]::Round($arr[$i], 1) }
+$sorted = @($latencies.ToArray() | Sort-Object)
+function _pct($arr, $p) { if ($arr.Length -eq 0) { return $null } $i = [math]::Floor(($arr.Length - 1) * $p); return [math]::Round($arr[$i], 1) }
 
 $durSec = ((Get-Date).ToUniversalTime() - $startedAt).TotalSeconds
 $rps    = if ($durSec -gt 0) { [math]::Round($succeeded / $durSec, 2) } else { 0 }
