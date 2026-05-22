@@ -166,11 +166,15 @@ attribution and timestamp.
 - **SC-002**: **0 plans** publish without a Content Safety verdict =
   `accept` (FR-004 + FR-005 dual gate).
 - **SC-003**: Override rate (per cohort) is measured continuously and
-  ≤ **10 %** under steady state.
+  ≤ **10 %** under steady state. *This gate directly defends the −26 %
+  outcome-gap KPI: excessive teacher overrides would signal algorithmic
+  bias eroding the engagement uplift target.*
 - **SC-004**: Safety violation rate ≤ **0.1 %** over rolling 1 000
   proposals.
 - **SC-005**: Per-cohort acceptance disparity ≤ **5 pp** (re-using the
-  spec 010 disparity calculation).
+  spec 010 disparity calculation). *This gate directly defends the −26 %
+  outcome-gap KPI: unequal plan acceptance across cohorts is a proxy for
+  inequitable learning outcomes.*
 - **SC-006**: Plan card rendered in the learner web app within ≤ 5 s of
   teacher accept (cache invalidation propagation).
 - **SC-007**: Restitution slide #9 ("Autonomy talking points") updated to

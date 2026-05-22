@@ -9,7 +9,7 @@ Evaluator, Cross-Agent QA Verifier.
 
 ## GDPR & data minimisation
 
-- [ ] CHK001 Consent withdrawal (spec 008 capability flag) hard-gates the agent (FR-010). Test in `tests/unit/week-plan-no-pii.test.ts`. — **GDPR Children's Data Specialist**
+- [ ] CHK001 Consent withdrawal (spec 008 capability flag) hard-gates the agent (FR-010) AND hides the proposed plan from the Teacher Console queue. Dedicated test: `tests/unit/week-plan-consent-gate.test.ts`. — **GDPR Children's Data Specialist**
 - [ ] CHK002 No raw learner PII in any AOAI payload — pseudonymous learner id + mastery vector + chapter labels only (FR-003). — **Privacy-Preserving ML Engineer**
 - [ ] CHK003 AI Search index contains curriculum content only; no learner record indexed. — **Privacy-Preserving ML Engineer**
 - [ ] CHK004 DPIA delta merged in `demo/compliance/dpia-learnEU-v1.md` §"Week-Plan Composer". — **GDPR Children's Data Specialist**

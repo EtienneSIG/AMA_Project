@@ -65,7 +65,8 @@ description: "Task list for spec 012 — Week-Plan Composer Agent (runtime agent
 - [ ] T030 [P] [US3] Implement `learner-web/routes/week-plan.js` → `GET /api/week-plan/me` returning the latest accepted plan if consent allows. — **@edtech-program-orchestrator**
 - [ ] T031 [P] [US3] Extend `learner-web/public/js/tab-progress.js` to render a "Week plan" card (spec 001 host) with teacher attribution and `accepted_at`. — **@edtech-program-orchestrator**
 - [ ] T032 [US3] Cache invalidation push so the learner sees the card within ≤ 5 s of accept (SC-006). — **@edtech-program-orchestrator**
-- [ ] T033 [US3] Hide accepted plan immediately on consent withdrawal (spec 008 cross-cutting). — **@privacy-preserving-ml-engineer**
+- [ ] T033 [US3] Hide accepted plan immediately on consent withdrawal in learner-web (spec 008 cross-cutting). — **@privacy-preserving-ml-engineer**
+- [ ] T033b [US3] Hide proposed plan entry in the Teacher Console review queue immediately on consent withdrawal (spec 008 cross-cutting). Test in `tests/unit/week-plan-consent-gate.test.ts`. — **@privacy-preserving-ml-engineer**
 - [ ] T034 [US3] Localise plan-card strings (NL, DE, PL, RO, FR-BE). — **@content-localisation-lead**
 
 **Checkpoint**: end-to-end flow live: agent → queue → teacher review → learner card.
@@ -83,7 +84,9 @@ description: "Task list for spec 012 — Week-Plan Composer Agent (runtime agent
 
 ## Phase 7: Compliance, deploy, ship
 
-- [ ] T050 [P] Run compliance checklist (`checklists/compliance.md`); all 22 items green or waived. — **@eu-ai-act-compliance-officer**, **@gdpr-children-data-specialist**, **@responsible-ai-evaluator**
+- [ ] T050a [P] Compliance gate — GDPR & data-minimisation items (CHK001–CHK004); all green or waived with rationale. — **@gdpr-children-data-specialist**
+- [ ] T050b [P] Compliance gate — EU AI Act high-risk items (CHK005–CHK011) and Annex IV fragment; all green or waived. — **@eu-ai-act-compliance-officer**
+- [ ] T050c [P] Compliance gate — RAI release-gate items (CHK012–CHK015) and pedagogy items (CHK016–CHK017); all green or waived. — **@responsible-ai-evaluator**
 - [ ] T051 [P] Cross-Agent QA Verifier reviews the runbook for the auto-pause kill switch. — **@cross-agent-qa-verifier**
 - [ ] T052 `/speckit.analyze` clean across spec / plan / tasks. — **@cross-agent-qa-verifier**
 - [ ] T053 Execute the 8-step deploy cycle on the dev slot; capture authenticated green smoke. — **@demo-deployment-agent**
@@ -110,6 +113,17 @@ description: "Task list for spec 012 — Week-Plan Composer Agent (runtime agent
 - T020 ‖ T021 in US2.
 - T030 ‖ T031 in US3.
 - T040 ‖ T041 in Phase 6.
+
+## Numbering cross-reference
+
+> **Branch-number renaming**: the `Subject/ama-rubric-remediation-plan.md`
+> rubric tracker refers to this feature as `004-week-plan-composer-agent`.
+> The actual branch and spec folder are `012-week-plan-composer-agent`
+> because stale unmerged branches `002`–`006` already existed in the repo,
+> causing the auto-numbering script to jump. Similarly: rubric `002` →
+> branch `008`, rubric `003` → branch `009`, rubric `005` → branch `010`,
+> rubric `006` → branch `011`. T054 must update the rubric tracker row to
+> reflect the `012` branch name.
 
 ## Notes
 
