@@ -13,6 +13,17 @@ description: "Task list for spec 009 — Localisation NL→DE pipeline (E2E)"
 
 ---
 
+> **Implementation status (2026-05-22)**: a minimal proof-of-concept Python
+> script lives at `demo/pipelines/localisation/localise.py` (single-file
+> NL→DE call via AOAI + DefaultAzureCredential). The full PowerShell
+> orchestration with `localisation_jobs` / `translation_artifacts` /
+> `reviewer_decisions` DB tables, reviewer console, and per-segment glossary
+> linting called for by US1–US3 below is **NEW work** that has not yet
+> shipped. DEPLOYMENT-REPORT criterion #3 is PARTIAL today for this reason.
+>
+> **Net-new in this commit**: spec/plan/tasks/checklists scaffolding + this
+> status note. No production code changed.
+
 ## Phase 1: Setup
 
 - [ ] T001 Confirm branch `009-localisation-nl-de-pipeline` clean; add IN-PROGRESS row in `demo/DEPLOYMENT-REPORT.md` localisation section. — **@edtech-program-orchestrator**
