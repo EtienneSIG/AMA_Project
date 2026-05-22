@@ -50,14 +50,14 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: planName
   location: location
   tags: tags
-  sku: { name: 'B1', tier: 'Basic', capacity: 1 }
+  sku: { name: 'P0v3', tier: 'Premium0V3', capacity: 1 }
   kind: 'linux'
-  properties: { reserved: true }
+  properties: { reserved: true, zoneRedundant: false }
 }
 
-// Autoscale: scale out 1→3 instances based on CPU; scale in when idle.
-// B1 supports manual scaling only; upgrade to S1/P1v3 for rule-based autoscale.
-// This resource is provisioned so the rule is ready when the SKU is upgraded.
+// Autoscale: scale out 1→3 instances on CPU>70% (5 min trigger),
+// scale in on CPU<30% (10 min window). Memory>80% also triggers scale-out.
+// Requires Standard or Premium SKU — wired here to the P0v3 plan above.
 resource autoscale 'Microsoft.Insights/autoscalesettings@2022-10-01' = {
   name: 'autoscale-${envName}'
   location: location

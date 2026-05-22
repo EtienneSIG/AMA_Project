@@ -1,0 +1,38 @@
+// LearnEU — autoscale-events.kql
+// Feature 011 (T004). @demo-deployment-agent.
+//
+// Returns autoscale events on the demo App Service plan for a given window.
+// Use after a load-test run to verify the 1 -> 2 (and 2 -> 3) scale-out
+// triggered inside the sustained-CPU window.
+//
+// Parameters (replace inline before submitting via az monitor log-analytics query):
+//   _start = ISO-8601 UTC, e.g. '2026-05-22T11:00:00Z'
+//   _end   = ISO-8601 UTC, e.g. '2026-05-22T11:20:00Z'
+//   _plan  = ASP resource id, e.g. '/subscriptions/.../resourceGroups/rg-learneu-demo/providers/Microsoft.Web/serverfarms/asp-learneu-demo'
+//
+// Source table: AzureActivity (autoscale operations land here as
+// 'Microsoft.Insights/AutoscaleSettings/Scaleup/Action' and Scaledown).
+
+let _start = datetime('REPLACE_START');
+let _end   = datetime('REPLACE_END');
+let _plan  = 'REPLACE_PLAN_RESOURCE_ID';
+AzureActivity
+| where TimeGenerated between (_start .. _end)
+| where ResourceProviderValue == 'MICROSOFT.INSIGHTS'
+| where OperationNameValue startswith 'MICROSOFT.INSIGHTS/AUTOSCALESETTINGS/'
+| extend planMatch = tostring(parse_json(Properties).resource)
+| where isempty(_plan) or planMatch =~ _plan
+| project TimeGenerated,
+          Action = case(
+            OperationNameValue contains 'SCALEUP', 'scale-out',
+            OperationNameValue contains 'SCALEDOWN', 'scale-in',
+            OperationNameValue),
+          Status = ActivityStatusValue,
+          OldCapacity = tostring(parse_json(Properties).oldCapacity),
+          NewCapacity = tostring(parse_json(Properties).newCapacity),
+          Trigger     = tostring(parse_json(Properties).description),
+          Caller,
+          CorrelationId
+| order by TimeGenerated asc
+// Verdict helper (T021): any row with Action=='scale-out' and Status=='Succeeded'
+// AND OldCapacity=='1' AND NewCapacity in ('2','3') is the PASS signal.

@@ -118,6 +118,7 @@ Seed demo users (password `DemoPass2026!`):
 - **Checkpoint B** — `0158140` Stage 5: seed curricula/glossary/learners; allow-list pgcrypto + admin `/api/data/reseed` endpoint
 - **Checkpoint C** — `53d1627` Stage 6: acceptance tests 5 PASS / 4 PARTIAL / 2 SKIP / 0 FAIL
 - **Checkpoint D** — Stage 7: this report + reconciled state docs
+- **Checkpoint 011** — `pending merge` Feature 011 autoscale load-test: Bicep ASP SKU aligned to P0v3 (matches deployed reality); load-test.ps1 + autoscale-events.kql + LOAD-TEST-REPORT-template.md scaffolded. **IN PROGRESS — awaits `azd provision` to deploy the autoscale rule, then a 15-min sustained load run to flip the row to PASS.**
 
 ---
 
