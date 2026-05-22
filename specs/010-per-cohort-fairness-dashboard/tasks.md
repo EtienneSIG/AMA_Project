@@ -13,6 +13,14 @@ description: "Task list for spec 010 — Per-Cohort Fairness Dashboard"
 
 ---
 
+> **Implementation status (2026-05-22)**: no production code exists for this
+> feature yet. The complete tasks.md below is **NEW work** scheduled for a
+> future PR sequence. Spec/plan/checklists are landed; implementation is the
+> next step. DEPLOYMENT-REPORT will not flip the row for this feature until
+> the user-stories ship and a green authenticated smoke is captured.
+>
+> **Net-new in this commit**: spec/plan/tasks/checklists scaffolding + this
+> status note. No production code changed.
 ## Phase 1: Setup
 
 - [ ] T001 Confirm branch clean; add IN-PROGRESS row in `demo/DEPLOYMENT-REPORT.md`. — **@edtech-program-orchestrator**
