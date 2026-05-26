@@ -37,9 +37,9 @@
 | Temps | Persona | Action | Phrase clé |
 |---|---|---|---|
 | **00:00 → 00:30** | — | Intro storyboard 30 s | *« Un seul backend, trois publics, zéro fuite de donnée — en sept minutes. »* |
-| **00:30 → 02:00** | 👨‍🏫 Mr Klein | Teacher Console | *« Article 14 EU AI Act — la machine suggère, l'enseignant décide. »* |
-| **02:00 → 04:00** | 🧒 Lucas | Learner Web | *« Le picker ONNX tourne **dans le navigateur** — la donnée individuelle ne sort pas. »* |
-| **04:00 → 05:30** | 👩 Sophie | Parent Portal | *« Surface enfant ≠ surface des droits — non-négociable Article 8. »* |
+| **00:30 → 02:00** | 👨‍🏫 Mr Klein | Teacher Console | *« Article 14 EU AI Act — la machine suggère, l'enseignant décide. »* (prompt EN) |
+| **02:00 → 04:00** | 🧒 Lucas | Learner Web | *« Le picker ONNX tourne **dans le navigateur** — la donnée individuelle ne sort pas. »* (prompt EN) |
+| **04:00 → 05:30** | 👩 Sophie | Parent Portal | *« Surface enfant ≠ surface des droits — non-négociable Article 8. »* (prompt EN) |
 | **05:30 → 07:00** | 🛠️ Admin | Admin Console | *« Tout est versionné dans Postgres et exposé pour l'audit Article 12. »* |
 | **07:00** | — | Retour à la slide suivante | — |
 
@@ -64,7 +64,7 @@
 
 1. **Pointer la pastille verte** : *« Même contrat technique : KV résolu, APIM joignable, West Europe, gpt-5.4-nano. »*
 2. **Coller le prompt** :
-   > `Lucas confond systématiquement 1/2 et 1/4. Donne-moi 3 activités de remédiation de 5 minutes, et l'objectif Bildungsstandards visé.`
+   > `Lucas systematically confuses 1/2 and 1/4. Give me 3 five-minute remediation activities, plus the Bildungsstandards objective they target.`
 3. **Click Ask** → liste numérotée s'affiche, ancrée aux standards allemands de Year-7.
 
 ### Le punch — Article 14
@@ -82,7 +82,7 @@
 
 ### Ce que vous faites
 
-1. **Click "Quiz Me"** sur les fractions équivalentes.
+1. **Click "Quiz Me"** sur les fractions équivalentes. (Si besoin d'un prompt libre : `Explain equivalent fractions with two concrete examples, then give me a short quiz.`)
 2. **Pointer la sélection d'item** : le picker ONNX choisit l'exercice dont la probabilité de réussite estimée est la plus proche de **0,7** (zone de progression maximale).
 3. **Lucas répond** → feedback formatif immédiat, jamais punitif.
 
@@ -103,9 +103,9 @@
 
 1. **Hero en GDPR Art. 8** — laissez l'audience le lire 2 secondes.
 2. **Bannière de consentement** en haut : *« Le fils de Sophie a encore besoin du consentement. »*
-3. **Coller le prompt** (allemand pour montrer le multilingue) :
-   > `Meine Tochter ist 12 und möchte LearnEU nutzen. Was sammeln Sie, wo wird es gespeichert, und wie widerrufe ich meine Einwilligung?`
-4. **Réponse** en allemand, en langage clair. Pointer : *« la réponse ne ré-invente pas la localisation — elle dit West Europe parce que le system prompt le lui impose. »*
+3. **Coller le prompt** (anglais — le portail répond dans la langue du parent) :
+   > `Hello, my son is 12 and wants to use LearnEU. What data do you collect, where is it stored, and how do I withdraw my consent?`
+4. **Réponse** en anglais, en langage clair. Pointer : *« la réponse ne ré-invente pas la localisation — elle dit West Europe parce que le system prompt le lui impose. »*
 5. **Optionnel — Withdraw Consent** → click, confirme, bannière passe au rouge.
 
 ### Le punch — Article 8
