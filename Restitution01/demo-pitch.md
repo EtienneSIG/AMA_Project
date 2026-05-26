@@ -103,9 +103,9 @@
 
 1. **Hero en GDPR Art. 8** — laissez l'audience le lire 2 secondes.
 2. **Bannière de consentement** en haut : *« Le fils de Sophie a encore besoin du consentement. »*
-3. **Coller le prompt** (anglais — le portail répond dans la langue du parent) :
-   > `Hello, my son is 12 and wants to use LearnEU. What data do you collect, where is it stored, and how do I withdraw my consent?`
-4. **Réponse** en anglais, en langage clair. Pointer : *« la réponse ne ré-invente pas la localisation — elle dit West Europe parce que le system prompt le lui impose. »*
+3. **Coller le prompt** (allemand — Lucas est en Year-7 DE ; le portail répond dans la langue du parent) :
+   > `Mein Sohn ist 12 Jahre alt und möchte LearnEU nutzen. Welche Daten erheben Sie, wo werden sie gespeichert, und wie widerrufe ich meine Einwilligung?`
+4. **Réponse** en allemand, en langage clair. Pointer : *« la réponse ne ré-invente pas la localisation — elle dit West Europe parce que le system prompt le lui impose. »*
 5. **Optionnel — Withdraw Consent** → click, confirme, bannière passe au rouge.
 
 ### Le punch — Article 8
