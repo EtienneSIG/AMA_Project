@@ -307,6 +307,41 @@
     <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Leaderboard champion</h3>
     <div id="championLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
   </div>
+  <div class="card">
+    <div class="explhead">
+      <h2>Mode duel</h2>
+      <button class="btn btn-sm secondary" onclick="loadDuelZone()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Defie un camarade avec une question minute. Reponse rapide = bonus de points.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.45rem;">
+      <select id="duelOpponent" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;">
+        <option value="">Choose opponent</option>
+      </select>
+      <input id="duelTimeLimit" type="number" min="20" max="180" value="90" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" placeholder="Time limit in seconds" />
+    </div>
+    <textarea id="duelQuestionInput" maxlength="220" placeholder="Ex: Quelle fraction est equivalente a 6/8 ?" style="min-height:2.8rem;margin-top:.45rem;"></textarea>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
+      <input id="duelOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="duelOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="duelOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="duelOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+    </div>
+    <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
+      <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
+      <select id="duelCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+        <option value="3">D</option>
+      </select>
+      <button class="btn" onclick="createDuelChallenge()">Launch duel</button>
+    </div>
+    <div id="duelStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">My duels</h3>
+    <div id="duelList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Leaderboard duel</h3>
+    <div id="duelLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+  </div>
 </div>
 </div><!-- /tab quest -->
 
@@ -857,6 +892,7 @@ window.addEventListener('load', () => {
   loadMastery();
   loadGamificationDashboard();
   loadChampionZone();
+  loadDuelZone();
   syncExplDrawerToggle();
 });
 
@@ -1189,6 +1225,117 @@ async function answerChampionChallenge(challengeId, selectedIndex) {
   } catch (e) { if (st) st.textContent = String(e); }
 }
 
+async function loadDuelZone() {
+  const list = document.getElementById('duelList');
+  const board = document.getElementById('duelLeaderboard');
+  const opp = document.getElementById('duelOpponent');
+  if (!list || !board || !opp) return;
+  list.innerHTML = '<div class="sub" style="font-size:.82rem;opacity:.7;">Loading duels...</div>';
+  board.innerHTML = '<div class="sub" style="font-size:.82rem;opacity:.7;">Loading leaderboard...</div>';
+  try {
+    const [cRes, dRes, lRes] = await Promise.all([
+      fetch('/api/learner/classmates', { cache: 'no-store' }),
+      fetch('/api/learner/duels', { cache: 'no-store' }),
+      fetch('/api/learner/duels/leaderboard', { cache: 'no-store' })
+    ]);
+    const cls = await cRes.json();
+    const duels = await dRes.json();
+    const lb = await lRes.json();
+
+    const classmates = cls.rows || [];
+    const previous = opp.value;
+    opp.innerHTML = '<option value="">Choose opponent</option>' + classmates.map(row =>
+      '<option value="' + escapeHtml(row.email) + '">' + escapeHtml(row.displayName || row.email) + '</option>'
+    ).join('');
+    if (previous && classmates.some(x => x.email === previous)) opp.value = previous;
+
+    const rows = duels.rows || [];
+    list.innerHTML = rows.length ? rows.map(row => {
+      const openChip = row.status === 'pending'
+        ? '<span style="background:#DBEAFE;color:#1E40AF;padding:.08rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">Pending</span>'
+        : (row.status === 'answered'
+          ? '<span style="background:#D1FAE5;color:#065F46;padding:.08rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">Answered</span>'
+          : '<span style="background:#FEE2E2;color:#991B1B;padding:.08rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">Expired</span>');
+      const options = Array.isArray(row.options) ? row.options : [];
+      const actions = row.canAnswer
+        ? options.map((opt, idx) => '<button class="btn btn-sm secondary" style="padding:.3rem .65rem;" onclick="answerDuelChallenge(' + row.id + ',' + idx + ')">' + String.fromCharCode(65 + idx) + ': ' + escapeHtml(opt) + '</button>').join(' ')
+        : (row.mySelectedIndex != null
+          ? '<span class="sub" style="font-size:.78rem;color:var(--grey);">Your answer: ' + String.fromCharCode(65 + row.mySelectedIndex) + (row.myIsCorrect ? ' ✓' : ' ✗') + '</span>'
+          : '<span class="sub" style="font-size:.78rem;color:var(--grey);">No action available.</span>');
+      const duelTitle = row.isChallenger
+        ? ('You challenged ' + escapeHtml(row.opponentName || row.opponentEmail))
+        : ('Challenge from ' + escapeHtml(row.challengerName || row.challengerEmail));
+      const winner = row.winnerName ? (' winner: ' + escapeHtml(row.winnerName) + ' · points: ' + (row.pointsAwarded || 0)) : '';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;">'
+        + '<div><strong style="font-size:.9rem;">' + duelTitle + '</strong> <span class="sub" style="font-size:.74rem;color:var(--grey);">· ' + new Date(row.createdAt).toLocaleString() + '</span></div>'
+        + openChip
+        + '</div>'
+        + '<div style="font-size:.9rem;color:var(--navy);margin-top:.25rem;">' + escapeHtml(row.question) + '</div>'
+        + '<div class="sub" style="font-size:.76rem;color:var(--grey);margin-top:.2rem;">timer: ' + (row.timeLimitSec || 90) + 's' + winner + '</div>'
+        + '<div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem;">' + actions + '</div>'
+        + '</div>';
+    }).join('') : '<div class="sub" style="font-size:.82rem;opacity:.7;">No duel yet. Launch the first one.</div>';
+
+    const leaders = lb.rows || [];
+    board.innerHTML = leaders.length ? leaders.map(row =>
+      '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;background:#fff;">'
+      + '<div><strong>#' + row.rank + '</strong> ' + escapeHtml(row.displayName || row.email) + '</div>'
+      + '<div style="font-size:.82rem;color:var(--grey);">' + row.points + ' pts · ' + row.wins + ' win(s)</div>'
+      + '</div>'
+    ).join('') : '<div class="sub" style="font-size:.82rem;opacity:.7;">No duel results yet.</div>';
+  } catch (e) {
+    list.innerHTML = '<div class="sub" style="font-size:.82rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>';
+    board.innerHTML = '';
+  }
+}
+
+async function createDuelChallenge() {
+  const st = document.getElementById('duelStatus');
+  const opponentEmail = (document.getElementById('duelOpponent')?.value || '').trim();
+  const question = (document.getElementById('duelQuestionInput')?.value || '').trim();
+  const options = [0,1,2,3].map(i => (document.getElementById('duelOpt' + i)?.value || '').trim()).filter(Boolean);
+  const correctIndex = Number(document.getElementById('duelCorrectIndex')?.value || '0');
+  const timeLimitSec = Number(document.getElementById('duelTimeLimit')?.value || '90');
+  if (!opponentEmail) { if (st) st.textContent = 'Select an opponent.'; return; }
+  if (!question) { if (st) st.textContent = 'Question required.'; return; }
+  if (options.length < 2) { if (st) st.textContent = 'At least 2 options are required.'; return; }
+  if (correctIndex >= options.length) { if (st) st.textContent = 'Correct option must exist in provided options.'; return; }
+  try {
+    const r = await fetch('/api/learner/duels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ opponentEmail, question, options, correctIndex, timeLimitSec })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (st) st.textContent = j.detail || j.error || 'Failed to launch duel.'; return; }
+    document.getElementById('duelQuestionInput').value = '';
+    [0,1,2,3].forEach(i => { const el = document.getElementById('duelOpt' + i); if (el) el.value = ''; });
+    document.getElementById('duelCorrectIndex').value = '0';
+    if (st) st.textContent = 'Duel launched!';
+    loadDuelZone();
+    loadGamificationDashboard();
+  } catch (e) { if (st) st.textContent = String(e); }
+}
+
+async function answerDuelChallenge(duelId, selectedIndex) {
+  const st = document.getElementById('duelStatus');
+  try {
+    const r = await fetch('/api/learner/duels/' + encodeURIComponent(duelId) + '/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedIndex })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (st) st.textContent = j.detail || j.error || 'Failed to submit duel answer.'; return; }
+    if (st) st.textContent = j.isCorrect
+      ? ('Victory! +' + (j.pointsAwarded || 0) + ' points (speed bonus +' + (j.speedBonus || 0) + ')')
+      : ('Defeat this round. Winner: ' + (j.winnerName || j.winnerEmail || 'opponent'));
+    loadDuelZone();
+    loadGamificationDashboard();
+  } catch (e) { if (st) st.textContent = String(e); }
+}
+
 function showRewardToast(message, kind) {
   const el = document.getElementById('rewardToast');
   if (!el) return;
@@ -1228,7 +1375,7 @@ function setTab(name) {
   });
   if (name === 'progress') loadMastery();
   if (name === 'ask-teacher') loadTeacherQuestions();
-  if (name === 'quest') { loadGamificationDashboard(); loadChampionZone(); }
+  if (name === 'quest') { loadGamificationDashboard(); loadChampionZone(); loadDuelZone(); }
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

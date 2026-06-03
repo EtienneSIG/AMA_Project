@@ -333,6 +333,41 @@ CREATE TABLE IF NOT EXISTS learner_champion_answers (
 CREATE INDEX IF NOT EXISTS idx_champion_answers_challenge ON learner_champion_answers (challenge_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_champion_answers_email ON learner_champion_answers (challenger_email, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS learner_duels (
+  id              BIGSERIAL    PRIMARY KEY,
+  class_key       TEXT         NOT NULL,
+  challenger_email TEXT        NOT NULL,
+  challenger_name TEXT         NOT NULL,
+  opponent_email  TEXT         NOT NULL,
+  opponent_name   TEXT         NOT NULL,
+  question        TEXT         NOT NULL,
+  options         JSONB        NOT NULL,
+  correct_index   INTEGER      NOT NULL,
+  time_limit_sec  INTEGER      NOT NULL DEFAULT 90,
+  status          TEXT         NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'expired')),
+  winner_email    TEXT,
+  winner_name     TEXT,
+  points_awarded  INTEGER      NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  answered_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_duels_class_created ON learner_duels (class_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_duels_users ON learner_duels (challenger_email, opponent_email, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_duel_answers (
+  id              BIGSERIAL    PRIMARY KEY,
+  duel_id         BIGINT       NOT NULL REFERENCES learner_duels(id) ON DELETE CASCADE,
+  player_email    TEXT         NOT NULL,
+  player_name     TEXT         NOT NULL,
+  selected_index  INTEGER      NOT NULL,
+  is_correct      BOOLEAN      NOT NULL,
+  elapsed_ms      INTEGER      NOT NULL,
+  bonus_points    INTEGER      NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (duel_id, player_email)
+);
+CREATE INDEX IF NOT EXISTS idx_duel_answers_duel ON learner_duel_answers (duel_id, created_at DESC);
+
 -- Teacher overrides (Feature 5a — EU AI Act Article 14 audit trail).
 -- Records every manual change a teacher makes to an AI-suggested mastery level.
 CREATE TABLE IF NOT EXISTS teacher_overrides (

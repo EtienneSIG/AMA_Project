@@ -697,6 +697,200 @@ app.get('/api/learner/champion/leaderboard', async (_req, res) => {
   res.json({ enabled: true, rows });
 });
 
+app.get('/api/learner/classmates', async (req, res) => {
+  const me = String(req.user.email || '').toLowerCase();
+  const rows = (auth.SEED_USERS || [])
+    .filter((u) => u.role === 'student' && String(u.email || '').toLowerCase() !== me)
+    .map((u) => ({
+      email: u.email,
+      displayName: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email
+    }));
+  res.json({ enabled: true, rows });
+});
+
+app.get('/api/learner/duels', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const email = req.user.email;
+  await db._query(
+    `UPDATE learner_duels
+        SET status = 'expired'
+      WHERE status = 'pending'
+        AND now() > created_at + (time_limit_sec * INTERVAL '1 second')`,
+    []
+  );
+  const r = await db._query(
+    `SELECT d.id,
+            d.challenger_email AS "challengerEmail",
+            d.challenger_name AS "challengerName",
+            d.opponent_email AS "opponentEmail",
+            d.opponent_name AS "opponentName",
+            d.question,
+            d.options,
+            d.time_limit_sec AS "timeLimitSec",
+            d.status,
+            d.winner_email AS "winnerEmail",
+            d.winner_name AS "winnerName",
+            d.points_awarded AS "pointsAwarded",
+            d.created_at AS "createdAt",
+            d.answered_at AS "answeredAt",
+            a.selected_index AS "mySelectedIndex",
+            a.is_correct AS "myIsCorrect",
+            a.elapsed_ms AS "myElapsedMs",
+            COALESCE(EXTRACT(EPOCH FROM (now() - d.created_at))::int, 0) AS "elapsedSec"
+       FROM learner_duels d
+  LEFT JOIN learner_duel_answers a
+         ON a.duel_id = d.id AND a.player_email = $2
+      WHERE d.class_key = $1
+        AND (d.challenger_email = $2 OR d.opponent_email = $2)
+   ORDER BY d.created_at DESC
+      LIMIT 60`,
+    [COLLAB_CLASS_KEY, email]
+  );
+  const rows = (r && r.rows ? r.rows : []).map((row) => ({
+    ...row,
+    options: Array.isArray(row.options) ? row.options : [],
+    isChallenger: String(row.challengerEmail || '').toLowerCase() === email,
+    isOpponent: String(row.opponentEmail || '').toLowerCase() === email,
+    canAnswer: row.status === 'pending'
+      && String(row.opponentEmail || '').toLowerCase() === email
+      && row.mySelectedIndex == null
+      && Number(row.elapsedSec || 0) <= Number(row.timeLimitSec || 90)
+  }));
+  res.json({ enabled: true, rows });
+});
+
+app.post('/api/learner/duels', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const challengerEmail = req.user.email;
+  const challengerName = learnerDisplayName(req.user);
+  const opponentEmail = String(req.body?.opponentEmail || '').trim().toLowerCase();
+  const question = String(req.body?.question || '').trim();
+  const optionsRaw = Array.isArray(req.body?.options) ? req.body.options : [];
+  const options = optionsRaw.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 4);
+  const correctIndex = Number(req.body?.correctIndex);
+  const timeLimitSec = Math.min(180, Math.max(20, Number.parseInt(req.body?.timeLimitSec, 10) || 90));
+  if (!opponentEmail) return res.status(400).json({ error: 'opponentEmail required' });
+  if (opponentEmail === challengerEmail) return res.status(400).json({ error: 'cannot duel yourself' });
+  if (!question) return res.status(400).json({ error: 'question required' });
+  if (question.length > 220) return res.status(400).json({ error: 'question too long (max 220)' });
+  if (options.length < 2) return res.status(400).json({ error: 'at least 2 options are required' });
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+    return res.status(400).json({ error: 'correctIndex must target one option' });
+  }
+
+  const opponent = (auth.SEED_USERS || []).find((u) => String(u.email || '').toLowerCase() === opponentEmail && u.role === 'student');
+  if (!opponent) return res.status(404).json({ error: 'opponent not found' });
+  const opponentName = [opponent.firstName, opponent.lastName].filter(Boolean).join(' ').trim() || opponentEmail;
+
+  const scan = await cs.analyze([question, ...options].join('\n'));
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Duel question blocked by Content Safety.', severities: scan.severities });
+  }
+
+  const r = await db._query(
+    `INSERT INTO learner_duels (class_key, challenger_email, challenger_name, opponent_email, opponent_name, question, options, correct_index, time_limit_sec)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)
+     RETURNING id, challenger_email AS "challengerEmail", challenger_name AS "challengerName", opponent_email AS "opponentEmail", opponent_name AS "opponentName", question, options, time_limit_sec AS "timeLimitSec", status, created_at AS "createdAt"`,
+    [COLLAB_CLASS_KEY, challengerEmail, challengerName, opponentEmail, opponentName, question, JSON.stringify(options), correctIndex, timeLimitSec]
+  );
+
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, 'duel-initiator', 'Duel Initiator', 'duel_mode')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [challengerEmail]
+  );
+
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/learner/duels/:id/answer', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const duelId = Number.parseInt(req.params.id, 10);
+  const selectedIndex = Number(req.body?.selectedIndex);
+  if (!Number.isFinite(duelId)) return res.status(400).json({ error: 'invalid duel id' });
+  if (!Number.isInteger(selectedIndex)) return res.status(400).json({ error: 'selectedIndex must be an integer' });
+
+  const d = await db._query(
+    `SELECT id, challenger_email AS "challengerEmail", challenger_name AS "challengerName", opponent_email AS "opponentEmail", correct_index AS "correctIndex", status, time_limit_sec AS "timeLimitSec", created_at AS "createdAt"
+       FROM learner_duels WHERE id = $1 AND class_key = $2`,
+    [duelId, COLLAB_CLASS_KEY]
+  );
+  const duel = d && d.rows ? d.rows[0] : null;
+  if (!duel) return res.status(404).json({ error: 'duel not found' });
+  if (String(duel.opponentEmail || '').toLowerCase() !== req.user.email) return res.status(403).json({ error: 'only invited opponent can answer' });
+  if (duel.status !== 'pending') return res.status(409).json({ error: 'duel already resolved' });
+
+  const elapsedMs = Math.max(0, Date.now() - new Date(duel.createdAt).getTime());
+  const limitMs = Number(duel.timeLimitSec || 90) * 1000;
+  if (elapsedMs > limitMs) {
+    await db._query(
+      `UPDATE learner_duels SET status='expired' WHERE id=$1 AND status='pending'`,
+      [duelId]
+    );
+    return res.status(410).json({ error: 'duel expired' });
+  }
+
+  const isCorrect = selectedIndex === duel.correctIndex;
+  const speedBonus = !isCorrect ? 0 : (elapsedMs <= 15000 ? 3 : elapsedMs <= 30000 ? 2 : elapsedMs <= 60000 ? 1 : 0);
+  const winnerEmail = isCorrect ? req.user.email : duel.challengerEmail;
+  const winnerName = isCorrect ? learnerDisplayName(req.user) : duel.challengerName;
+  const pointsAwarded = isCorrect ? (5 + speedBonus) : 2;
+
+  const ins = await db._query(
+    `INSERT INTO learner_duel_answers (duel_id, player_email, player_name, selected_index, is_correct, elapsed_ms, bonus_points)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (duel_id, player_email) DO NOTHING
+     RETURNING id`,
+    [duelId, req.user.email, learnerDisplayName(req.user), selectedIndex, isCorrect, elapsedMs, speedBonus]
+  );
+  if (!ins || !ins.rows || !ins.rows.length) return res.status(409).json({ error: 'answer already submitted' });
+
+  await db._query(
+    `UPDATE learner_duels
+        SET status = 'answered', winner_email = $2, winner_name = $3, points_awarded = $4, answered_at = now()
+      WHERE id = $1 AND status = 'pending'`,
+    [duelId, winnerEmail, winnerName, pointsAwarded]
+  );
+
+  if (isCorrect) {
+    await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, 'duel-winner', 'Duel Winner', 'duel_mode')
+       ON CONFLICT (email, badge_key) DO NOTHING`,
+      [req.user.email]
+    );
+    if (speedBonus >= 2) {
+      await db._query(
+        `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+         VALUES ($1, 'speed-duelist', 'Speed Duelist', 'duel_mode')
+         ON CONFLICT (email, badge_key) DO NOTHING`,
+        [req.user.email]
+      );
+    }
+  }
+
+  res.status(201).json({ ok: true, isCorrect, elapsedMs, speedBonus, pointsAwarded, winnerEmail, winnerName });
+});
+
+app.get('/api/learner/duels/leaderboard', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT winner_email AS "email",
+            winner_name AS "displayName",
+            COUNT(*)::int AS "wins",
+            COALESCE(SUM(points_awarded), 0)::int AS "points"
+       FROM learner_duels
+      WHERE status = 'answered' AND winner_email IS NOT NULL
+      GROUP BY winner_email, winner_name
+      ORDER BY "points" DESC, "wins" DESC
+      LIMIT 20`,
+    []
+  );
+  const rows = (r && r.rows ? r.rows : []).map((x, i) => ({ ...x, rank: i + 1 }));
+  res.json({ enabled: true, rows });
+});
+
 app.post('/api/admin/gamification/badges/grant', async (req, res) => {
   const u = req.user;
   if (u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
