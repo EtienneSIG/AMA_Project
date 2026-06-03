@@ -512,6 +512,12 @@ async function buildGamificationDashboard(email) {
   };
 }
 
+const COLLAB_CLASS_KEY = 'class-y7-fractions';
+
+function learnerDisplayName(u) {
+  return [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email;
+}
+
 app.get('/api/learner/gamification/dashboard', async (req, res) => {
   if (!db.enabled) return res.json({ enabled: false });
   const payload = await buildGamificationDashboard(req.user.email);
@@ -537,6 +543,158 @@ app.post('/api/learner/gamification/chest/claim', async (req, res) => {
     [email, reward.key, reward.label]
   );
   res.status(201).json({ ok: true, reward });
+});
+
+app.get('/api/learner/champion/questions', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const email = req.user.email;
+  const r = await db._query(
+    `SELECT
+       c.id,
+       c.author_email AS "authorEmail",
+       c.author_name AS "authorName",
+       c.question,
+       c.options,
+       c.explanation,
+       c.status,
+       c.winner_email AS "winnerEmail",
+       c.winner_name AS "winnerName",
+       c.created_at AS "createdAt",
+       c.closed_at AS "closedAt",
+       COALESCE((SELECT COUNT(*)::int FROM learner_champion_answers a WHERE a.challenge_id = c.id), 0) AS "answersCount",
+       me.selected_index AS "mySelectedIndex",
+       me.is_correct AS "myIsCorrect"
+     FROM learner_champion_challenges c
+     LEFT JOIN learner_champion_answers me
+       ON me.challenge_id = c.id AND me.challenger_email = $2
+     WHERE c.class_key = $1
+     ORDER BY c.created_at DESC
+     LIMIT 50`,
+    [COLLAB_CLASS_KEY, email]
+  );
+  const rows = (r ? r.rows : []).map((row) => ({
+    ...row,
+    isAuthor: String(row.authorEmail || '').toLowerCase() === email,
+    canAnswer: row.status === 'open' && String(row.authorEmail || '').toLowerCase() !== email && row.mySelectedIndex == null,
+    options: Array.isArray(row.options) ? row.options : []
+  }));
+  res.json({ enabled: true, rows });
+});
+
+app.post('/api/learner/champion/questions', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const question = String(req.body?.question || '').trim();
+  const optionsRaw = Array.isArray(req.body?.options) ? req.body.options : [];
+  const options = optionsRaw.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 4);
+  const correctIndex = Number(req.body?.correctIndex);
+  const explanation = String(req.body?.explanation || '').trim().slice(0, 240);
+  if (!question) return res.status(400).json({ error: 'question required' });
+  if (question.length > 220) return res.status(400).json({ error: 'question too long (max 220)' });
+  if (options.length < 2) return res.status(400).json({ error: 'at least 2 options are required' });
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+    return res.status(400).json({ error: 'correctIndex must target one option' });
+  }
+  const scan = await cs.analyze([question, ...options, explanation].filter(Boolean).join('\n'));
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Question blocked by Content Safety.', severities: scan.severities });
+  }
+
+  const authorName = learnerDisplayName(req.user);
+  const r = await db._query(
+    `INSERT INTO learner_champion_challenges (class_key, author_email, author_name, question, options, correct_index, explanation)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
+     RETURNING id, author_email AS "authorEmail", author_name AS "authorName", question, options, explanation, status, created_at AS "createdAt"`,
+    [COLLAB_CLASS_KEY, req.user.email, authorName, question, JSON.stringify(options), correctIndex, explanation || null]
+  );
+
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, 'challenge-creator', 'Challenge Creator', 'champion_question')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [req.user.email]
+  );
+
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/learner/champion/questions/:id/answer', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const challengeId = Number.parseInt(req.params.id, 10);
+  const selectedIndex = Number(req.body?.selectedIndex);
+  if (!Number.isFinite(challengeId)) return res.status(400).json({ error: 'invalid challenge id' });
+  if (!Number.isInteger(selectedIndex)) return res.status(400).json({ error: 'selectedIndex must be an integer' });
+
+  const c = await db._query(
+    `SELECT id, author_email AS "authorEmail", correct_index AS "correctIndex", status
+       FROM learner_champion_challenges
+      WHERE id = $1 AND class_key = $2`,
+    [challengeId, COLLAB_CLASS_KEY]
+  );
+  const challenge = c && c.rows ? c.rows[0] : null;
+  if (!challenge) return res.status(404).json({ error: 'challenge not found' });
+  if (String(challenge.authorEmail || '').toLowerCase() === req.user.email) return res.status(400).json({ error: 'you cannot answer your own challenge' });
+
+  const challengerName = learnerDisplayName(req.user);
+  const isCorrect = selectedIndex === challenge.correctIndex;
+  const points = isCorrect ? 3 : 0;
+
+  const ins = await db._query(
+    `INSERT INTO learner_champion_answers (challenge_id, challenger_email, challenger_name, selected_index, is_correct, points_awarded)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (challenge_id, challenger_email) DO NOTHING
+     RETURNING id`,
+    [challengeId, req.user.email, challengerName, selectedIndex, isCorrect, points]
+  );
+  if (!ins || !ins.rows || !ins.rows.length) return res.status(409).json({ error: 'you already answered this challenge' });
+
+  let closedByMe = false;
+  if (isCorrect && challenge.status === 'open') {
+    const closeR = await db._query(
+      `UPDATE learner_champion_challenges
+          SET status = 'closed', winner_email = $2, winner_name = $3, closed_at = now()
+        WHERE id = $1 AND status = 'open'
+        RETURNING id`,
+      [challengeId, req.user.email, challengerName]
+    );
+    closedByMe = Boolean(closeR && closeR.rows && closeR.rows.length);
+  }
+
+  if (isCorrect) {
+    await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, 'champion-answer', 'Champion Answer', 'champion_question')
+       ON CONFLICT (email, badge_key) DO NOTHING`,
+      [req.user.email]
+    );
+    if (closedByMe) {
+      await db._query(
+        `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+         VALUES ($1, 'champion-winner', 'Champion Winner', 'champion_question')
+         ON CONFLICT (email, badge_key) DO NOTHING`,
+        [req.user.email]
+      );
+    }
+  }
+
+  res.status(201).json({ ok: true, isCorrect, pointsAwarded: points, closedByMe });
+});
+
+app.get('/api/learner/champion/leaderboard', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT challenger_email AS "email",
+            challenger_name AS "displayName",
+            COUNT(*)::int AS "attempts",
+            SUM(CASE WHEN is_correct THEN 1 ELSE 0 END)::int AS "correctAnswers",
+            COALESCE(SUM(points_awarded), 0)::int AS "points"
+       FROM learner_champion_answers
+      GROUP BY challenger_email, challenger_name
+      ORDER BY "points" DESC, "correctAnswers" DESC, "attempts" DESC
+      LIMIT 20`,
+    []
+  );
+  const rows = (r && r.rows ? r.rows : []).map((x, i) => ({ ...x, rank: i + 1 }));
+  res.json({ enabled: true, rows });
 });
 
 app.post('/api/admin/gamification/badges/grant', async (req, res) => {

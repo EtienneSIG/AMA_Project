@@ -277,6 +277,36 @@
     <h2>Galerie de badges</h2>
     <div id="badgeGallery" style="display:flex;flex-wrap:wrap;gap:.45rem;"></div>
   </div>
+  <div class="card">
+    <div class="explhead">
+      <h2>Question pour un champion</h2>
+      <button class="btn btn-sm secondary" onclick="loadChampionZone()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Pose un defi a ta classe, puis tente de repondre aux questions des autres pour marquer des points.</p>
+    <textarea id="championQuestionInput" maxlength="220" placeholder="Ex: Quel est le resultat de 3/4 + 1/8 ?" style="min-height:2.8rem;"></textarea>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
+      <input id="championOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="championOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="championOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <input id="championOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+    </div>
+    <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
+      <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
+      <select id="championCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
+        <option value="0">A</option>
+        <option value="1">B</option>
+        <option value="2">C</option>
+        <option value="3">D</option>
+      </select>
+      <input id="championExplanation" maxlength="240" placeholder="Short explanation (optional)" style="flex:1 1 260px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+      <button class="btn" onclick="createChampionChallenge()">Create challenge</button>
+    </div>
+    <div id="championStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Challenges de la classe</h3>
+    <div id="championList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Leaderboard champion</h3>
+    <div id="championLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+  </div>
 </div>
 </div><!-- /tab quest -->
 
@@ -826,6 +856,7 @@ window.addEventListener('load', () => {
   loadTeacherQuestions();
   loadMastery();
   loadGamificationDashboard();
+  loadChampionZone();
   syncExplDrawerToggle();
 });
 
@@ -1065,6 +1096,99 @@ async function postMotivationMessage() {
   } catch (e) { if (st) st.textContent = String(e); }
 }
 
+async function loadChampionZone() {
+  const list = document.getElementById('championList');
+  const board = document.getElementById('championLeaderboard');
+  if (!list || !board) return;
+  list.innerHTML = '<div class="sub" style="font-size:.82rem;opacity:.7;">Loading challenges…</div>';
+  board.innerHTML = '<div class="sub" style="font-size:.82rem;opacity:.7;">Loading leaderboard…</div>';
+  try {
+    const [qRes, lRes] = await Promise.all([
+      fetch('/api/learner/champion/questions', { cache: 'no-store' }),
+      fetch('/api/learner/champion/leaderboard', { cache: 'no-store' })
+    ]);
+    const q = await qRes.json();
+    const lb = await lRes.json();
+
+    const rows = q.rows || [];
+    list.innerHTML = rows.length ? rows.map(row => {
+      const statusChip = row.status === 'closed'
+        ? '<span style="background:#E2E8F0;color:#334155;padding:.08rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">Closed</span>'
+        : '<span style="background:#D1FAE5;color:#065F46;padding:.08rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600;">Open</span>';
+      const options = Array.isArray(row.options) ? row.options : [];
+      const answerButtons = row.canAnswer
+        ? options.map((opt, idx) => '<button class="btn btn-sm secondary" style="padding:.3rem .65rem;" onclick="answerChampionChallenge(' + row.id + ',' + idx + ')">' + String.fromCharCode(65 + idx) + ': ' + escapeHtml(opt) + '</button>').join(' ')
+        : (row.mySelectedIndex != null
+          ? '<span class="sub" style="font-size:.78rem;color:var(--grey);">Your answer: ' + String.fromCharCode(65 + row.mySelectedIndex) + (row.myIsCorrect ? ' ✓' : ' ✗') + '</span>'
+          : (row.isAuthor ? '<span class="sub" style="font-size:.78rem;color:var(--grey);">You created this challenge.</span>' : '<span class="sub" style="font-size:.78rem;color:var(--grey);">No action available.</span>'));
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;">'
+        + '<div><strong style="font-size:.9rem;">' + escapeHtml(row.authorName || row.authorEmail) + '</strong> <span class="sub" style="font-size:.74rem;color:var(--grey);">· ' + new Date(row.createdAt).toLocaleString() + '</span></div>'
+        + statusChip
+        + '</div>'
+        + '<div style="font-size:.9rem;color:var(--navy);margin-top:.25rem;">' + escapeHtml(row.question) + '</div>'
+        + '<div class="sub" style="font-size:.76rem;color:var(--grey);margin-top:.2rem;">answers: ' + (row.answersCount || 0) + (row.winnerName ? ' · winner: ' + escapeHtml(row.winnerName) : '') + '</div>'
+        + '<div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem;">' + answerButtons + '</div>'
+        + (row.explanation ? '<div style="margin-top:.35rem;font-size:.82rem;color:var(--grey);">Hint: ' + escapeHtml(row.explanation) + '</div>' : '')
+        + '</div>';
+    }).join('') : '<div class="sub" style="font-size:.82rem;opacity:.7;">No challenge yet. Create the first one.</div>';
+
+    const leaders = lb.rows || [];
+    board.innerHTML = leaders.length ? leaders.map(row =>
+      '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;background:#fff;">'
+      + '<div><strong>#' + row.rank + '</strong> ' + escapeHtml(row.displayName || row.email) + '</div>'
+      + '<div style="font-size:.82rem;color:var(--grey);">' + row.points + ' pts · ' + row.correctAnswers + '/' + row.attempts + ' correct</div>'
+      + '</div>'
+    ).join('') : '<div class="sub" style="font-size:.82rem;opacity:.7;">No answers yet.</div>';
+  } catch (e) {
+    list.innerHTML = '<div class="sub" style="font-size:.82rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>';
+    board.innerHTML = '';
+  }
+}
+
+async function createChampionChallenge() {
+  const st = document.getElementById('championStatus');
+  const question = (document.getElementById('championQuestionInput')?.value || '').trim();
+  const options = [0,1,2,3].map(i => (document.getElementById('championOpt' + i)?.value || '').trim()).filter(Boolean);
+  const correctIndex = Number(document.getElementById('championCorrectIndex')?.value || '0');
+  const explanation = (document.getElementById('championExplanation')?.value || '').trim();
+  if (!question) { if (st) st.textContent = 'Question required.'; return; }
+  if (options.length < 2) { if (st) st.textContent = 'At least 2 options are required.'; return; }
+  if (correctIndex >= options.length) { if (st) st.textContent = 'Correct option must exist in provided options.'; return; }
+  try {
+    const r = await fetch('/api/learner/champion/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, options, correctIndex, explanation })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (st) st.textContent = j.detail || j.error || 'Failed to create challenge.'; return; }
+    document.getElementById('championQuestionInput').value = '';
+    [0,1,2,3].forEach(i => { const el = document.getElementById('championOpt' + i); if (el) el.value = ''; });
+    document.getElementById('championCorrectIndex').value = '0';
+    document.getElementById('championExplanation').value = '';
+    if (st) st.textContent = 'Challenge created!';
+    loadChampionZone();
+    loadGamificationDashboard();
+  } catch (e) { if (st) st.textContent = String(e); }
+}
+
+async function answerChampionChallenge(challengeId, selectedIndex) {
+  const st = document.getElementById('championStatus');
+  try {
+    const r = await fetch('/api/learner/champion/questions/' + encodeURIComponent(challengeId) + '/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedIndex })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (st) st.textContent = j.detail || j.error || 'Failed to submit answer.'; return; }
+    if (st) st.textContent = j.isCorrect ? ('Great! +' + (j.pointsAwarded || 0) + ' points') : 'Nice try, keep going.';
+    loadChampionZone();
+    loadGamificationDashboard();
+  } catch (e) { if (st) st.textContent = String(e); }
+}
+
 function showRewardToast(message, kind) {
   const el = document.getElementById('rewardToast');
   if (!el) return;
@@ -1104,7 +1228,7 @@ function setTab(name) {
   });
   if (name === 'progress') loadMastery();
   if (name === 'ask-teacher') loadTeacherQuestions();
-  if (name === 'quest') loadGamificationDashboard();
+  if (name === 'quest') { loadGamificationDashboard(); loadChampionZone(); }
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

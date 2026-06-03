@@ -302,6 +302,37 @@ CREATE TABLE IF NOT EXISTS learner_gamification_overrides (
 );
 CREATE INDEX IF NOT EXISTS idx_gamification_overrides_created ON learner_gamification_overrides (created_at DESC);
 
+CREATE TABLE IF NOT EXISTS learner_champion_challenges (
+  id            BIGSERIAL    PRIMARY KEY,
+  class_key     TEXT         NOT NULL,
+  author_email  TEXT         NOT NULL,
+  author_name   TEXT         NOT NULL,
+  question      TEXT         NOT NULL,
+  options       JSONB        NOT NULL,
+  correct_index INTEGER      NOT NULL,
+  explanation   TEXT,
+  status        TEXT         NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  winner_email  TEXT,
+  winner_name   TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  closed_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_champion_challenges_class_created ON learner_champion_challenges (class_key, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_champion_answers (
+  id               BIGSERIAL    PRIMARY KEY,
+  challenge_id     BIGINT       NOT NULL REFERENCES learner_champion_challenges(id) ON DELETE CASCADE,
+  challenger_email TEXT         NOT NULL,
+  challenger_name  TEXT         NOT NULL,
+  selected_index   INTEGER      NOT NULL,
+  is_correct       BOOLEAN      NOT NULL,
+  points_awarded   INTEGER      NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (challenge_id, challenger_email)
+);
+CREATE INDEX IF NOT EXISTS idx_champion_answers_challenge ON learner_champion_answers (challenge_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_champion_answers_email ON learner_champion_answers (challenger_email, created_at DESC);
+
 -- Teacher overrides (Feature 5a — EU AI Act Article 14 audit trail).
 -- Records every manual change a teacher makes to an AI-suggested mastery level.
 CREATE TABLE IF NOT EXISTS teacher_overrides (
