@@ -539,6 +539,46 @@ app.post('/api/learner/gamification/chest/claim', async (req, res) => {
   res.status(201).json({ ok: true, reward });
 });
 
+app.post('/api/admin/gamification/badges/grant', async (req, res) => {
+  const u = req.user;
+  if (u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  const inputBadges = Array.isArray(req.body?.badges) ? req.body.badges : [];
+  const badges = inputBadges
+    .map((b) => ({
+      key: String(b?.key || '').trim().slice(0, 80),
+      label: String(b?.label || '').trim().slice(0, 120),
+      source: String(b?.source || 'manual_grant').trim().slice(0, 60)
+    }))
+    .filter((b) => b.key && b.label);
+
+  if (!badges.length) return res.status(400).json({ error: 'badges[] with key/label required' });
+
+  let granted = 0;
+  for (const b of badges) {
+    const r = await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email, badge_key) DO NOTHING
+       RETURNING badge_key`,
+      [email, b.key, b.label, b.source]
+    );
+    if (r && r.rows && r.rows.length) granted += 1;
+  }
+
+  const rows = await db._query(
+    `SELECT badge_key AS key, badge_label AS label, source, earned_at AS "earnedAt"
+       FROM learner_badges WHERE email = $1 ORDER BY earned_at DESC LIMIT 50`,
+    [email]
+  );
+
+  res.status(201).json({ ok: true, email, requested: badges.length, granted, rows: rows ? rows.rows : [] });
+});
+
 app.get('/api/learner/gamification/motivation', async (_req, res) => {
   if (!db.enabled) return res.json({ enabled: false, rows: [] });
   const rows = await db._query(
