@@ -423,5 +423,23 @@ app.get('/api/admin/quality/feedback', async (req, res) => {
   res.json({ enabled: true, rows: rows || [] });
 });
 
+app.get('/api/admin/gamification/kpis', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, kpis: null });
+  const r = await db._query(
+    `SELECT
+       (SELECT COUNT(*)::int FROM learner_activity WHERE day = CURRENT_DATE AND email LIKE 'student%@learneu.demo') AS attempts_today,
+       (SELECT COUNT(*)::int FROM learner_daily_chests WHERE day = CURRENT_DATE) AS chest_claims_today,
+       (SELECT COUNT(*)::int FROM learner_badges WHERE earned_at > now() - INTERVAL '24 hours') AS badges_24h,
+       (SELECT COUNT(*)::int FROM learner_motivation_messages WHERE status = 'active' AND created_at > now() - INTERVAL '24 hours') AS motivation_posts_24h,
+       (SELECT COUNT(*)::int FROM learner_gamification_overrides WHERE created_at > now() - INTERVAL '24 hours') AS moderation_actions_24h,
+       (SELECT COUNT(*)::int FROM item_attempts ia
+         WHERE ia.email LIKE 'student%@learneu.demo'
+           AND ia.correct = true
+           AND ia.created_at > now() - INTERVAL '24 hours') AS correct_attempts_24h`,
+    []
+  );
+  res.json({ enabled: true, kpis: r && r.rows[0] ? r.rows[0] : null });
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));

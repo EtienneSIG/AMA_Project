@@ -223,6 +223,14 @@
     <div id="qualityFeedback">Loading…</div>
   </div>
 
+  <div class="panel" data-group="safety">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Gamification KPIs <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/gamification/kpis · learner engagement</span></h2>
+      <button class="btn secondary" onclick="loadGamificationKpis()">Refresh</button>
+    </div>
+    <div id="gamificationKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.6rem;margin-top:.6rem;">Loading…</div>
+  </div>
+
   <div class="panel" data-group="diagnostics">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
@@ -500,11 +508,12 @@ async function loadDeployments() {
   loadOnnx();
   loadDataPanels();
   loadQuality();
+  loadGamificationKpis();
   loadPostgresOps();
   const initial = (location.hash || '').replace(/^#/, '');
   const valid = new Set(['overview','users','activity','safety','data','diagnostics']);
   setTab(valid.has(initial) ? initial : 'overview');
-  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadPostgresOps(); }, 30000);
+  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); }, 30000);
 })();
 
 // ---- Content Safety panel ---------------------------------------------------
@@ -712,6 +721,27 @@ async function loadQuality() {
       </tr>`).join('');
     if (t) t.innerHTML = `<table class="adm"><thead><tr><th>When</th><th>Learner</th><th>Rating</th><th>App</th><th>Prompt</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`;
   } catch (e) { if (t) t.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadGamificationKpis() {
+  const k = document.getElementById('gamificationKpis');
+  if (!k) return;
+  k.innerHTML = '<em>Loading…</em>';
+  try {
+    const j = await (await fetch('/api/admin/gamification/kpis', { cache:'no-store' })).json();
+    if (j.enabled === false) { k.innerHTML = '<em>Postgres not configured.</em>'; return; }
+    const g = j.kpis || {};
+    k.innerHTML = [
+      kpiCard('Attempts today', g.attempts_today ?? 0),
+      kpiCard('Chest claims today', g.chest_claims_today ?? 0),
+      kpiCard('Badges (24h)', g.badges_24h ?? 0),
+      kpiCard('Motivation posts (24h)', g.motivation_posts_24h ?? 0),
+      kpiCard('Moderation actions (24h)', g.moderation_actions_24h ?? 0),
+      kpiCard('Correct attempts (24h)', g.correct_attempts_24h ?? 0)
+    ].join('');
+  } catch (e) {
+    k.innerHTML = '<span class="badge err">' + escapeHtml(String(e)) + '</span>';
+  }
 }
 </script>
 </body>

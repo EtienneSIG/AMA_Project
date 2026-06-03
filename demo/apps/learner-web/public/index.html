@@ -204,9 +204,21 @@
   .chapter-bar > div { height:100%; background:linear-gradient(90deg,var(--teal),var(--navy)); transition:width .3s; }
   .chapter-body { padding:.55rem .9rem .8rem; display:flex; flex-direction:column; gap:.4rem; }
   .chapter-card.collapsed .chapter-body, .chapter-card.collapsed .chapter-bar { display:none; }
+  #rewardToast { position: fixed; right: 1rem; bottom: 1rem; z-index: 120; background: #fff; border: 1px solid var(--line); color: var(--navy); border-radius: 10px; box-shadow: 0 8px 28px rgba(15,27,45,0.18); padding: .7rem .9rem; font-weight: 600; transform: translateY(20px); opacity: 0; pointer-events: none; transition: transform .25s ease, opacity .25s ease; }
+  #rewardToast.show { transform: translateY(0); opacity: 1; }
+  #rewardToast.success { border-color: #22c55e; }
+  #rewardToast.boss { border-color: #f26334; }
+  #confettiLayer { position: fixed; inset: 0; pointer-events: none; z-index: 119; overflow: hidden; }
+  .confetti-piece { position: absolute; width: 10px; height: 14px; top: -20px; border-radius: 2px; opacity: .95; animation: confetti-fall 1300ms linear forwards; }
+  @keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0.1; }
+  }
 </style>
 </head>
 <body>
+<div id="confettiLayer" aria-hidden="true"></div>
+<div id="rewardToast" aria-live="polite"></div>
 <nav class="top">
   <div class="wrap">
     <img src="/logo.svg" alt="EdTech Group" />
@@ -935,6 +947,7 @@ async function loadMastery() {
 
 // --- Quest dashboard gamification (Feature 003) -------------------------
 let _gamState = null;
+let _rewardToastTimer = null;
 function metricCard(title, bodyHtml) {
   return '<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;background:#fff;">'
     + '<div style="font-size:.72rem;color:var(--grey);text-transform:uppercase;letter-spacing:.04em;">' + escapeHtml(title) + '</div>'
@@ -948,6 +961,7 @@ async function loadGamificationDashboard() {
   if (!grid) return;
   grid.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>';
   try {
+    const prev = _gamState;
     const r = await fetch('/api/learner/gamification/dashboard', { cache: 'no-store' });
     const d = await r.json();
     if (!d.enabled) {
@@ -1005,6 +1019,15 @@ async function loadGamificationDashboard() {
         ? earned.map(b => '<span style="background:#FFF3CD;color:#856404;padding:.2rem .55rem;border-radius:999px;font-size:.74rem;font-weight:600;">★ ' + escapeHtml(b.label || b.key) + '</span>').join('')
         : '<span class="sub" style="font-size:.82rem;opacity:.7;">No badges yet. Complete your daily mission to earn one.</span>';
     }
+
+    // Celebrate transitions only when the state changed (prevents noise on refresh loops).
+    if (prev && !prev.bossBattle?.defeated && d.bossBattle?.defeated) {
+      showRewardToast('Boss defeated! Huge streak unlocked.', 'boss');
+      launchConfetti(48);
+    }
+    if (prev && (prev.badges || []).length < (d.badges || []).length) {
+      showRewardToast('New badge earned! Keep the momentum.', 'success');
+    }
   } catch (e) {
     grid.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load quest dashboard: ' + escapeHtml(String(e)) + '</div>';
   }
@@ -1015,7 +1038,8 @@ async function claimDailyChest() {
     const r = await fetch('/api/learner/gamification/chest/claim', { method: 'POST' });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { alert(j.error || 'Chest claim failed'); return; }
-    alert('Chest opened! You earned: ' + (j.reward?.label || 'badge'));
+    showRewardToast('Chest opened! You earned: ' + (j.reward?.label || 'badge'), 'success');
+    launchConfetti(36);
     loadGamificationDashboard();
   } catch (e) { alert(String(e)); }
 }
@@ -1037,6 +1061,35 @@ async function postMotivationMessage() {
     if (st) st.textContent = 'Message posted.';
     loadGamificationDashboard();
   } catch (e) { if (st) st.textContent = String(e); }
+}
+
+function showRewardToast(message, kind) {
+  const el = document.getElementById('rewardToast');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove('success', 'boss', 'show');
+  if (kind) el.classList.add(kind);
+  void el.offsetWidth;
+  el.classList.add('show');
+  if (_rewardToastTimer) clearTimeout(_rewardToastTimer);
+  _rewardToastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+function launchConfetti(count) {
+  const layer = document.getElementById('confettiLayer');
+  if (!layer) return;
+  const palette = ['#F26334', '#2BB4B8', '#1a3658', '#f59e0b', '#22c55e'];
+  const total = Number.isFinite(count) ? count : 32;
+  for (let i = 0; i < total; i += 1) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (Math.random() * 100).toFixed(2) + 'vw';
+    piece.style.background = palette[Math.floor(Math.random() * palette.length)];
+    piece.style.animationDuration = (900 + Math.floor(Math.random() * 1000)) + 'ms';
+    piece.style.transform = 'translateY(0) rotate(' + Math.floor(Math.random() * 120) + 'deg)';
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 2200);
+  }
 }
 
 // --- Tabbed workspace (Feature 4b) -------------------------------------

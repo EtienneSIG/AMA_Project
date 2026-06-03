@@ -415,6 +415,75 @@ app.get('/api/teacher/overrides', async (req, res) => {
   res.json({ enabled: true, rows: rows || [] });
 });
 
+// --- Learner gamification moderation (Feature 003) ------------------------
+app.get('/api/teacher/gamification/motivation', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions'
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    []
+  );
+  res.json({ enabled: true, rows: r ? r.rows : [] });
+});
+
+app.post('/api/teacher/gamification/motivation/:id/hide', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const reason = String(req.body?.reason || 'teacher_moderation').slice(0, 200);
+  const up = await db._query(
+    `UPDATE learner_motivation_messages
+        SET status = 'hidden'
+      WHERE id = $1
+      RETURNING id, email, message, status`,
+    [id]
+  );
+  if (!up || !up.rows[0]) return res.status(404).json({ error: 'message not found' });
+  await db._query(
+    `INSERT INTO learner_gamification_overrides (teacher_email, action_type, target_type, target_id, reason)
+     VALUES ($1, 'hide_message', 'motivation_message', $2, $3)`,
+    [u.email, String(id), reason]
+  );
+  res.json({ row: up.rows[0] });
+});
+
+app.get('/api/teacher/gamification/overrides', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT id, teacher_email AS "teacherEmail", action_type AS "actionType", target_type AS "targetType", target_id AS "targetId", reason, created_at AS "createdAt"
+       FROM learner_gamification_overrides
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    []
+  );
+  res.json({ enabled: true, rows: r ? r.rows : [] });
+});
+
+app.get('/api/teacher/gamification/kpis', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, kpis: null });
+  const kpiR = await db._query(
+    `SELECT
+       (SELECT COUNT(*)::int FROM learner_activity WHERE day = CURRENT_DATE AND email LIKE 'student%@learneu.demo') AS attempts_today,
+       (SELECT COUNT(*)::int FROM learner_daily_chests WHERE day = CURRENT_DATE) AS chest_claims_today,
+       (SELECT COUNT(*)::int FROM learner_motivation_messages WHERE status = 'active' AND created_at > now() - INTERVAL '24 hours') AS motivation_posts_24h,
+       (SELECT COUNT(*)::int FROM learner_badges WHERE earned_at > now() - INTERVAL '24 hours') AS badges_24h,
+       (SELECT COUNT(*)::int FROM learner_gamification_overrides WHERE created_at > now() - INTERVAL '24 hours') AS moderation_actions_24h`,
+    []
+  );
+  res.json({ enabled: true, kpis: kpiR && kpiR.rows[0] ? kpiR.rows[0] : null });
+});
+
 // --- Parent dashboard (Feature 6, read-only) ----------------------------
 function isParentOrAdmin(u) { return u && (u.role === 'parent' || u.role === 'admin'); }
 async function ensureLinked(req, res) {

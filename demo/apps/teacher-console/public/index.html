@@ -278,6 +278,24 @@
 </div>
 <div data-tab="audit">
 <section style="max-width:1320px;margin:0 auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="motivationModerationCard" style="margin-bottom:1rem;">
+    <div class="explhead">
+      <h2>Motivation moderation <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">teacher oversight for learner wall</span></h2>
+      <div style="display:flex;gap:.4rem;">
+        <button class="btn btn-sm secondary" onclick="loadMotivationModeration()">Refresh messages</button>
+        <button class="btn btn-sm secondary" onclick="loadGamificationOverrides()">Refresh actions</button>
+      </div>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Hide inappropriate or off-topic messages. Each action is logged for compliance evidence.</p>
+    <div id="motivationModerationList" style="display:flex;flex-direction:column;gap:.5rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+    <h3 style="margin:1rem 0 .5rem;font-size:1rem;color:var(--navy);">Recent moderation actions</h3>
+    <div id="gamificationOverridesList" style="display:flex;flex-direction:column;gap:.45rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+
   <div class="card" id="overridesCard">
     <div class="explhead">
       <h2>Override audit log <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">last 50 manual changes · immutable</span></h2>
@@ -573,6 +591,8 @@ window.addEventListener('load', () => {
   loadClassMastery();
   loadHeatmap();
   loadOverrides();
+  loadMotivationModeration();
+  loadGamificationOverrides();
   // Optional deep-link: #ask|#inbox|#class|#audit
   const h = (location.hash || '').replace('#','');
   if (['ask','inbox','class','audit'].includes(h)) setTab(h);
@@ -766,6 +786,77 @@ async function loadOverrides() {
         + '</div>';
     }).join('');
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+async function loadMotivationModeration() {
+  const list = document.getElementById('motivationModerationList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/gamification/motivation', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || !d.rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No motivation messages yet.</div>'; return; }
+    list.innerHTML = d.rows.map(row => {
+      const active = row.status === 'active';
+      const badge = active
+        ? '<span style="background:#D1FAE5;color:#065F46;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Active</span>'
+        : '<span style="background:#FEE2E2;color:#991B1B;padding:.1rem .45rem;border-radius:999px;font-size:.72rem;font-weight:600;">Hidden</span>';
+      const action = active
+        ? '<button class="btn btn-sm" onclick="hideMotivationMessage(' + row.id + ')">Hide</button>'
+        : '<span class="sub" style="font-size:.76rem;color:var(--grey);">Already hidden</span>';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.6rem .75rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;">'
+        + '<div><strong style="font-size:.88rem;">' + escapeHtml(row.displayName || row.email) + '</strong> <span class="sub" style="font-size:.74rem;color:var(--grey);">· ' + new Date(row.createdAt).toLocaleString() + '</span></div>'
+        + badge
+        + '</div>'
+        + '<div style="white-space:pre-wrap;font-size:.9rem;margin-top:.35rem;">' + escapeHtml(row.message || '') + '</div>'
+        + '<div style="margin-top:.45rem;display:flex;justify-content:flex-end;">' + action + '</div>'
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>';
+  }
+}
+
+async function hideMotivationMessage(id) {
+  const reason = prompt('Reason for hiding this message (required for audit log):', 'teacher_moderation');
+  if (!reason) return;
+  try {
+    const r = await fetch('/api/teacher/gamification/motivation/' + encodeURIComponent(id) + '/hide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(d.error || d.detail || 'Failed to hide message.'); return; }
+    loadMotivationModeration();
+    loadGamificationOverrides();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
+async function loadGamificationOverrides() {
+  const list = document.getElementById('gamificationOverridesList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/gamification/overrides', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || !d.rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No moderation actions yet.</div>'; return; }
+    list.innerHTML = d.rows.slice(0, 20).map(o =>
+      '<div style="border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;background:#fff;">'
+      + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;">'
+      + '<strong style="font-size:.85rem;">' + escapeHtml(o.actionType) + '</strong>'
+      + '<span class="sub" style="font-size:.74rem;color:var(--grey);">' + new Date(o.createdAt).toLocaleString() + '</span>'
+      + '</div>'
+      + '<div class="sub" style="font-size:.78rem;color:var(--grey);">target: ' + escapeHtml(o.targetType) + ' #' + escapeHtml(o.targetId) + ' · by ' + escapeHtml(o.teacherEmail) + '</div>'
+      + (o.reason ? '<div style="margin-top:.25rem;font-size:.82rem;">' + escapeHtml(o.reason) + '</div>' : '')
+      + '</div>'
+    ).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed: ' + escapeHtml(String(e)) + '</div>';
+  }
 }
 let _catalogue = [];
 function openSkillCatalogue() {

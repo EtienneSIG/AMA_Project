@@ -319,3 +319,47 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 );
 CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);
+
+-- ---------------------------------------------------------------------------
+-- Learner gamification UX (Feature 003)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learner_badges (
+  email       TEXT         NOT NULL,
+  badge_key   TEXT         NOT NULL,
+  badge_label TEXT         NOT NULL,
+  source      TEXT         NOT NULL,
+  earned_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, badge_key)
+);
+CREATE INDEX IF NOT EXISTS idx_learner_badges_earned ON learner_badges (email, earned_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_daily_chests (
+  email             TEXT         NOT NULL,
+  day               DATE         NOT NULL,
+  reward_badge_key  TEXT         NOT NULL,
+  reward_label      TEXT         NOT NULL,
+  claimed_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, day)
+);
+
+CREATE TABLE IF NOT EXISTS learner_motivation_messages (
+  id            BIGSERIAL    PRIMARY KEY,
+  class_key     TEXT         NOT NULL,
+  email         TEXT         NOT NULL,
+  display_name  TEXT         NOT NULL,
+  message       TEXT         NOT NULL,
+  status        TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'hidden')),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_motivation_class_created ON learner_motivation_messages (class_key, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_gamification_overrides (
+  id            BIGSERIAL    PRIMARY KEY,
+  teacher_email TEXT         NOT NULL,
+  action_type   TEXT         NOT NULL,
+  target_type   TEXT         NOT NULL,
+  target_id     TEXT         NOT NULL,
+  reason        TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_gamification_overrides_created ON learner_gamification_overrides (created_at DESC);
