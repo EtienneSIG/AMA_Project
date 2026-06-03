@@ -358,6 +358,255 @@ app.get('/api/learner/activity', async (req, res) => {
   const rows = await db.listLearnerActivity({ email: u.email, days: 30 });
   res.json({ enabled: true, rows: rows || [] });
 });
+
+// --- Learner gamification UX (Feature 003) -------------------------------
+const GAM_BADGES = [
+  { key: 'daily-flame', label: 'Daily Flame' },
+  { key: 'fraction-hunter', label: 'Fraction Hunter' },
+  { key: 'team-helper', label: 'Team Helper' },
+  { key: 'boss-slayer', label: 'Boss Slayer' },
+  { key: 'streak-sprinter', label: 'Streak Sprinter' }
+];
+
+function tierFromAttempts(totalAttempts) {
+  if (totalAttempts >= 200) return { tier: 10, name: 'Mythic' };
+  if (totalAttempts >= 160) return { tier: 9, name: 'Legend' };
+  if (totalAttempts >= 130) return { tier: 8, name: 'Master' };
+  if (totalAttempts >= 100) return { tier: 7, name: 'Diamond' };
+  if (totalAttempts >= 75) return { tier: 6, name: 'Gold' };
+  if (totalAttempts >= 55) return { tier: 5, name: 'Silver' };
+  if (totalAttempts >= 40) return { tier: 4, name: 'Bronze+' };
+  if (totalAttempts >= 25) return { tier: 3, name: 'Bronze' };
+  if (totalAttempts >= 12) return { tier: 2, name: 'Starter+' };
+  return { tier: 1, name: 'Starter' };
+}
+
+function rewardForDay(dateIso) {
+  const d = String(dateIso || '').replace(/-/g, '');
+  const seed = Number.parseInt(d.slice(-2), 10) || 1;
+  return GAM_BADGES[seed % GAM_BADGES.length];
+}
+
+async function getConsecutiveCorrect(email) {
+  const r = await db._query(
+    `SELECT correct FROM item_attempts WHERE email = $1 ORDER BY created_at DESC LIMIT 30`,
+    [email]
+  );
+  if (!r || !r.rows) return 0;
+  let streak = 0;
+  for (const row of r.rows) {
+    if (row.correct) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
+async function buildGamificationDashboard(email) {
+  const todayR = await db._query(
+    `SELECT COALESCE(attempts, 0)::int AS attempts, COALESCE(correct, 0)::int AS correct
+       FROM learner_activity WHERE email = $1 AND day = CURRENT_DATE`,
+    [email]
+  );
+  const todayAttempts = todayR && todayR.rows[0] ? todayR.rows[0].attempts : 0;
+  const todayCorrect = todayR && todayR.rows[0] ? todayR.rows[0].correct : 0;
+
+  const weekR = await db._query(
+    `SELECT COALESCE(SUM(attempts), 0)::int AS total_attempts,
+            COUNT(DISTINCT CASE WHEN attempts > 0 THEN email END)::int AS contributors
+       FROM learner_activity
+      WHERE day >= date_trunc('week', now())::date
+        AND email LIKE 'student%@learneu.demo'`,
+    []
+  );
+  const classAttempts = weekR && weekR.rows[0] ? weekR.rows[0].total_attempts : 0;
+  const classContributors = weekR && weekR.rows[0] ? weekR.rows[0].contributors : 0;
+
+  const streakStats = await db.getLearnerStreak({ email, windowDays: 30 });
+  const totalAttempts30 = streakStats ? (streakStats.totalAttempts || 0) : 0;
+  const tier = tierFromAttempts(totalAttempts30);
+  const nextTierAttempts = [12, 25, 40, 55, 75, 100, 130, 160, 200, 260][Math.max(0, tier.tier - 1)] || 260;
+
+  const consecutiveCorrect = await getConsecutiveCorrect(email);
+
+  const chestR = await db._query(
+    `SELECT claimed_at, reward_badge_key AS key, reward_label AS label
+       FROM learner_daily_chests WHERE email = $1 AND day = CURRENT_DATE`,
+    [email]
+  );
+  const chestClaimed = Boolean(chestR && chestR.rows && chestR.rows[0]);
+  const todayReward = rewardForDay(new Date().toISOString().slice(0, 10));
+
+  const badgesR = await db._query(
+    `SELECT badge_key AS key, badge_label AS label, source, earned_at
+       FROM learner_badges WHERE email = $1 ORDER BY earned_at DESC LIMIT 40`,
+    [email]
+  );
+
+  const motivationR = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions' AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 25`,
+    []
+  );
+
+  return {
+    mission: {
+      id: 'daily-quest-fractions',
+      title: 'Mission du jour',
+      objective: 'Complete 10 practice attempts today',
+      target: 10,
+      progress: todayAttempts,
+      correct: todayCorrect,
+      completed: todayAttempts >= 10
+    },
+    guildObjective: {
+      classKey: 'class-y7-fractions',
+      title: 'Objectif de la classe',
+      target: 300,
+      progress: classAttempts,
+      contributors: classContributors
+    },
+    collaborativeQuests: [
+      {
+        id: 'cq-duo-help',
+        title: 'Duo entraide',
+        description: 'Two learners each complete 8 attempts this week',
+        target: 16,
+        progress: Math.min(16, classAttempts),
+        completed: classAttempts >= 16
+      },
+      {
+        id: 'cq-class-sprint',
+        title: 'Class sprint',
+        description: 'Class reaches 120 valid attempts',
+        target: 120,
+        progress: Math.min(120, classAttempts),
+        completed: classAttempts >= 120
+      }
+    ],
+    season: {
+      title: 'Season Progression',
+      tier: tier.tier,
+      tierName: tier.name,
+      progress: Math.min(totalAttempts30, nextTierAttempts),
+      target: nextTierAttempts,
+      totalAttempts30
+    },
+    chest: {
+      eligible: todayAttempts >= 10,
+      claimed: chestClaimed,
+      rewardPreview: todayReward,
+      claimedReward: chestClaimed ? { key: chestR.rows[0].key, label: chestR.rows[0].label, claimedAt: chestR.rows[0].claimed_at } : null
+    },
+    bossBattle: {
+      title: 'Boss Battle',
+      objective: '10 consecutive correct answers',
+      currentStreak: consecutiveCorrect,
+      target: 10,
+      defeated: consecutiveCorrect >= 10
+    },
+    badges: badgesR ? badgesR.rows : [],
+    motivation: motivationR ? motivationR.rows : []
+  };
+}
+
+app.get('/api/learner/gamification/dashboard', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false });
+  const payload = await buildGamificationDashboard(req.user.email);
+  res.json({ enabled: true, ...payload });
+});
+
+app.post('/api/learner/gamification/chest/claim', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const email = req.user.email;
+  const dash = await buildGamificationDashboard(email);
+  if (!dash.chest.eligible) return res.status(400).json({ error: 'daily mission not completed yet' });
+  if (dash.chest.claimed) return res.status(409).json({ error: 'chest already claimed today', reward: dash.chest.claimedReward });
+  const reward = dash.chest.rewardPreview;
+  await db._query(
+    `INSERT INTO learner_daily_chests (email, day, reward_badge_key, reward_label)
+     VALUES ($1, CURRENT_DATE, $2, $3)`,
+    [email, reward.key, reward.label]
+  );
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, $2, $3, 'daily_chest')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [email, reward.key, reward.label]
+  );
+  res.status(201).json({ ok: true, reward });
+});
+
+app.get('/api/learner/gamification/motivation', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions' AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 50`,
+    []
+  );
+  res.json({ enabled: true, rows: rows ? rows.rows : [] });
+});
+
+app.post('/api/learner/gamification/motivation', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const message = String(req.body?.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'message required' });
+  if (message.length > 280) return res.status(400).json({ error: 'message too long (max 280)' });
+  const scan = await cs.analyze(message);
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Message blocked by Content Safety.', severities: scan.severities });
+  }
+  const displayName = [req.user.firstName, req.user.lastName].filter(Boolean).join(' ').trim() || req.user.email;
+  const r = await db._query(
+    `INSERT INTO learner_motivation_messages (class_key, email, display_name, message)
+     VALUES ('class-y7-fractions', $1, $2, $3)
+     RETURNING id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"`,
+    [req.user.email, displayName, message]
+  );
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/teacher/gamification/motivation/:id/hide', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const reason = String(req.body?.reason || 'teacher_moderation').slice(0, 200);
+  const up = await db._query(
+    `UPDATE learner_motivation_messages
+        SET status = 'hidden'
+      WHERE id = $1
+      RETURNING id, email, message, status`,
+    [id]
+  );
+  if (!up || !up.rows[0]) return res.status(404).json({ error: 'message not found' });
+  await db._query(
+    `INSERT INTO learner_gamification_overrides (teacher_email, action_type, target_type, target_id, reason)
+     VALUES ($1, 'hide_message', 'motivation_message', $2, $3)`,
+    [u.email, String(id), reason]
+  );
+  res.json({ row: up.rows[0] });
+});
+
+app.get('/api/teacher/gamification/overrides', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT id, teacher_email AS "teacherEmail", action_type AS "actionType", target_type AS "targetType", target_id AS "targetId", reason, created_at AS "createdAt"
+       FROM learner_gamification_overrides
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    []
+  );
+  res.json({ enabled: true, rows: r ? r.rows : [] });
+});
 // Streak + totals + earned badges (Feature 4 widget).
 app.get('/api/learner/streak', async (req, res) => {
   const u = req.user;

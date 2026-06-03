@@ -1,0 +1,543 @@
+openapi: 3.0.3
+info:
+  title: LearnEU Learner Gamification and Teacher Oversight API
+  version: 0.1.0
+  description: |
+    Contract for learner-facing gamification endpoints and teacher-in-the-loop
+    moderation/override controls for collaborative motivational surfaces.
+servers:
+  - url: https://app-learner-web-learneu-demo.azurewebsites.net
+    description: Learner web app
+  - url: https://app-teacher-console-learneu-demo.azurewebsites.net
+    description: Teacher console app
+security:
+  - sessionCookie: []
+
+paths:
+  /api/learner/gamification/dashboard:
+    get:
+      summary: Get learner quest dashboard snapshot
+      operationId: getLearnerQuestDashboard
+      tags: [LearnerGamification]
+      responses:
+        '200':
+          description: Aggregated learner dashboard snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestDashboardSnapshot'
+        '401':
+          description: Authentication required
+        '403':
+          description: Learner role required or consent gate blocked
+
+  /api/learner/gamification/daily-challenge/start:
+    post:
+      summary: Start daily challenge for current learner
+      operationId: startDailyChallenge
+      tags: [LearnerGamification]
+      responses:
+        '200':
+          description: Challenge started or already in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyChallengeRun'
+        '409':
+          description: Daily challenge already completed or unavailable
+
+  /api/learner/gamification/daily-challenge/complete:
+    post:
+      summary: Complete daily challenge and apply rewards
+      operationId: completeDailyChallenge
+      tags: [LearnerGamification]
+      responses:
+        '200':
+          description: Completion accepted with reward result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyChallengeCompletionResult'
+        '409':
+          description: Challenge not in completable state
+
+  /api/learner/gamification/boss-battle/answer:
+    post:
+      summary: Submit one boss battle answer result
+      operationId: submitBossBattleAnswer
+      tags: [LearnerGamification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isCorrect]
+              properties:
+                isCorrect:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated boss battle attempt state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BossBattleAttempt'
+
+  /api/learner/gamification/daily-chest/claim:
+    post:
+      summary: Claim once-per-day chest reward
+      operationId: claimDailyChest
+      tags: [LearnerGamification]
+      responses:
+        '200':
+          description: Chest claim outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyChestClaim'
+        '409':
+          description: Already claimed or not eligible
+
+  /api/learner/gamification/badges:
+    get:
+      summary: Get learner badge gallery
+      operationId: getBadgeGallery
+      tags: [LearnerGamification]
+      responses:
+        '200':
+          description: Earned and locked badges
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [badges]
+                properties:
+                  badges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BadgeAward'
+
+  /api/learner/gamification/motivation/messages:
+    get:
+      summary: List motivation channel messages for learner class/guild
+      operationId: listMotivationMessages
+      tags: [Collaboration]
+      responses:
+        '200':
+          description: Motivation channel messages
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages]
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MotivationChannelMessage'
+    post:
+      summary: Post motivation message to learner class/guild
+      operationId: postMotivationMessage
+      tags: [Collaboration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 280
+      responses:
+        '201':
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MotivationChannelMessage'
+        '400':
+          description: Validation or content-safety blocked
+
+  /api/teacher/gamification/classes/{classId}/quests/{questId}/pause:
+    post:
+      summary: Pause collaborative quest for teacher class
+      operationId: pauseCollaborativeQuest
+      tags: [TeacherOversight]
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: questId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rationale]
+              properties:
+                rationale:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+      responses:
+        '200':
+          description: Pause applied and audited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherOversightAction'
+        '403':
+          description: Teacher role required
+
+  /api/teacher/gamification/classes/{classId}/quests/{questId}/resume:
+    post:
+      summary: Resume collaborative quest for teacher class
+      operationId: resumeCollaborativeQuest
+      tags: [TeacherOversight]
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: questId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rationale]
+              properties:
+                rationale:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+      responses:
+        '200':
+          description: Resume applied and audited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherOversightAction'
+
+  /api/teacher/gamification/classes/{classId}/motivation/messages/{messageId}/moderate:
+    post:
+      summary: Moderate motivation message visibility
+      operationId: moderateMotivationMessage
+      tags: [TeacherOversight]
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetStatus, rationale]
+              properties:
+                targetStatus:
+                  type: string
+                  enum: [visible, hidden, flagged]
+                rationale:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+      responses:
+        '200':
+          description: Moderation applied and audited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherOversightAction'
+
+  /api/teacher/gamification/classes/{classId}/oversight/audit:
+    get:
+      summary: List oversight actions for teacher class
+      operationId: listTeacherOversightAudit
+      tags: [TeacherOversight]
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Oversight action feed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rows]
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeacherOversightAction'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: learneu_session
+
+  schemas:
+    QuestDashboardSnapshot:
+      type: object
+      required:
+        - learnerId
+        - snapshotAt
+        - dailyChallenge
+        - season
+        - activeQuests
+        - bossBattle
+        - rewardHighlights
+        - fairnessNotice
+      properties:
+        learnerId:
+          type: string
+        snapshotAt:
+          type: string
+          format: date-time
+        dailyChallenge:
+          $ref: '#/components/schemas/DailyChallengeRun'
+        season:
+          $ref: '#/components/schemas/SeasonTierProgress'
+        activeQuests:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollaborativeQuest'
+        bossBattle:
+          $ref: '#/components/schemas/BossBattleAttempt'
+        rewardHighlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/BadgeAward'
+        fairnessNotice:
+          type: string
+
+    DailyChallengeRun:
+      type: object
+      required: [challengeId, learnerId, dayKey, status]
+      properties:
+        challengeId:
+          type: string
+        learnerId:
+          type: string
+        dayKey:
+          type: string
+        status:
+          type: string
+          enum: [available, started, completed, expired]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        rewardBadgeIds:
+          type: array
+          items:
+            type: string
+
+    DailyChallengeCompletionResult:
+      type: object
+      required: [run, rewardBadgeIds]
+      properties:
+        run:
+          $ref: '#/components/schemas/DailyChallengeRun'
+        rewardBadgeIds:
+          type: array
+          items:
+            type: string
+
+    CollaborativeQuest:
+      type: object
+      required: [questId, classId, title, status, goalType, goalValue, progressValue]
+      properties:
+        questId:
+          type: string
+        classId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, active, paused, completed, cancelled]
+        goalType:
+          type: string
+          enum: [count, streak, mixed]
+        goalValue:
+          type: integer
+          minimum: 1
+        progressValue:
+          type: integer
+          minimum: 0
+
+    SeasonTierProgress:
+      type: object
+      required: [seasonId, learnerId, tierId, xpCurrent, xpTarget, milestonesEarned]
+      properties:
+        seasonId:
+          type: string
+        learnerId:
+          type: string
+        tierId:
+          type: string
+        xpCurrent:
+          type: integer
+          minimum: 0
+        xpTarget:
+          type: integer
+          minimum: 1
+        milestonesEarned:
+          type: array
+          items:
+            type: string
+
+    BossBattleAttempt:
+      type: object
+      required: [attemptId, learnerId, status, consecutiveCorrect, targetConsecutive]
+      properties:
+        attemptId:
+          type: string
+        learnerId:
+          type: string
+        status:
+          type: string
+          enum: [active, failed, defeated]
+        consecutiveCorrect:
+          type: integer
+          minimum: 0
+        targetConsecutive:
+          type: integer
+          enum: [10]
+        defeatedAt:
+          type: string
+          format: date-time
+
+    DailyChestClaim:
+      type: object
+      required: [claimId, learnerId, dayKey, eligibilityState]
+      properties:
+        claimId:
+          type: string
+        learnerId:
+          type: string
+        dayKey:
+          type: string
+        eligibilityState:
+          type: string
+          enum: [eligible, not-eligible, claimed]
+        claimedAt:
+          type: string
+          format: date-time
+        badgeRewardIds:
+          type: array
+          items:
+            type: string
+
+    MotivationChannelMessage:
+      type: object
+      required: [messageId, classId, authorRole, authorId, content, status, createdAt]
+      properties:
+        messageId:
+          type: string
+        classId:
+          type: string
+        authorRole:
+          type: string
+          enum: [student, teacher]
+        authorId:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum: [visible, hidden, flagged]
+        createdAt:
+          type: string
+          format: date-time
+        moderatedAt:
+          type: string
+          format: date-time
+        moderationReason:
+          type: string
+
+    BadgeAward:
+      type: object
+      required: [badgeId, learnerId, state, criteriaSummary]
+      properties:
+        badgeId:
+          type: string
+        learnerId:
+          type: string
+        state:
+          type: string
+          enum: [earned, locked]
+        criteriaSummary:
+          type: string
+        earnedAt:
+          type: string
+          format: date-time
+        sourceType:
+          type: string
+          enum: [daily_chest, quest, boss_battle, season]
+
+    TeacherOversightAction:
+      type: object
+      required: [actionId, teacherId, classId, actionType, targetId, rationale, createdAt, resultState]
+      properties:
+        actionId:
+          type: string
+        teacherId:
+          type: string
+        classId:
+          type: string
+        actionType:
+          type: string
+          enum: [pause_objective, resume_objective, pause_quest, resume_quest, moderate_message, override_reward]
+        targetId:
+          type: string
+        rationale:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        resultState:
+          type: string

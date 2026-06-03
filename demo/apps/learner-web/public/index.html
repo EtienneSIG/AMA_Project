@@ -238,11 +238,37 @@
   </div>
 </section>
 <nav class="tabbar" role="tablist" aria-label="Learner workspace">
-  <button class="tab-btn active" data-tab-btn="practice"    onclick="setTab('practice')"    role="tab" aria-selected="true"><span class="ico">🧠</span> Test your knowledge</button>
+  <button class="tab-btn active" data-tab-btn="quest"       onclick="setTab('quest')"       role="tab" aria-selected="true"><span class="ico">🎯</span> Quest dashboard</button>
+  <button class="tab-btn"        data-tab-btn="practice"    onclick="setTab('practice')"    role="tab" aria-selected="false"><span class="ico">🧠</span> Test your knowledge</button>
   <button class="tab-btn"        data-tab-btn="ask-teacher" onclick="setTab('ask-teacher')" role="tab" aria-selected="false"><span class="ico">💬</span> Ask your teacher</button>
   <button class="tab-btn"        data-tab-btn="progress"    onclick="setTab('progress')"    role="tab" aria-selected="false"><span class="ico">📈</span> My progress</button>
 </nav>
-<div data-tab="practice" class="active">
+<div data-tab="quest" class="active">
+<div class="progress-wrap">
+  <div class="card" id="questDashCard">
+    <div class="explhead">
+      <h2>Quest dashboard <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">daily mission · class objective · boss battle</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadGamificationDashboard()">Refresh</button>
+    </div>
+    <div id="questGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7rem;"></div>
+  </div>
+  <div class="card">
+    <h2>Canal motivation</h2>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-start;">
+      <textarea id="motivationInput" maxlength="280" placeholder="Write a short motivation message to your class…" style="min-height:3.2rem;flex:1 1 320px;"></textarea>
+      <button class="btn" onclick="postMotivationMessage()">Post</button>
+    </div>
+    <div id="motivationStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
+    <div id="motivationList" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"></div>
+  </div>
+  <div class="card">
+    <h2>Galerie de badges</h2>
+    <div id="badgeGallery" style="display:flex;flex-wrap:wrap;gap:.45rem;"></div>
+  </div>
+</div>
+</div><!-- /tab quest -->
+
+<div data-tab="practice">
 <div class="practice-grid">
   <div class="card" id="adaptiveCard">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">
@@ -469,6 +495,7 @@ window.adaptive = (function() {
       });
     } catch (e) { /* swallow */ }
     loadMastery();
+    loadGamificationDashboard();
     next();
   }
 
@@ -785,6 +812,7 @@ window.addEventListener('load', () => {
   loadMe();
   loadTeacherQuestions();
   loadMastery();
+  loadGamificationDashboard();
 });
 
 // --- Ask your teacher (async Q&A stored in Postgres) ---------------------
@@ -905,6 +933,112 @@ async function loadMastery() {
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
 }
 
+// --- Quest dashboard gamification (Feature 003) -------------------------
+let _gamState = null;
+function metricCard(title, bodyHtml) {
+  return '<div style="border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;background:#fff;">'
+    + '<div style="font-size:.72rem;color:var(--grey);text-transform:uppercase;letter-spacing:.04em;">' + escapeHtml(title) + '</div>'
+    + '<div style="margin-top:.25rem;">' + bodyHtml + '</div>'
+    + '</div>';
+}
+async function loadGamificationDashboard() {
+  const grid = document.getElementById('questGrid');
+  const motiv = document.getElementById('motivationList');
+  const badges = document.getElementById('badgeGallery');
+  if (!grid) return;
+  grid.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>';
+  try {
+    const r = await fetch('/api/learner/gamification/dashboard', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) {
+      grid.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured for this environment.</div>';
+      return;
+    }
+    _gamState = d;
+    const missionPct = Math.min(100, Math.round((d.mission.progress / d.mission.target) * 100));
+    const guildPct = Math.min(100, Math.round((d.guildObjective.progress / d.guildObjective.target) * 100));
+    const seasonPct = Math.min(100, Math.round((d.season.progress / d.season.target) * 100));
+    const bossPct = Math.min(100, Math.round((d.bossBattle.currentStreak / d.bossBattle.target) * 100));
+
+    grid.innerHTML = ''
+      + metricCard('Challenge du jour',
+        '<div style="font-weight:700;color:var(--navy);">' + escapeHtml(d.mission.objective) + '</div>'
+        + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + missionPct + '%;background:linear-gradient(90deg,var(--teal),var(--orange));"></div></div>'
+        + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.mission.progress + ' / ' + d.mission.target + ' attempts today</div>')
+      + metricCard('Objectif de la classe',
+        '<div style="font-weight:700;color:var(--navy);">' + escapeHtml(d.guildObjective.title) + '</div>'
+        + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + guildPct + '%;background:linear-gradient(90deg,var(--teal),var(--navy));"></div></div>'
+        + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.guildObjective.progress + ' / ' + d.guildObjective.target + ' · contributors: ' + d.guildObjective.contributors + '</div>')
+      + metricCard('Quetes collaboratives',
+        (d.collaborativeQuests || []).map(q => '<div style="padding:.25rem 0;border-bottom:1px dashed var(--line);">'
+          + '<strong style="font-size:.86rem;color:var(--navy);">' + escapeHtml(q.title) + '</strong>'
+          + '<div class="sub" style="font-size:.74rem;color:var(--grey);">' + q.progress + '/' + q.target + (q.completed ? ' · complete' : '') + '</div>'
+          + '</div>').join(''))
+      + metricCard('Paliers (season)',
+        '<div style="font-weight:700;color:var(--navy);">Tier ' + d.season.tier + ' · ' + escapeHtml(d.season.tierName) + '</div>'
+        + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + seasonPct + '%;background:linear-gradient(90deg,var(--orange),var(--navy));"></div></div>'
+        + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.season.progress + ' / ' + d.season.target + ' attempts</div>')
+      + metricCard('Coffres du jour',
+        '<div style="font-weight:700;color:var(--navy);">Reward: ' + escapeHtml(d.chest.rewardPreview.label) + '</div>'
+        + '<div class="sub" style="font-size:.78rem;color:var(--grey);margin:.35rem 0;">'
+        + (d.chest.claimed ? 'Already claimed today.' : (d.chest.eligible ? 'Eligible now.' : 'Complete mission to unlock.'))
+        + '</div>'
+        + '<button class="btn btn-sm" onclick="claimDailyChest()" ' + ((d.chest.claimed || !d.chest.eligible) ? 'disabled' : '') + '>Open chest</button>')
+      + metricCard('Boss battle',
+        '<div style="font-weight:700;color:var(--navy);">10 correct answers in a row</div>'
+        + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + bossPct + '%;background:linear-gradient(90deg,var(--orange),#7c2d12);"></div></div>'
+        + '<div class="sub" style="font-size:.78rem;color:var(--grey);">Streak: ' + d.bossBattle.currentStreak + ' / ' + d.bossBattle.target + (d.bossBattle.defeated ? ' · boss defeated!' : '') + '</div>')
+      + metricCard('Quest dashboard',
+        '<div class="sub" style="font-size:.78rem;color:var(--grey);">This page combines your mission, class progress, rewards, boss challenge and motivation feed.</div>');
+
+    if (motiv) {
+      const rows = d.motivation || [];
+      motiv.innerHTML = rows.length ? rows.map(m => '<div style="border:1px solid var(--line);border-radius:8px;padding:.5rem .65rem;background:#fff;">'
+        + '<div style="font-size:.74rem;color:var(--grey);">' + escapeHtml(m.displayName || m.email) + ' · ' + new Date(m.createdAt).toLocaleString() + '</div>'
+        + '<div style="font-size:.9rem;color:var(--navy);">' + escapeHtml(m.message) + '</div>'
+        + '</div>').join('')
+        : '<div class="sub" style="font-size:.82rem;opacity:.7;">No motivation messages yet. Be the first to encourage your class.</div>';
+    }
+    if (badges) {
+      const earned = d.badges || [];
+      badges.innerHTML = earned.length
+        ? earned.map(b => '<span style="background:#FFF3CD;color:#856404;padding:.2rem .55rem;border-radius:999px;font-size:.74rem;font-weight:600;">★ ' + escapeHtml(b.label || b.key) + '</span>').join('')
+        : '<span class="sub" style="font-size:.82rem;opacity:.7;">No badges yet. Complete your daily mission to earn one.</span>';
+    }
+  } catch (e) {
+    grid.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load quest dashboard: ' + escapeHtml(String(e)) + '</div>';
+  }
+}
+
+async function claimDailyChest() {
+  try {
+    const r = await fetch('/api/learner/gamification/chest/claim', { method: 'POST' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(j.error || 'Chest claim failed'); return; }
+    alert('Chest opened! You earned: ' + (j.reward?.label || 'badge'));
+    loadGamificationDashboard();
+  } catch (e) { alert(String(e)); }
+}
+
+async function postMotivationMessage() {
+  const el = document.getElementById('motivationInput');
+  const st = document.getElementById('motivationStatus');
+  if (!el) return;
+  const message = (el.value || '').trim();
+  if (!message) { if (st) st.textContent = 'Write a message first.'; return; }
+  try {
+    const r = await fetch('/api/learner/gamification/motivation', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { if (st) st.textContent = j.detail || j.error || 'Failed to post'; return; }
+    el.value = '';
+    if (st) st.textContent = 'Message posted.';
+    loadGamificationDashboard();
+  } catch (e) { if (st) st.textContent = String(e); }
+}
+
 // --- Tabbed workspace (Feature 4b) -------------------------------------
 function setTab(name) {
   document.querySelectorAll('[data-tab]').forEach(el => el.classList.toggle('active', el.getAttribute('data-tab') === name));
@@ -915,6 +1049,7 @@ function setTab(name) {
   });
   if (name === 'progress') loadMastery();
   if (name === 'ask-teacher') loadTeacherQuestions();
+  if (name === 'quest') loadGamificationDashboard();
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
