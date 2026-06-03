@@ -263,9 +263,10 @@ async function loadCards() {
   const cards = document.getElementById('cards');
   const raw = document.getElementById('raw');
   try {
-    const [sitesR, healthR] = await Promise.all([
+    const [sitesR, healthR, pgR] = await Promise.all([
       fetch('/api/admin/sites', { cache:'no-store' }).then(r=>r.json()),
-      fetch('/api/admin/health', { cache:'no-store' }).then(r=>r.json())
+      fetch('/api/admin/health', { cache:'no-store' }).then(r=>r.json()),
+      fetch('/api/admin/postgres/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) }))
     ]);
     raw.textContent = JSON.stringify(sitesR, null, 2);
     const byName = {};
@@ -295,6 +296,23 @@ async function loadCards() {
         </div>`;
       cards.appendChild(div);
     }
+
+    const pgState = pgR && pgR.payload ? (pgR.payload.state || 'Unknown') : 'Unknown';
+    const pgStateLc = String(pgState).toLowerCase();
+    const pgDotClass = pgStateLc === 'ready' ? 'ok' : (pgStateLc === 'starting' ? 'warn' : 'err');
+    const pgCard = document.createElement('div');
+    pgCard.className = 'card';
+    pgCard.innerHTML = `
+      <h3><span class="dot ${pgDotClass}"></span>PostgreSQL</h3>
+      <div class="sub">${escapeHtml(pgR.payload?.serverName || 'pg-learneu-demo')}</div>
+      <div class="stat-row"><span>Lifecycle state</span><span>${escapeHtml(pgState)}</span></div>
+      <div class="stat-row"><span>Checked</span><span>${pgR.payload?.checkedAt ? new Date(pgR.payload.checkedAt).toLocaleString() : '—'}</span></div>
+      <div class="stat-row"><span>Location</span><span>${escapeHtml(pgR.payload?.location || '—')}</span></div>
+      <div class="actions">
+        <button class="btn secondary" onclick="loadPostgresOps();loadCards();">Refresh</button>
+        <button class="btn" onclick="wakeUpPostgres()" ${pgStateLc === 'ready' ? 'disabled' : ''}>Wake up</button>
+      </div>`;
+    cards.appendChild(pgCard);
   } catch (e) {
     raw.textContent = String(e);
     toast('Load failed: ' + e, 'err');
