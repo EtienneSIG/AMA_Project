@@ -265,7 +265,7 @@
     <div id="questGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7rem;"></div>
   </div>
   <div class="card">
-    <h2>Canal motivation</h2>
+    <h2>Motivation channel</h2>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-start;">
       <textarea id="motivationInput" maxlength="280" placeholder="Write a short motivation message to your class…" style="min-height:3.2rem;flex:1 1 320px;"></textarea>
       <button class="btn" onclick="postMotivationMessage()">Post</button>
@@ -274,16 +274,16 @@
     <div id="motivationList" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"></div>
   </div>
   <div class="card">
-    <h2>Galerie de badges</h2>
+    <h2>Badge gallery</h2>
     <div id="badgeGallery" style="display:flex;flex-wrap:wrap;gap:.45rem;"></div>
   </div>
   <div class="card">
     <div class="explhead">
-      <h2>Question pour un champion</h2>
+      <h2>Champion challenge</h2>
       <button class="btn btn-sm secondary" onclick="loadChampionZone()">Refresh</button>
     </div>
-    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Pose un defi a ta classe, puis tente de repondre aux questions des autres pour marquer des points.</p>
-    <textarea id="championQuestionInput" maxlength="220" placeholder="Ex: Quel est le resultat de 3/4 + 1/8 ?" style="min-height:2.8rem;"></textarea>
+    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Create a class challenge, then answer other learners' questions to score points.</p>
+    <textarea id="championQuestionInput" maxlength="220" placeholder="Example: What is 3/4 + 1/8?" style="min-height:2.8rem;"></textarea>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
       <input id="championOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
       <input id="championOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
@@ -302,24 +302,24 @@
       <button class="btn" onclick="createChampionChallenge()">Create challenge</button>
     </div>
     <div id="championStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Challenges de la classe</h3>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Class challenges</h3>
     <div id="championList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Leaderboard champion</h3>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Champion leaderboard</h3>
     <div id="championLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
   </div>
   <div class="card">
     <div class="explhead">
-      <h2>Mode duel</h2>
+      <h2>Duel mode</h2>
       <button class="btn btn-sm secondary" onclick="loadDuelZone()">Refresh</button>
     </div>
-    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Defie un camarade avec une question minute. Reponse rapide = bonus de points.</p>
+    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Challenge a classmate with a quick question. Fast answers earn bonus points.</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.45rem;">
       <select id="duelOpponent" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;">
         <option value="">Choose opponent</option>
       </select>
       <input id="duelTimeLimit" type="number" min="20" max="180" value="90" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" placeholder="Time limit in seconds" />
     </div>
-    <textarea id="duelQuestionInput" maxlength="220" placeholder="Ex: Quelle fraction est equivalente a 6/8 ?" style="min-height:2.8rem;margin-top:.45rem;"></textarea>
+    <textarea id="duelQuestionInput" maxlength="220" placeholder="Example: Which fraction is equivalent to 6/8?" style="min-height:2.8rem;margin-top:.45rem;"></textarea>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
       <input id="duelOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
       <input id="duelOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
@@ -339,7 +339,7 @@
     <div id="duelStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
     <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">My duels</h3>
     <div id="duelList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Leaderboard duel</h3>
+    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Duel leaderboard</h3>
     <div id="duelLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
   </div>
 </div>
