@@ -264,6 +264,17 @@
   </div>
 </section>
 <section style="max-width:1320px;margin:1rem auto 2rem;padding:0 1.5rem;">
+  <div class="card" id="classBadgesCard" style="margin-bottom:1rem;">
+    <div class="explhead">
+      <h2>Learner badges <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">awards by student · gamification visibility</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadClassBadges()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">Shows each learner and the badges they have earned so far.</p>
+    <div id="classBadgesList" style="display:flex;flex-direction:column;gap:.45rem;">
+      <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
+    </div>
+  </div>
+
   <div class="card" id="heatmapCard">
     <div class="explhead">
       <h2>Class heat-map <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">pseudonymous learners × skills · click ✎ to override (EU AI Act Art. 14)</span></h2>
@@ -589,6 +600,7 @@ window.addEventListener('load', () => {
   loadMe();
   loadInbox();
   loadClassMastery();
+  loadClassBadges();
   loadHeatmap();
   loadOverrides();
   loadMotivationModeration();
@@ -682,6 +694,33 @@ async function loadClassMastery() {
           + '</div>';
       }).join('');
   } catch (e) { list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>'; }
+}
+
+async function loadClassBadges() {
+  const list = document.getElementById('classBadgesList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/class/badges', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Database is not configured.</div>'; return; }
+    if (!d.rows || d.rows.length === 0) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No badges recorded yet.</div>'; return; }
+    list.innerHTML = d.rows.map(row => {
+      const badges = (row.badges || []).slice(0, 10);
+      const pills = badges.length
+        ? badges.map(b => '<span style="background:#FFF3CD;color:#856404;padding:.14rem .5rem;border-radius:999px;font-size:.74rem;font-weight:600;">★ ' + escapeHtml(b.label || b.key) + '</span>').join(' ')
+        : '<span class="sub" style="font-size:.78rem;opacity:.7;">No badge details.</span>';
+      const last = row.lastEarnedAt ? new Date(row.lastEarnedAt).toLocaleString() : '—';
+      return '<div style="border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;background:#fff;">'
+        + '<div style="display:flex;justify-content:space-between;gap:.6rem;align-items:center;flex-wrap:wrap;">'
+        + '<div><strong style="font-size:.9rem;">' + escapeHtml(row.displayName || row.email) + '</strong> <span class="sub" style="font-size:.75rem;color:var(--grey);">(' + escapeHtml(row.email) + ')</span></div>'
+        + '<div style="font-size:.78rem;color:var(--grey);">' + (row.badgeCount || 0) + ' badge(s) · last: ' + escapeHtml(last) + '</div>'
+        + '</div>'
+        + '<div style="margin-top:.35rem;display:flex;gap:.35rem;flex-wrap:wrap;">' + pills + '</div>'
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="sub" style="font-size:.85rem;color:#b00020;">Failed to load: ' + escapeHtml(String(e)) + '</div>';
+  }
 }
 
 // --- Heat-map + Overrides (Feature 5a) ----------------------------------

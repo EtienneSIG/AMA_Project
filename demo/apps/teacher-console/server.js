@@ -374,6 +374,41 @@ app.get('/api/teacher/class/mastery', async (req, res) => {
   const rows = await db.listClassMastery({ limit: 50 });
   res.json({ enabled: true, rows: rows || [] });
 });
+
+app.get('/api/teacher/class/badges', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const r = await db._query(
+    `SELECT
+       email,
+       COUNT(*)::int AS "badgeCount",
+       MAX(earned_at) AS "lastEarnedAt",
+       COALESCE(
+         json_agg(
+           json_build_object('key', badge_key, 'label', badge_label, 'source', source, 'earnedAt', earned_at)
+           ORDER BY earned_at DESC
+         ) FILTER (WHERE badge_key IS NOT NULL),
+         '[]'::json
+       ) AS badges
+     FROM learner_badges
+     WHERE email LIKE 'student%@learneu.demo'
+     GROUP BY email
+     ORDER BY MAX(earned_at) DESC NULLS LAST, email
+     LIMIT 200`,
+    []
+  );
+
+  const nameByEmail = new Map((auth.SEED_USERS || []).map((x) => [
+    String(x.email || '').toLowerCase(),
+    [x.firstName, x.lastName].filter(Boolean).join(' ').trim() || x.email
+  ]));
+  const rows = (r && r.rows ? r.rows : []).map((row) => ({
+    ...row,
+    displayName: nameByEmail.get(String(row.email || '').toLowerCase()) || row.email
+  }));
+  res.json({ enabled: true, rows });
+});
 // Heat-map: pseudonym × skill matrix (Feature 5a). Teacher / admin only.
 app.get('/api/teacher/class/heatmap', async (req, res) => {
   const u = req.user;
