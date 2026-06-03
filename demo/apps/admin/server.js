@@ -6,6 +6,7 @@
 
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const auth = require('./auth');
 const db = require('./db');
 const cs = require('./contentSafety');
@@ -20,6 +21,8 @@ const ALLOWED = ['admin'];
 const SUB = process.env.AZURE_SUBSCRIPTION_ID || '';
 const RG  = process.env.AZURE_RESOURCE_GROUP  || '';
 const ENV_NAME = process.env.ENV_NAME || 'learneu-demo';
+const PG_SERVER = process.env.PG_SERVER_NAME || (process.env.PG_HOST || '').split('.')[0] || `pg-${ENV_NAME}`;
+const PG_API_VERSION = process.env.PG_ARM_API_VERSION || '2024-08-01';
 // Sites this admin app manages (admin itself excluded — never restart yourself).
 const MANAGED_SITES = [
   `app-learner-web-${ENV_NAME}`,
@@ -72,6 +75,38 @@ async function arm(method, urlPath, body) {
     throw err;
   }
   return data;
+}
+
+function pgResourcePath() {
+  return `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${encodeURIComponent(PG_SERVER)}`;
+}
+
+function requestCorrelationId(req) {
+  const fromHeader = String(req.headers['x-correlation-id'] || '').trim();
+  if (fromHeader) return fromHeader.slice(0, 128);
+  return crypto.randomUUID();
+}
+
+async function readPostgresState() {
+  const data = await arm('GET', `${pgResourcePath()}?api-version=${PG_API_VERSION}`);
+  return {
+    serverName: PG_SERVER,
+    state: data.properties?.state || 'Unknown',
+    location: data.location || null
+  };
+}
+
+async function auditPgEvent(req, eventType, outcome, correlationId, detail) {
+  if (!db.enabled || typeof db.logOperationalEvent !== 'function') return;
+  await db.logOperationalEvent({
+    app: APP_NAME,
+    actorEmail: req.user?.email,
+    actorRole: req.user?.role,
+    eventType,
+    outcome,
+    correlationId,
+    detail
+  });
 }
 
 // --- Admin endpoints (admin role enforced by gateMiddleware) ---
@@ -127,6 +162,77 @@ app.post('/api/admin/restart/:name', async (req, res) => {
     res.json({ ok: true, name, action: 'restart-requested', at: new Date().toISOString() });
   } catch (e) {
     res.status(e.status || 500).json({ error: 'restart failed', detail: e.body?.error?.message || e.message });
+  }
+});
+
+app.get('/api/admin/postgres/status', async (req, res) => {
+  const correlationId = requestCorrelationId(req);
+  try {
+    const pg = await readPostgresState();
+    await auditPgEvent(req, 'postgres_status_check', 'ok', correlationId, `state=${pg.state}`);
+    res.json({
+      ok: true,
+      correlationId,
+      checkedAt: new Date().toISOString(),
+      serverName: pg.serverName,
+      state: pg.state,
+      location: pg.location
+    });
+  } catch (e) {
+    const detail = e.body?.error?.message || e.message;
+    await auditPgEvent(req, 'postgres_status_check', 'error', correlationId, detail);
+    res.status(e.status || 500).json({
+      ok: false,
+      correlationId,
+      checkedAt: new Date().toISOString(),
+      serverName: PG_SERVER,
+      error: 'postgres status check failed',
+      detail
+    });
+  }
+});
+
+app.post('/api/admin/postgres/wakeup', async (req, res) => {
+  const correlationId = requestCorrelationId(req);
+  try {
+    const pg = await readPostgresState();
+    const current = String(pg.state || '').toLowerCase();
+    if (current === 'ready' || current === 'starting') {
+      const outcome = current === 'ready' ? 'already-running' : 'in-progress';
+      await auditPgEvent(req, 'postgres_wakeup', outcome, correlationId, `state=${pg.state}`);
+      return res.json({
+        ok: true,
+        correlationId,
+        action: 'wakeup-skipped',
+        outcome,
+        state: pg.state,
+        message: current === 'ready'
+          ? 'PostgreSQL is already running.'
+          : 'PostgreSQL start is already in progress.'
+      });
+    }
+
+    await arm('POST', `${pgResourcePath()}/start?api-version=${PG_API_VERSION}`);
+    await auditPgEvent(req, 'postgres_wakeup', 'accepted', correlationId, `previousState=${pg.state}`);
+    return res.json({
+      ok: true,
+      correlationId,
+      action: 'wakeup-requested',
+      outcome: 'accepted',
+      previousState: pg.state,
+      message: 'Start request sent. PostgreSQL may take 3-6 minutes to become Ready.'
+    });
+  } catch (e) {
+    const detail = e.body?.error?.message || e.message;
+    await auditPgEvent(req, 'postgres_wakeup', 'error', correlationId, detail);
+    return res.status(e.status || 500).json({
+      ok: false,
+      correlationId,
+      action: 'wakeup-failed',
+      outcome: 'failed',
+      error: 'postgres wakeup failed',
+      detail
+    });
   }
 });
 

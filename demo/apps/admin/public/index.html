@@ -108,6 +108,18 @@
     <div class="card"><em>Loading…</em></div>
   </div>
 
+  <div class="panel" data-group="overview">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>PostgreSQL operations <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/postgres/* · ARM</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="loadPostgresOps()">Refresh state</button>
+        <button class="btn" id="pgWakeBtn" onclick="wakeUpPostgres()">Wake up PostgreSQL</button>
+      </div>
+    </div>
+    <div id="pg-status" style="margin-top:.5rem;"></div>
+    <div id="pg-outcome" style="margin-top:.45rem;font-size:.84rem;color:var(--grey);"></div>
+  </div>
+
   <div class="panel" data-group="users">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Users <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/users</span></h2>
@@ -307,8 +319,95 @@ async function restartSite(btn) {
   }
 }
 
-async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); loadQuality(); }
+async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); loadQuality(); loadPostgresOps(); }
 async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
+
+let pgWakePollingTimer = null;
+
+function pgBadgeClass(state) {
+  const s = String(state || '').toLowerCase();
+  if (s === 'ready') return 'ok';
+  if (s === 'starting') return '';
+  if (s === 'stopped') return 'err';
+  return '';
+}
+
+function pgAdvice(state) {
+  const s = String(state || '').toLowerCase();
+  if (s === 'ready') return 'Database is running. No action required.';
+  if (s === 'starting') return 'Start is in progress. Refresh every 10-15 seconds.';
+  if (s === 'stopped') return 'Database is stopped. Use the wake-up action before running learning flows.';
+  return 'Unable to determine current lifecycle state. Check ARM permissions and retry.';
+}
+
+async function loadPostgresOps() {
+  const statusEl = document.getElementById('pg-status');
+  const outcomeEl = document.getElementById('pg-outcome');
+  const wakeBtn = document.getElementById('pgWakeBtn');
+  if (!statusEl || !wakeBtn) return;
+  statusEl.innerHTML = '<em>Loading…</em>';
+  try {
+    const r = await fetch('/api/admin/postgres/status', { cache: 'no-store' });
+    const j = await r.json();
+    if (!r.ok || j.ok === false) {
+      const msg = escapeHtml(j.detail || j.error || 'status check failed');
+      statusEl.innerHTML = `<span class="badge err">status error</span> ${msg}`;
+      outcomeEl.textContent = `Correlation: ${j.correlationId || '-'} · Checked: ${j.checkedAt ? new Date(j.checkedAt).toLocaleString() : '-'}`;
+      wakeBtn.disabled = true;
+      return;
+    }
+    const state = j.state || 'Unknown';
+    const badge = pgBadgeClass(state);
+    statusEl.innerHTML = `
+      <div class="stat-row"><span>Server</span><span>${escapeHtml(j.serverName || '-')}</span></div>
+      <div class="stat-row"><span>State</span><span><span class="badge ${badge}">${escapeHtml(state)}</span></span></div>
+      <div class="stat-row"><span>Checked at</span><span>${j.checkedAt ? new Date(j.checkedAt).toLocaleString() : '-'}</span></div>
+      <div class="stat-row"><span>Location</span><span>${escapeHtml(j.location || '-')}</span></div>
+      <div style="margin-top:.45rem;font-size:.84rem;color:var(--grey);">${escapeHtml(pgAdvice(state))}</div>
+    `;
+    wakeBtn.disabled = String(state).toLowerCase() === 'ready';
+    if (String(state).toLowerCase() !== 'starting' && pgWakePollingTimer) {
+      clearInterval(pgWakePollingTimer);
+      pgWakePollingTimer = null;
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="badge err">status error</span> ${escapeHtml(String(e))}`;
+    wakeBtn.disabled = true;
+  }
+}
+
+async function wakeUpPostgres() {
+  const wakeBtn = document.getElementById('pgWakeBtn');
+  const outcomeEl = document.getElementById('pg-outcome');
+  if (!wakeBtn || !outcomeEl) return;
+  if (!confirm('Send wake-up request to PostgreSQL?')) return;
+  wakeBtn.disabled = true;
+  wakeBtn.textContent = 'Requesting…';
+  outcomeEl.textContent = 'Sending wake-up request…';
+  try {
+    const r = await fetch('/api/admin/postgres/wakeup', { method: 'POST' });
+    const j = await r.json();
+    const outcome = j.outcome || 'unknown';
+    if (!r.ok || j.ok === false) {
+      outcomeEl.textContent = `Wake-up failed (${outcome}): ${j.detail || j.error || 'unknown error'} · Correlation: ${j.correlationId || '-'}`;
+      toast('PostgreSQL wake-up failed', 'err');
+      await loadPostgresOps();
+      return;
+    }
+    outcomeEl.textContent = `${j.message || 'Wake-up request processed.'} · Outcome: ${outcome} · Correlation: ${j.correlationId || '-'}`;
+    toast('PostgreSQL operation sent', 'ok');
+    await loadPostgresOps();
+    if (outcome === 'accepted' || outcome === 'in-progress') {
+      if (pgWakePollingTimer) clearInterval(pgWakePollingTimer);
+      pgWakePollingTimer = setInterval(loadPostgresOps, 15000);
+    }
+  } catch (e) {
+    outcomeEl.textContent = `Wake-up failed: ${String(e)}`;
+    toast('PostgreSQL wake-up failed', 'err');
+  } finally {
+    wakeBtn.textContent = 'Wake up PostgreSQL';
+  }
+}
 
 async function loadUsers() {
   const el = document.getElementById('users-table');
@@ -383,10 +482,11 @@ async function loadDeployments() {
   loadOnnx();
   loadDataPanels();
   loadQuality();
+  loadPostgresOps();
   const initial = (location.hash || '').replace(/^#/, '');
   const valid = new Set(['overview','users','activity','safety','data','diagnostics']);
   setTab(valid.has(initial) ? initial : 'overview');
-  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); }, 30000);
+  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadPostgresOps(); }, 30000);
 })();
 
 // ---- Content Safety panel ---------------------------------------------------

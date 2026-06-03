@@ -1,0 +1,112 @@
+openapi: 3.0.3
+info:
+  title: LearnEU Admin Postgres Wake-Up API
+  version: 0.1.0
+  description: |
+    Admin-only operational API for checking Azure PostgreSQL Flexible Server lifecycle
+    state and requesting wake-up through Azure ARM via managed identity.
+servers:
+  - url: https://app-admin-learneu-demo.azurewebsites.net
+security:
+  - adminSessionCookie: []
+paths:
+  /api/admin/postgres/status:
+    get:
+      summary: Get current PostgreSQL server state
+      operationId: getPostgresState
+      tags: [PostgresOperations]
+      responses:
+        '200':
+          description: Current state snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostgreSQLServiceState'
+        '401':
+          description: Authentication required
+        '403':
+          description: Admin role required
+        '500':
+          description: ARM control-plane lookup failed
+  /api/admin/postgres/wakeup:
+    post:
+      summary: Request wake-up for stopped PostgreSQL server
+      operationId: requestPostgresWakeup
+      tags: [PostgresOperations]
+      responses:
+        '200':
+          description: Idempotent or accepted operation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WakeUpOperationResult'
+        '401':
+          description: Authentication required
+        '403':
+          description: Admin role required
+        '409':
+          description: Wake-up conflict/operation in indeterminate state
+        '500':
+          description: ARM start request failed
+
+components:
+  securitySchemes:
+    adminSessionCookie:
+      type: apiKey
+      in: cookie
+      name: learneu_session
+
+  schemas:
+    PostgreSQLServiceState:
+      type: object
+      required:
+        - serverName
+        - resourceGroup
+        - state
+        - checkedAt
+        - freshnessSeconds
+        - correlationId
+      properties:
+        serverName:
+          type: string
+        resourceGroup:
+          type: string
+        state:
+          type: string
+          enum: [Ready, Stopped, Starting, Updating, Unknown]
+        checkedAt:
+          type: string
+          format: date-time
+        freshnessSeconds:
+          type: integer
+          minimum: 0
+        correlationId:
+          type: string
+        detail:
+          type: string
+
+    WakeUpOperationResult:
+      type: object
+      required:
+        - outcome
+        - state
+        - message
+        - correlationId
+        - acknowledgedAt
+      properties:
+        outcome:
+          type: string
+          enum: [accepted, in-progress, already-running, failed]
+        state:
+          type: string
+          enum: [Ready, Stopped, Starting, Updating, Unknown]
+        message:
+          type: string
+        correlationId:
+          type: string
+        acknowledgedAt:
+          type: string
+          format: date-time
+        retryAfterSeconds:
+          type: integer
+          minimum: 1

@@ -80,6 +80,34 @@ azd up
 
 ---
 
+## PostgreSQL wake-up (admin operations)
+
+The demo PostgreSQL flexible server can auto-stop after inactivity. The admin app now exposes:
+
+- `GET /api/admin/postgres/status` to read lifecycle state (`Ready`, `Stopped`, `Starting`)
+- `POST /api/admin/postgres/wakeup` to send a start request through managed identity + ARM
+
+Primary path:
+
+1. Open the admin app and use the **PostgreSQL operations** panel.
+2. Refresh state.
+3. If `Stopped`, click **Wake up PostgreSQL**.
+4. Refresh until `Ready` (typically 3-6 minutes).
+
+Fallback script (when admin UI is unavailable):
+
+```powershell
+pwsh ./scripts/postgres_wakeup.ps1 -ResourceGroup rg-learneu-demo -ServerName pg-learneu-demo
+```
+
+You can also run the demo checks with pre-wakeup:
+
+```powershell
+pwsh ./scripts/run_demo.ps1 -WakePostgresIfStopped
+```
+
+---
+
 ## Cost guardrails
 
 This scaffold is wired to demo SKUs (Developer APIM, F2 Fabric, gpt-5.4-nano GlobalStandard 50K TPM, etc.). Even so, **a full `azd up` will incur real € on your subscription**. Pause Fabric capacity and delete OpenAI deployments when not demoing. Use `azd down --purge` to fully tear down.

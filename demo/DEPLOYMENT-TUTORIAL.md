@@ -134,3 +134,18 @@ _Stages 3–9 will be appended as they execute._
 **Pending action :** wait for the in-flight Stage 2 run to terminate, then re-run `azd provision --no-prompt` (preceded by `azd provision --preview --no-prompt`) to apply the swap. Expected what-if delta: **Modify** on `aoai-…/gpt-4o` → new deployment `aoai-…/gpt-5.4-nano` (the old `gpt-4o` deployment is removed because it is no longer present in the template).
 
 **Rollback :** revert the openai.bicep changes (single resource block) and re-run `azd provision`.
+
+---
+
+## Operational note — PostgreSQL auto-stop recovery
+
+The admin app includes an operator control to wake PostgreSQL when Flexible Server is auto-stopped:
+
+- `GET /api/admin/postgres/status`
+- `POST /api/admin/postgres/wakeup`
+
+Operational fallback remains available from a shell:
+
+- `pwsh demo/scripts/postgres_wakeup.ps1 -ResourceGroup rg-learneu-demo -ServerName pg-learneu-demo`
+
+If the wake-up endpoint fails with authorization errors, validate the admin app managed identity RBAC on the PostgreSQL server resource scope before retrying.

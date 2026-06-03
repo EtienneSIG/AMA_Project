@@ -116,6 +116,21 @@ CREATE TABLE IF NOT EXISTS item_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_item_attempts_email ON item_attempts (email, created_at DESC);
 
+-- Admin operational controls (infra state checks/actions; no learner content).
+CREATE TABLE IF NOT EXISTS operational_events (
+  id              BIGSERIAL    PRIMARY KEY,
+  app             TEXT         NOT NULL,
+  actor_email     TEXT         NOT NULL,
+  actor_role      TEXT         NOT NULL,
+  event_type      TEXT         NOT NULL CHECK (event_type IN ('postgres_status_check', 'postgres_wakeup')),
+  outcome         TEXT         NOT NULL,
+  correlation_id  TEXT         NOT NULL,
+  detail          TEXT,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_operational_events_created ON operational_events (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_operational_events_event_created ON operational_events (event_type, created_at DESC);
+
 -- Content Safety verdicts (one row per scanned text). Linked back to ask_history by ask_id.
 CREATE TABLE IF NOT EXISTS content_safety_results (
   id          BIGSERIAL    PRIMARY KEY,

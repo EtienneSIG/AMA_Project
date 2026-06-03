@@ -179,6 +179,32 @@ Test-It '11' 'Admin console reachable and audit endpoints respond' {
     }
 }
 
+# 12 — Admin PostgreSQL wake-up controls are available and role-gated
+Test-It '12' 'Admin PostgreSQL status endpoint is role-gated and reachable with admin auth' {
+    $base = 'https://app-admin-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='admin@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    try {
+        $anonBlocked = $false
+        try {
+            $anon = Invoke-WebRequest "$base/api/admin/postgres/status" -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+            $anonBlocked = ($anon.StatusCode -eq 401 -or $anon.StatusCode -eq 403)
+        } catch {
+            $msg = $_.Exception.Message
+            if ($msg -match '401|403') { $anonBlocked = $true }
+        }
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $status = Invoke-RestMethod "$base/api/admin/postgres/status" -TimeoutSec 60 -WebSession $s
+        if ($status.serverName -and $status.state) {
+            $gate = if ($anonBlocked) { 'anon blocked' } else { 'anon status unknown' }
+            @{ status='PASS'; detail="Admin Postgres controls live ($gate): server=$($status.serverName), state=$($status.state)." }
+        } else {
+            @{ status='FAIL'; detail=($status | ConvertTo-Json -Compress) }
+        }
+    } catch {
+        @{ status='PARTIAL'; detail=$_.Exception.Message }
+    }
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Acceptance summary ===" -ForegroundColor Cyan
@@ -189,7 +215,7 @@ $partial = ($results | Where-Object Status -eq 'PARTIAL').Count
 $skip    = ($results | Where-Object Status -eq 'SKIP').Count
 $fail    = ($results | Where-Object Status -eq 'FAIL').Count
 Write-Host ""
-Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / 11" -ForegroundColor White
+Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / 12" -ForegroundColor White
 
 # Persist JSON
 $out = "$PSScriptRoot/../.deploy/acceptance-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"

@@ -8,7 +8,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$EnvFile = "$PSScriptRoot/../.env.local"
+  [string]$EnvFile = "$PSScriptRoot/../.env.local",
+  [switch]$WakePostgresIfStopped
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,6 +28,17 @@ Get-Content $EnvFile | ForEach-Object {
 
 $rg = "rg-$($env:AZURE_ENV_NAME)"
 Write-Host "Verifying demo in resource group $rg..." -ForegroundColor Cyan
+
+if ($WakePostgresIfStopped) {
+  $serverName = if ($env:PG_HOST) { ($env:PG_HOST -split '\.')[0] } else { "pg-$($env:AZURE_ENV_NAME)" }
+  $wakeScript = Join-Path $PSScriptRoot 'postgres_wakeup.ps1'
+  if (Test-Path $wakeScript) {
+    Write-Host "Precheck: ensuring PostgreSQL is Ready via $wakeScript..." -ForegroundColor Cyan
+    & $wakeScript -ResourceGroup $rg -ServerName $serverName
+  } else {
+    Write-Warning "Wake-up script not found at $wakeScript"
+  }
+}
 
 # Acceptance criteria — each function returns Pass/Fail/Skip + evidence.
 $results = @()

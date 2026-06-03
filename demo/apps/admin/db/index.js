@@ -574,6 +574,22 @@ async function logConnection({ email, role, app, event, ip, userAgent, detail })
   );
 }
 
+async function logOperationalEvent({ app, actorEmail, actorRole, eventType, outcome, correlationId, detail }) {
+  await q(
+    `INSERT INTO operational_events (app, actor_email, actor_role, event_type, outcome, correlation_id, detail)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      app || APP,
+      actorEmail || 'anonymous',
+      actorRole || 'unknown',
+      eventType,
+      outcome || 'unknown',
+      String(correlationId || 'none').slice(0, 128),
+      (detail || '').slice(0, 500)
+    ]
+  );
+}
+
 async function logAsk({ email, role, app, prompt, answer, model, usage, latencyMs, status, error }) {
   const u = usage || {};
   const r = await q(
@@ -1200,6 +1216,7 @@ module.exports = {
   enabled,
   init,
   logConnection,
+  logOperationalEvent,
   logAsk,
   listSheets,
   getSheet,
