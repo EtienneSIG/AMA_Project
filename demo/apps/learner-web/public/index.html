@@ -279,68 +279,76 @@
   </div>
   <div class="card">
     <div class="explhead">
-      <h2>Champion challenge</h2>
-      <button class="btn btn-sm secondary" onclick="loadChampionZone()">Refresh</button>
+      <h2>Challenge your class</h2>
     </div>
-    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Create a class challenge, then answer other learners' questions to score points.</p>
-    <textarea id="championQuestionInput" maxlength="220" placeholder="Example: What is 3/4 + 1/8?" style="min-height:2.8rem;"></textarea>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
-      <input id="championOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="championOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="championOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="championOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+    <p class="sub" style="margin:.2rem 0 .8rem;opacity:.85;font-size:.86rem;">Use Champion challenge and Duel mode to compete with classmates and earn points.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:.9rem;">
+      <div style="border:1px solid var(--line);border-radius:10px;padding:1rem;background:#fff;">
+        <div class="explhead">
+          <h2 style="font-size:1.1rem;">Champion challenge</h2>
+          <button class="btn btn-sm secondary" onclick="loadChampionZone()">Refresh</button>
+        </div>
+        <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Create a class challenge, then answer other learners' questions to score points.</p>
+        <textarea id="championQuestionInput" maxlength="220" placeholder="Example: What is 3/4 + 1/8?" style="min-height:2.8rem;"></textarea>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
+          <input id="championOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="championOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="championOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="championOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+        </div>
+        <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
+          <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
+          <select id="championCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+          <input id="championExplanation" maxlength="240" placeholder="Short explanation (optional)" style="flex:1 1 260px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <button class="btn" onclick="createChampionChallenge()">Create challenge</button>
+        </div>
+        <div id="championStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
+        <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Class challenges</h3>
+        <div id="championList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
+        <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Champion leaderboard</h3>
+        <div id="championLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+      </div>
+      <div style="border:1px solid var(--line);border-radius:10px;padding:1rem;background:#fff;">
+        <div class="explhead">
+          <h2 style="font-size:1.1rem;">Duel mode</h2>
+          <button class="btn btn-sm secondary" onclick="loadDuelZone()">Refresh</button>
+        </div>
+        <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Challenge a classmate with a quick question. Fast answers earn bonus points.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.45rem;">
+          <select id="duelOpponent" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;">
+            <option value="">Choose opponent</option>
+          </select>
+          <input id="duelTimeLimit" type="number" min="20" max="180" value="90" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" placeholder="Time limit in seconds" />
+        </div>
+        <textarea id="duelQuestionInput" maxlength="220" placeholder="Example: Which fraction is equivalent to 6/8?" style="min-height:2.8rem;margin-top:.45rem;"></textarea>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
+          <input id="duelOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="duelOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="duelOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+          <input id="duelOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
+        </div>
+        <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
+          <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
+          <select id="duelCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+          <button class="btn" onclick="createDuelChallenge()">Launch duel</button>
+        </div>
+        <div id="duelStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
+        <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">My duels</h3>
+        <div id="duelList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
+        <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Duel leaderboard</h3>
+        <div id="duelLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+      </div>
     </div>
-    <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
-      <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
-      <select id="championCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
-        <option value="0">A</option>
-        <option value="1">B</option>
-        <option value="2">C</option>
-        <option value="3">D</option>
-      </select>
-      <input id="championExplanation" maxlength="240" placeholder="Short explanation (optional)" style="flex:1 1 260px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <button class="btn" onclick="createChampionChallenge()">Create challenge</button>
-    </div>
-    <div id="championStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Class challenges</h3>
-    <div id="championList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Champion leaderboard</h3>
-    <div id="championLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
-  </div>
-  <div class="card">
-    <div class="explhead">
-      <h2>Duel mode</h2>
-      <button class="btn btn-sm secondary" onclick="loadDuelZone()">Refresh</button>
-    </div>
-    <p class="sub" style="margin:.2rem 0 .7rem;opacity:.85;font-size:.86rem;">Challenge a classmate with a quick question. Fast answers earn bonus points.</p>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.45rem;">
-      <select id="duelOpponent" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;">
-        <option value="">Choose opponent</option>
-      </select>
-      <input id="duelTimeLimit" type="number" min="20" max="180" value="90" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" placeholder="Time limit in seconds" />
-    </div>
-    <textarea id="duelQuestionInput" maxlength="220" placeholder="Example: Which fraction is equivalent to 6/8?" style="min-height:2.8rem;margin-top:.45rem;"></textarea>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem;margin-top:.45rem;">
-      <input id="duelOpt0" placeholder="Option A" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="duelOpt1" placeholder="Option B" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="duelOpt2" placeholder="Option C (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-      <input id="duelOpt3" placeholder="Option D (optional)" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;" />
-    </div>
-    <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;">
-      <label class="sub" style="font-size:.8rem;color:var(--grey);">Correct option:</label>
-      <select id="duelCorrectIndex" style="padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;">
-        <option value="0">A</option>
-        <option value="1">B</option>
-        <option value="2">C</option>
-        <option value="3">D</option>
-      </select>
-      <button class="btn" onclick="createDuelChallenge()">Launch duel</button>
-    </div>
-    <div id="duelStatus" class="sub" style="font-size:.8rem;min-height:1.1rem;margin-top:.35rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">My duels</h3>
-    <div id="duelList" style="display:flex;flex-direction:column;gap:.45rem;"></div>
-    <h3 style="margin:.85rem 0 .4rem;font-size:1rem;">Duel leaderboard</h3>
-    <div id="duelLeaderboard" style="display:flex;flex-direction:column;gap:.35rem;"></div>
   </div>
 </div>
 </div><!-- /tab quest -->
