@@ -1,0 +1,324 @@
+2026-06-04T09:18:25.8230123Z State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:18:26.5738978Z State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:18:26.5764123Z Container start method called.
+2026-06-04T09:18:26.5783037Z State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.4:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:18:26.5784901Z Establishing network.
+2026-06-04T09:18:26.5801288Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:18:26.8877552Z Container is starting.
+2026-06-04T09:18:26.8881029Z State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:18:26.8882565Z Establishing user namespace if not established already.
+2026-06-04T09:18:26.8883577Z Establishing network if not established already.
+2026-06-04T09:18:26.8884662Z Mounting volumes.
+2026-06-04T09:18:26.8898033Z Nested mountpoint 
+2026-06-04T09:18:27.1228407Z Nested mountpoint volatile/logs
+2026-06-04T09:18:27.1383561Z Nested mountpoint 
+2026-06-04T09:18:27.1844423Z Nested mountpoint 
+2026-06-04T09:18:27.1945502Z Nested mountpoint 
+2026-06-04T09:18:27.3617145Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:18:27.3619445Z Creating container.
+2026-06-04T09:18:27.3621491Z Creating pipes for streaming container io.
+2026-06-04T09:18:27.3623310Z Creating stdout named pipe at /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3631206Z Successfully created stdout named pipe at: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3633064Z Opening named pipe /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882 for reading in non-blocking mode.
+2026-06-04T09:18:27.3635438Z Successfully opened named pipe: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3732818Z Successfully removed non-blocking flag from /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3757266Z Creating stderr named pipe at /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3759690Z Successfully created stderr named pipe at: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3760971Z Opening named pipe /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552 for reading in non-blocking mode.
+2026-06-04T09:18:27.3762372Z Successfully opened named pipe: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3763693Z Successfully removed non-blocking flag from /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3765410Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.4:13209 and fully qualified image name: 10.1.0.4:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:18:27.8480923Z Starting container: 465130004f55_app-director-portal-learneu-demo.
+2026-06-04T09:18:28.0585652Z Starting watchers and probes.
+2026-06-04T09:18:28.0704853Z Starting metrics collection.
+2026-06-04T09:18:28.0758390Z Container is running.
+2026-06-04T09:18:28.0763587Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:18:28.1444257Z Container start method finished after 1567 ms.
+2026-06-04T09:18:28.1447844Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:18:28.1448279Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:18:34.2003498Z Site startup probe succeeded after 6.0312623 seconds.
+2026-06-04T09:18:34.2891785Z State: Starting, Action: WarmUpProbeSucceeded, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site startup probe succeeded after 6.0312623 seconds., DetailsLevel: INFO
+2026-06-04T09:18:34.4089443Z Site started.
+2026-06-04T09:18:34.4090549Z State: Started, Action: None, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:18:34 (UTC), DetailsLevel: INFO
+2026-06-04T09:18:34.4260645Z Site is running with patch version NODE 22.22.2
+2026-06-04T09:19:34.0182637Z State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:19:34.4995927Z State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:19:34.5005609Z Container start method called.
+2026-06-04T09:19:34.5007409Z State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:19:34.5016110Z Establishing network.
+2026-06-04T09:19:34.5023592Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:19:35.3349391Z Container is starting.
+2026-06-04T09:19:35.3350681Z State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:19:35.3352252Z Establishing user namespace if not established already.
+2026-06-04T09:19:35.3357668Z Establishing network if not established already.
+2026-06-04T09:19:35.3362458Z Mounting volumes.
+2026-06-04T09:19:35.3367592Z Nested mountpoint 
+2026-06-04T09:19:35.3623484Z Nested mountpoint volatile/logs
+2026-06-04T09:19:35.3809877Z Nested mountpoint 
+2026-06-04T09:19:35.3818255Z Nested mountpoint 
+2026-06-04T09:19:35.3969287Z Nested mountpoint 
+2026-06-04T09:19:35.5444433Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:19:35.5446238Z Creating container.
+2026-06-04T09:19:35.5447551Z Creating pipes for streaming container io.
+2026-06-04T09:19:35.5449114Z Creating stdout named pipe at /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5452046Z Successfully created stdout named pipe at: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5453273Z Opening named pipe /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d for reading in non-blocking mode.
+2026-06-04T09:19:35.5454743Z Successfully opened named pipe: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5455876Z Successfully removed non-blocking flag from /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5545354Z Creating stderr named pipe at /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5552459Z Successfully created stderr named pipe at: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5590344Z Opening named pipe /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508 for reading in non-blocking mode.
+2026-06-04T09:19:35.5597148Z Successfully opened named pipe: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5602126Z Successfully removed non-blocking flag from /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5637140Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:19:36.2037090Z Starting container: 7665cd9554f0_app-director-portal-learneu-demo.
+2026-06-04T09:19:36.2258519Z Starting watchers and probes.
+2026-06-04T09:19:36.2266161Z Starting metrics collection.
+2026-06-04T09:19:36.2268920Z Container is running.
+2026-06-04T09:19:36.2269812Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:19:36.2866821Z Container start method finished after 1785 ms.
+2026-06-04T09:19:36.2899251Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:19:36.2899542Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:19:42.3136147Z Site startup probe succeeded after 6.023177 seconds.
+2026-06-04T09:19:42.3691619Z State: Starting, Action: WarmUpProbeSucceeded, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site startup probe succeeded after 6.023177 seconds., DetailsLevel: INFO
+2026-06-04T09:19:42.4399429Z Site started.
+2026-06-04T09:19:42.4400600Z State: Started, Action: None, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:19:42 (UTC), DetailsLevel: INFO
+2026-06-04T09:19:42.4414726Z Site is running with patch version NODE 22.22.2
+2026-06-04T09:20:02.5073180Z State: Stopping, Action: StoppingSite, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:18:34 (UTC), DetailsLevel: INFO
+2026-06-04T09:20:02.5098593Z State: Stopping, Action: StoppingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:18:34 (UTC), DetailsLevel: INFO
+2026-06-04T09:20:02.5107331Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:20:02.5267510Z Stop and delete container. Retry count = 0
+2026-06-04T09:20:02.5275055Z Stopping container: 465130004f55_app-director-portal-learneu-demo.
+2026-06-04T09:20:07.5462804Z Deleting container: 465130004f55_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:20:07.6264467Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:20:07.6268294Z Container is terminated. Total time elapsed: 5115 ms.
+2026-06-04T09:20:07.6311169Z Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:20:54.5899631Z State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:20:55.1679151Z State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:20:55.1680782Z Container start method called.
+2026-06-04T09:20:55.1681352Z State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:20:55.1682541Z Establishing network.
+2026-06-04T09:20:55.1683762Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:20:55.2458435Z Container is starting.
+2026-06-04T09:20:55.2464602Z State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:20:55.2469141Z Establishing user namespace if not established already.
+2026-06-04T09:20:55.2477055Z Establishing network if not established already.
+2026-06-04T09:20:55.2481721Z Mounting volumes.
+2026-06-04T09:20:55.2487046Z Nested mountpoint 
+2026-06-04T09:20:55.2519708Z Nested mountpoint volatile/logs
+2026-06-04T09:20:55.2554852Z Nested mountpoint 
+2026-06-04T09:20:55.2563260Z Nested mountpoint 
+2026-06-04T09:20:55.2591978Z Nested mountpoint 
+2026-06-04T09:20:55.3765273Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:20:55.3772313Z Creating container.
+2026-06-04T09:20:55.3779219Z Creating pipes for streaming container io.
+2026-06-04T09:20:55.3782700Z Creating stdout named pipe at /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3825462Z Successfully created stdout named pipe at: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3829261Z Opening named pipe /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd for reading in non-blocking mode.
+2026-06-04T09:20:55.3839535Z Successfully opened named pipe: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3847526Z Successfully removed non-blocking flag from /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3851070Z Creating stderr named pipe at /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3856278Z Successfully created stderr named pipe at: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3859353Z Opening named pipe /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88 for reading in non-blocking mode.
+2026-06-04T09:20:55.3862495Z Successfully opened named pipe: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3865497Z Successfully removed non-blocking flag from /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3871436Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:20:55.6462088Z Starting container: b3cbdd97068f_app-director-portal-learneu-demo.
+2026-06-04T09:20:55.6769263Z Starting watchers and probes.
+2026-06-04T09:20:55.6795493Z Starting metrics collection.
+2026-06-04T09:20:55.6803123Z Container is running.
+2026-06-04T09:20:55.6819172Z State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:20:55.7243533Z Container start method finished after 547 ms.
+2026-06-04T09:20:55.7424255Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:20:55.7435479Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:21:03.0536258Z Container has finished running with exit code: 1.
+2026-06-04T09:21:03.0538603Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:21:03.0551424Z Stop and delete container. Retry count = 0
+2026-06-04T09:21:03.0557443Z Stopping container: b3cbdd97068f_app-director-portal-learneu-demo.
+2026-06-04T09:21:03.3204896Z Deleting container: b3cbdd97068f_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:21:03.6011333Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:21:03.6020012Z Container is terminated. Total time elapsed: 547 ms.
+2026-06-04T09:21:03.6025963Z Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:21:03.6054176Z State: Stopping, Action: CancellingStartup, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.6417148Z Site startup probe failed after 7.8975894 seconds.
+2026-06-04T09:21:03.7230337Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7301519Z Failed to start site. Revert by stopping site.
+2026-06-04T09:21:03.7303081Z State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7306245Z State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7306436Z Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:21:24.1529520Z State: Stopping, Action: StoppingSite, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:19:42 (UTC), DetailsLevel: INFO
+2026-06-04T09:21:24.1533747Z State: Stopping, Action: StoppingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:19:42 (UTC), DetailsLevel: INFO
+2026-06-04T09:21:24.1535297Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:21:24.1601949Z Stop and delete container. Retry count = 0
+2026-06-04T09:21:24.1603261Z Stopping container: 7665cd9554f0_app-director-portal-learneu-demo.
+2026-06-04T09:21:29.1991623Z Deleting container: 7665cd9554f0_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:21:29.2936273Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:21:29.2948834Z Container is terminated. Total time elapsed: 5141 ms.
+2026-06-04T09:21:29.2951106Z Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:21:03.7354820Z State: Stopping, Action: UnmountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.9762301Z State: Stopping, Action: StoppingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:04.0375262Z State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:21:04.1322647Z State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:24:29.1846858Z State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:24:29.6538706Z State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:24:29.6541944Z Container start method called.
+2026-06-04T09:24:29.6542729Z State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:24:29.6544838Z Establishing network.
+2026-06-04T09:24:29.6546903Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:24:29.7665227Z Container is starting.
+2026-06-04T09:24:29.7666501Z State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:24:29.7667987Z Establishing user namespace if not established already.
+2026-06-04T09:24:29.7669903Z Establishing network if not established already.
+2026-06-04T09:24:29.7686339Z Mounting volumes.
+2026-06-04T09:24:29.7688396Z Nested mountpoint 
+2026-06-04T09:24:29.7789033Z Nested mountpoint volatile/logs
+2026-06-04T09:24:29.7821998Z Nested mountpoint 
+2026-06-04T09:24:29.7885861Z Nested mountpoint 
+2026-06-04T09:24:29.7930599Z Nested mountpoint 
+2026-06-04T09:24:29.8823750Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:24:29.8831104Z Creating container.
+2026-06-04T09:24:29.8835960Z Creating pipes for streaming container io.
+2026-06-04T09:24:29.8837515Z Creating stdout named pipe at /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8845839Z Successfully created stdout named pipe at: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8846958Z Opening named pipe /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc for reading in non-blocking mode.
+2026-06-04T09:24:29.8848389Z Successfully opened named pipe: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8849730Z Successfully removed non-blocking flag from /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8870830Z Creating stderr named pipe at /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8877137Z Successfully created stderr named pipe at: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8884899Z Opening named pipe /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14 for reading in non-blocking mode.
+2026-06-04T09:24:29.8897551Z Successfully opened named pipe: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8901386Z Successfully removed non-blocking flag from /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8903065Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:24:30.8136461Z Starting container: cc43af04a95f_app-director-portal-learneu-demo.
+2026-06-04T09:24:30.8326487Z Starting watchers and probes.
+2026-06-04T09:24:30.8329580Z Starting metrics collection.
+2026-06-04T09:24:30.8331305Z Container is running.
+2026-06-04T09:24:30.8333888Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:24:30.8761877Z Container start method finished after 1221 ms.
+2026-06-04T09:24:30.8764601Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:24:30.8764999Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:24:39.5925230Z Container has finished running with exit code: 1.
+2026-06-04T09:24:39.5927245Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:24:39.5931792Z Stop and delete container. Retry count = 0
+2026-06-04T09:24:39.5937380Z Stopping container: cc43af04a95f_app-director-portal-learneu-demo.
+2026-06-04T09:24:39.6378534Z Deleting container: cc43af04a95f_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:24:39.9208999Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:24:39.9211263Z Container is terminated. Total time elapsed: 328 ms.
+2026-06-04T09:24:39.9214082Z Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:24:39.9421992Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:39.9717174Z Site startup probe failed after 9.0946511 seconds.
+2026-06-04T09:24:40.0458507Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0494647Z Failed to start site. Revert by stopping site.
+2026-06-04T09:24:40.0518813Z State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0526309Z State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0526576Z Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:29:04.3392064Z State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site is blocked due to multiple, consecutive cold start failures. Site scheduled to be unblocked at 06/04/2026 09:25:40, DetailsLevel: WARN
+2026-06-04T09:29:04.8296208Z State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site is blocked due to multiple, consecutive cold start failures. Site scheduled to be unblocked at 06/04/2026 09:25:40, DetailsLevel: WARN
+2026-06-04T09:29:04.8297969Z Container start method called.
+2026-06-04T09:29:04.8298730Z State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:29:04.8300072Z Establishing network.
+2026-06-04T09:29:04.8317125Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:29:04.9296068Z Container is starting.
+2026-06-04T09:29:04.9297069Z State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:29:04.9298488Z Establishing user namespace if not established already.
+2026-06-04T09:29:04.9307175Z Establishing network if not established already.
+2026-06-04T09:29:04.9308933Z Mounting volumes.
+2026-06-04T09:29:04.9310845Z Nested mountpoint 
+2026-06-04T09:29:04.9440897Z Nested mountpoint volatile/logs
+2026-06-04T09:29:04.9499706Z Nested mountpoint 
+2026-06-04T09:29:04.9520689Z Nested mountpoint 
+2026-06-04T09:29:04.9593553Z Nested mountpoint 
+2026-06-04T09:29:05.0267431Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:29:05.0268780Z Creating container.
+2026-06-04T09:29:05.0269914Z Creating pipes for streaming container io.
+2026-06-04T09:29:05.0271051Z Creating stdout named pipe at /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0303012Z Successfully created stdout named pipe at: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0309460Z Opening named pipe /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457 for reading in non-blocking mode.
+2026-06-04T09:29:05.0316997Z Successfully opened named pipe: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0323768Z Successfully removed non-blocking flag from /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0331360Z Creating stderr named pipe at /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0338519Z Successfully created stderr named pipe at: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0344764Z Opening named pipe /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241 for reading in non-blocking mode.
+2026-06-04T09:29:05.0350381Z Successfully opened named pipe: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0354039Z Successfully removed non-blocking flag from /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0359118Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:29:05.2569274Z Starting container: 87d6229b0cbb_app-director-portal-learneu-demo.
+2026-06-04T09:29:05.2727702Z Starting watchers and probes.
+2026-06-04T09:29:05.2737060Z Starting metrics collection.
+2026-06-04T09:29:05.2738923Z Container is running.
+2026-06-04T09:29:05.2740054Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:29:05.2933784Z Container start method finished after 463 ms.
+2026-06-04T09:29:05.2947296Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:29:05.2948343Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:29:14.1487101Z Container has finished running with exit code: 1.
+2026-06-04T09:29:14.1489761Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:29:14.1495533Z Stop and delete container. Retry count = 0
+2026-06-04T09:29:14.1497519Z Stopping container: 87d6229b0cbb_app-director-portal-learneu-demo.
+2026-06-04T09:29:14.1751382Z Deleting container: 87d6229b0cbb_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:29:14.8747484Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:29:14.8749839Z Container is terminated. Total time elapsed: 725 ms.
+2026-06-04T09:29:14.8751295Z Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:29:14.8752637Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.8922296Z Site startup probe failed after 9.5968141 seconds.
+2026-06-04T09:29:14.9719835Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9733902Z Failed to start site. Revert by stopping site.
+2026-06-04T09:29:14.9734992Z State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9737470Z State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9737631Z Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:29:14.9767101Z State: Stopping, Action: UnmountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:15.1832262Z State: Stopping, Action: StoppingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:15.2820618Z State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:29:15.5121493Z State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.1904979Z State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.6064272Z State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.6065617Z Container start method called.
+2026-06-04T09:30:36.6066121Z State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:30:36.6067157Z Establishing network.
+2026-06-04T09:30:36.6068166Z Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:30:36.6869269Z Container is starting.
+2026-06-04T09:30:36.6870254Z State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:30:36.6871945Z Establishing user namespace if not established already.
+2026-06-04T09:30:36.6873468Z Establishing network if not established already.
+2026-06-04T09:30:36.6876069Z Mounting volumes.
+2026-06-04T09:30:36.6879244Z Nested mountpoint 
+2026-06-04T09:30:36.6904891Z Nested mountpoint volatile/logs
+2026-06-04T09:30:36.6949738Z Nested mountpoint 
+2026-06-04T09:30:36.6985899Z Nested mountpoint 
+2026-06-04T09:30:36.6999307Z Nested mountpoint 
+2026-06-04T09:30:36.8012352Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:30:36.8018106Z Creating container.
+2026-06-04T09:30:36.8019757Z Creating pipes for streaming container io.
+2026-06-04T09:30:36.8028270Z Creating stdout named pipe at /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8030988Z Successfully created stdout named pipe at: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8032610Z Opening named pipe /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda for reading in non-blocking mode.
+2026-06-04T09:30:36.8036963Z Successfully opened named pipe: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8038698Z Successfully removed non-blocking flag from /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8047274Z Creating stderr named pipe at /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8049548Z Successfully created stderr named pipe at: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8051103Z Opening named pipe /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999 for reading in non-blocking mode.
+2026-06-04T09:30:36.8053187Z Successfully opened named pipe: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8054745Z Successfully removed non-blocking flag from /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8078694Z Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:30:36.9743518Z Starting container: 26a1d4769a77_app-director-portal-learneu-demo.
+2026-06-04T09:30:36.9933775Z Starting watchers and probes.
+2026-06-04T09:30:36.9963405Z Starting metrics collection.
+2026-06-04T09:30:36.9972010Z Container is running.
+2026-06-04T09:30:36.9973226Z State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:30:37.0261239Z Container start method finished after 419 ms.
+2026-06-04T09:30:37.0263884Z State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:30:37.0264258Z State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:30:42.7634914Z Container has finished running with exit code: 1.
+2026-06-04T09:30:42.7636833Z Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:30:42.7640239Z Stop and delete container. Retry count = 0
+2026-06-04T09:30:42.7641281Z Stopping container: 26a1d4769a77_app-director-portal-learneu-demo.
+2026-06-04T09:30:42.7813860Z Deleting container: 26a1d4769a77_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:30:43.1420370Z Container spec TerminationMessagePolicy  path 
+2026-06-04T09:30:43.1422445Z Container is terminated. Total time elapsed: 378 ms.
+2026-06-04T09:30:43.1423719Z Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:30:43.1425005Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.1562959Z Site startup probe failed after 6.1292854 seconds.
+2026-06-04T09:30:43.2356993Z State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2370226Z Failed to start site. Revert by stopping site.
+2026-06-04T09:30:43.2371551Z State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2374363Z State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2374556Z Site: app-director-portal-learneu-demo stopped.

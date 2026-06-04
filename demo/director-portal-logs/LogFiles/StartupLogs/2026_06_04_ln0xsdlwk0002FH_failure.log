@@ -1,0 +1,627 @@
+2026-06-04T09:20:02.5098593+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:18:34 (UTC), DetailsLevel: INFO
+2026-06-04T09:20:02.5107331+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:20:02.5267510+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:20:02.5275055+00:00 ContainerStatus: Stopping container: 465130004f55_app-director-portal-learneu-demo.
+2026-06-04T09:20:07.5462804+00:00 ContainerStatus: Deleting container: 465130004f55_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:20:07.6264467+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:20:07.6268294+00:00 ContainerStatus: Container is terminated. Total time elapsed: 5115 ms.
+2026-06-04T09:20:07.6311169+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:20:54.5899631+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:20:55.1679151+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:20:55.1680782+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:20:55.1681352+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:20:55.1682541+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:20:55.1683762+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:20:55.2458435+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:20:55.2464602+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:20:55.2469141+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:20:55.2477055+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:20:55.2481721+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:20:55.2487046+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:20:55.2519708+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:20:55.2554852+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:20:55.2563260+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:20:55.2591978+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:20:55.3765273+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:20:55.3772313+00:00 ContainerStatus: Creating container.
+2026-06-04T09:20:55.3779219+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:20:55.3782700+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3825462+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3829261+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd for reading in non-blocking mode.
+2026-06-04T09:20:55.3839535+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3847526+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stdout_4db9cef6102d419098d7f5bd25945cbd.
+2026-06-04T09:20:55.3851070+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3856278+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3859353+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88 for reading in non-blocking mode.
+2026-06-04T09:20:55.3862495+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3865497+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/b3cbdd97068f_app-director-portal-learneu-demo/stderr_8a93818cdda3444ca4b9f626fa9e4d88.
+2026-06-04T09:20:55.3871436+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:20:55.6462088+00:00 ContainerStatus: Starting container: b3cbdd97068f_app-director-portal-learneu-demo.
+2026-06-04T09:20:55.6769263+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:20:55.6795493+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:20:55.6803123+00:00 ContainerStatus: Container is running.
+2026-06-04T09:20:55.6819172+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:20:55.7243533+00:00 ContainerStatus: Container start method finished after 547 ms.
+2026-06-04T09:20:55.7424255+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:20:55.7435479+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:20:55.8676077+00:00 ContainerStream:    _____                               
+2026-06-04T09:20:55.8685343+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:20:55.8685532+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:20:55.8685572+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:20:55.8685605+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:20:55.8685638+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:20:55.8685725+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:20:55.8685753+00:00 ContainerStream: 
+2026-06-04T09:20:55.8685791+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:20:55.8685823+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:20:55.8685860+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:20:55.8685892+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:20:55.8685955+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:20:55.8685985+00:00 ContainerStream: 
+2026-06-04T09:20:55.8686016+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:20:56.4088149+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:20:56.4137360+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:20:56.4322958+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:21:00.0859335+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:21:00.0915482+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:21:00.1517048+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:21:00.1621401+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:21:00.1622482+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:21:00.1648771+00:00 ContainerStream: done.
+2026-06-04T09:21:00.1700208+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:21:00.2137069+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:21:00.2693007+00:00 ContainerStream: Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2026-06-04T09:21:00.2717365+00:00 ContainerStream: Build Operation ID: afddc2689a4be9e9
+2026-06-04T09:21:00.3468433+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:21:00.3528636+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:21:00.3607109+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:21:00.3607448+00:00 ContainerStream: 
+2026-06-04T09:21:00.3607505+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:21:00.3607600+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:21:00.3607628+00:00 ContainerStream: 
+2026-06-04T09:21:00.3607659+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:21:00.3607689+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:21:00.3607718+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:21:00.3607746+00:00 ContainerStream: fi
+2026-06-04T09:21:00.3607774+00:00 ContainerStream: 
+2026-06-04T09:21:00.3607823+00:00 ContainerStream: echo Found tar.gz based node_modules.
+2026-06-04T09:21:00.3607857+00:00 ContainerStream: extractionCommand="tar -xzf node_modules.tar.gz -C /node_modules"
+2026-06-04T09:21:00.3607888+00:00 ContainerStream: echo "Removing existing modules directory from root..."
+2026-06-04T09:21:00.3607917+00:00 ContainerStream: rm -fr /node_modules
+2026-06-04T09:21:00.3607947+00:00 ContainerStream: mkdir -p /node_modules
+2026-06-04T09:21:00.3607976+00:00 ContainerStream: echo Extracting modules...
+2026-06-04T09:21:00.3608004+00:00 ContainerStream: $extractionCommand
+2026-06-04T09:21:00.3608080+00:00 ContainerStream: export NODE_PATH="/node_modules":$NODE_PATH
+2026-06-04T09:21:00.3608109+00:00 ContainerStream: export PATH=/node_modules/.bin:$PATH
+2026-06-04T09:21:00.3608137+00:00 ContainerStream: if [ -d node_modules ]; then
+2026-06-04T09:21:00.3608168+00:00 ContainerStream:     mv -f node_modules _del_node_modules || true
+2026-06-04T09:21:00.3608193+00:00 ContainerStream: fi
+2026-06-04T09:21:00.3608220+00:00 ContainerStream: 
+2026-06-04T09:21:00.3608249+00:00 ContainerStream: if [ -d /node_modules ]; then
+2026-06-04T09:21:00.3608300+00:00 ContainerStream:     ln -sfn /node_modules ./node_modules 
+2026-06-04T09:21:00.3608328+00:00 ContainerStream: fi
+2026-06-04T09:21:00.3608355+00:00 ContainerStream: 
+2026-06-04T09:21:00.3608384+00:00 ContainerStream: echo "Done."
+2026-06-04T09:21:00.3608412+00:00 ContainerStream: npm start
+2026-06-04T09:21:00.3620500+00:00 ContainerStream: Found tar.gz based node_modules.
+2026-06-04T09:21:00.3642124+00:00 ContainerStream: Removing existing modules directory from root...
+2026-06-04T09:21:00.3691594+00:00 ContainerStream: Extracting modules...
+2026-06-04T09:21:01.1078478+00:00 ContainerStream: Done.
+2026-06-04T09:21:01.7332757+00:00 ContainerStream: npm info using npm@10.9.2
+2026-06-04T09:21:01.7337350+00:00 ContainerStream: npm info using node@v22.22.2
+2026-06-04T09:21:02.3914806+00:00 ContainerStream: 
+2026-06-04T09:21:02.3915606+00:00 ContainerStream: > learneu-director-portal@0.1.0 start
+2026-06-04T09:21:02.3915658+00:00 ContainerStream: > node server.js
+2026-06-04T09:21:02.3915691+00:00 ContainerStream: 
+2026-06-04T09:21:02.6929292+00:00 ContainerStream: node:internal/modules/cjs/loader:1386
+2026-06-04T09:21:02.6930043+00:00 ContainerStream:   throw err;
+2026-06-04T09:21:02.6930087+00:00 ContainerStream:   ^
+2026-06-04T09:21:02.6930115+00:00 ContainerStream: 
+2026-06-04T09:21:02.6930144+00:00 ContainerStream: Error: Cannot find module './auth'
+2026-06-04T09:21:02.6930172+00:00 ContainerStream: Require stack:
+2026-06-04T09:21:02.6930203+00:00 ContainerStream: - /home/site/wwwroot/server.js
+2026-06-04T09:21:02.6930235+00:00 ContainerStream:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+2026-06-04T09:21:02.6930300+00:00 ContainerStream:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+2026-06-04T09:21:02.6930331+00:00 ContainerStream:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+2026-06-04T09:21:02.6930360+00:00 ContainerStream:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+2026-06-04T09:21:02.6930384+00:00 ContainerStream:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-06-04T09:21:02.6930405+00:00 ContainerStream:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-06-04T09:21:02.6930425+00:00 ContainerStream:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+2026-06-04T09:21:02.6930462+00:00 ContainerStream:     at require (node:internal/modules/helpers:147:16)
+2026-06-04T09:21:02.6930483+00:00 ContainerStream:     at Object.<anonymous> (/home/site/wwwroot/server.js:5:14)
+2026-06-04T09:21:02.6930504+00:00 ContainerStream:     at Module._compile (node:internal/modules/cjs/loader:1705:14) {
+2026-06-04T09:21:02.6930523+00:00 ContainerStream:   code: 'MODULE_NOT_FOUND',
+2026-06-04T09:21:02.6930542+00:00 ContainerStream:   requireStack: [ '/home/site/wwwroot/server.js' ]
+2026-06-04T09:21:02.6930561+00:00 ContainerStream: }
+2026-06-04T09:21:02.6930578+00:00 ContainerStream: 
+2026-06-04T09:21:02.6930611+00:00 ContainerStream: Node.js v22.22.2
+2026-06-04T09:21:02.7005516+00:00 ContainerStream: npm http fetch GET 200 https://registry.npmjs.org/npm 183ms
+2026-06-04T09:21:02.7033860+00:00 ContainerStream: npm notice
+2026-06-04T09:21:02.7034626+00:00 ContainerStream: npm notice New major version of npm available! 10.9.2 -> 11.16.0
+2026-06-04T09:21:02.7034679+00:00 ContainerStream: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+2026-06-04T09:21:02.7034717+00:00 ContainerStream: npm notice To update run: npm install -g npm@11.16.0
+2026-06-04T09:21:02.7034748+00:00 ContainerStream: npm notice
+2026-06-04T09:21:03.0536258+00:00 ContainerStatus: Container has finished running with exit code: 1.
+2026-06-04T09:21:03.0538603+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:21:03.0551424+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:21:03.0557443+00:00 ContainerStatus: Stopping container: b3cbdd97068f_app-director-portal-learneu-demo.
+2026-06-04T09:21:03.3204896+00:00 ContainerStatus: Deleting container: b3cbdd97068f_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:21:03.6011333+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:21:03.6020012+00:00 ContainerStatus: Container is terminated. Total time elapsed: 547 ms.
+2026-06-04T09:21:03.6025963+00:00 ContainerStatus: Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:21:03.6054176+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.6417148+00:00 ContainerStatus: Site startup probe failed after 7.8975894 seconds.
+2026-06-04T09:21:03.7230337+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7301519+00:00 ContainerStatus: Failed to start site. Revert by stopping site.
+2026-06-04T09:21:03.7303081+00:00 ContainerStatus: State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7306245+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.7306436+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.
+========== New Cold Start Attempt (2026-06-04T09:21:03.7354820+00:00) ==========
+2026-06-04T09:21:03.7354820+00:00 ContainerStatus: State: Stopping, Action: UnmountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:03.9762301+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:21:04.0375262+00:00 ContainerStatus: State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:21:04.1322647+00:00 ContainerStatus: State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:21:24.1533747+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:19:42 (UTC), DetailsLevel: INFO
+2026-06-04T09:21:24.1535297+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:21:24.1601949+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:21:24.1603261+00:00 ContainerStatus: Stopping container: 7665cd9554f0_app-director-portal-learneu-demo.
+2026-06-04T09:21:29.1991623+00:00 ContainerStatus: Deleting container: 7665cd9554f0_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:21:29.2936273+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:21:29.2948834+00:00 ContainerStatus: Container is terminated. Total time elapsed: 5141 ms.
+2026-06-04T09:21:29.2951106+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.
+2026-06-04T09:24:29.1846858+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:24:29.6538706+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:21:04 (UTC), DetailsLevel: ERR
+2026-06-04T09:24:29.6541944+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:24:29.6542729+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:24:29.6544838+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:24:29.6546903+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:24:29.7665227+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:24:29.7666501+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:24:29.7667987+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:24:29.7669903+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:24:29.7686339+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:24:29.7688396+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:24:29.7789033+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:24:29.7821998+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:24:29.7885861+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:24:29.7930599+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:24:29.8823750+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:24:29.8831104+00:00 ContainerStatus: Creating container.
+2026-06-04T09:24:29.8835960+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:24:29.8837515+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8845839+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8846958+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc for reading in non-blocking mode.
+2026-06-04T09:24:29.8848389+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8849730+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stdout_f345a685f08a46758047b45084c399dc.
+2026-06-04T09:24:29.8870830+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8877137+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8884899+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14 for reading in non-blocking mode.
+2026-06-04T09:24:29.8897551+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8901386+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/cc43af04a95f_app-director-portal-learneu-demo/stderr_decc1eed2acb4402846d8062db5fda14.
+2026-06-04T09:24:29.8903065+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:24:30.8136461+00:00 ContainerStatus: Starting container: cc43af04a95f_app-director-portal-learneu-demo.
+2026-06-04T09:24:30.8326487+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:24:30.8329580+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:24:30.8331305+00:00 ContainerStatus: Container is running.
+2026-06-04T09:24:30.8333888+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:24:30.8761877+00:00 ContainerStatus: Container start method finished after 1221 ms.
+2026-06-04T09:24:30.8764601+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:24:30.8764999+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:24:31.0155332+00:00 ContainerStream:    _____                               
+2026-06-04T09:24:31.0156080+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:24:31.0156114+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:24:31.0156137+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:24:31.0156159+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:24:31.0156179+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:24:31.0156200+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:24:31.0156225+00:00 ContainerStream: 
+2026-06-04T09:24:31.0156247+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:24:31.0156270+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:24:31.0156292+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:24:31.0156336+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:24:31.0156366+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:24:31.0156387+00:00 ContainerStream: 
+2026-06-04T09:24:31.0156408+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:24:33.3969196+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:24:33.4097783+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:24:33.4261407+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:24:36.9645100+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:24:36.9650899+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:24:37.0197064+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:24:37.0330539+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:24:37.0331859+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:24:37.0350592+00:00 ContainerStream: done.
+2026-06-04T09:24:37.0403650+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:24:37.0716095+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:24:37.1429411+00:00 ContainerStream: Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2026-06-04T09:24:37.1462852+00:00 ContainerStream: Build Operation ID: afddc2689a4be9e9
+2026-06-04T09:24:37.2285320+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:24:37.2316982+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:24:37.2431043+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:24:37.2431554+00:00 ContainerStream: 
+2026-06-04T09:24:37.2431599+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:24:37.2431621+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:24:37.2431640+00:00 ContainerStream: 
+2026-06-04T09:24:37.2431668+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:24:37.2431694+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:24:37.2431716+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:24:37.2431736+00:00 ContainerStream: fi
+2026-06-04T09:24:37.2431755+00:00 ContainerStream: 
+2026-06-04T09:24:37.2431779+00:00 ContainerStream: echo Found tar.gz based node_modules.
+2026-06-04T09:24:37.2431809+00:00 ContainerStream: extractionCommand="tar -xzf node_modules.tar.gz -C /node_modules"
+2026-06-04T09:24:37.2431886+00:00 ContainerStream: echo "Removing existing modules directory from root..."
+2026-06-04T09:24:37.2431907+00:00 ContainerStream: rm -fr /node_modules
+2026-06-04T09:24:37.2431930+00:00 ContainerStream: mkdir -p /node_modules
+2026-06-04T09:24:37.2431952+00:00 ContainerStream: echo Extracting modules...
+2026-06-04T09:24:37.2431973+00:00 ContainerStream: $extractionCommand
+2026-06-04T09:24:37.2431996+00:00 ContainerStream: export NODE_PATH="/node_modules":$NODE_PATH
+2026-06-04T09:24:37.2432017+00:00 ContainerStream: export PATH=/node_modules/.bin:$PATH
+2026-06-04T09:24:37.2432039+00:00 ContainerStream: if [ -d node_modules ]; then
+2026-06-04T09:24:37.2432063+00:00 ContainerStream:     mv -f node_modules _del_node_modules || true
+2026-06-04T09:24:37.2432084+00:00 ContainerStream: fi
+2026-06-04T09:24:37.2432105+00:00 ContainerStream: 
+2026-06-04T09:24:37.2432151+00:00 ContainerStream: if [ -d /node_modules ]; then
+2026-06-04T09:24:37.2432174+00:00 ContainerStream:     ln -sfn /node_modules ./node_modules 
+2026-06-04T09:24:37.2432195+00:00 ContainerStream: fi
+2026-06-04T09:24:37.2432215+00:00 ContainerStream: 
+2026-06-04T09:24:37.2432236+00:00 ContainerStream: echo "Done."
+2026-06-04T09:24:37.2432257+00:00 ContainerStream: npm start
+2026-06-04T09:24:37.2458343+00:00 ContainerStream: Found tar.gz based node_modules.
+2026-06-04T09:24:37.2458525+00:00 ContainerStream: Removing existing modules directory from root...
+2026-06-04T09:24:37.2512992+00:00 ContainerStream: Extracting modules...
+2026-06-04T09:24:37.9543918+00:00 ContainerStream: Done.
+2026-06-04T09:24:38.6704501+00:00 ContainerStream: npm info using npm@10.9.2
+2026-06-04T09:24:38.6717319+00:00 ContainerStream: npm info using node@v22.22.2
+2026-06-04T09:24:39.3198209+00:00 ContainerStream: 
+2026-06-04T09:24:39.3198963+00:00 ContainerStream: > learneu-director-portal@0.1.0 start
+2026-06-04T09:24:39.3199008+00:00 ContainerStream: > node server.js
+2026-06-04T09:24:39.3199029+00:00 ContainerStream: 
+2026-06-04T09:24:39.5365164+00:00 ContainerStream: node:internal/modules/cjs/loader:1386
+2026-06-04T09:24:39.5365821+00:00 ContainerStream:   throw err;
+2026-06-04T09:24:39.5365859+00:00 ContainerStream:   ^
+2026-06-04T09:24:39.5365885+00:00 ContainerStream: 
+2026-06-04T09:24:39.5365999+00:00 ContainerStream: Error: Cannot find module './auth'
+2026-06-04T09:24:39.5366021+00:00 ContainerStream: Require stack:
+2026-06-04T09:24:39.5370178+00:00 ContainerStream: - /home/site/wwwroot/server.js
+2026-06-04T09:24:39.5370223+00:00 ContainerStream:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+2026-06-04T09:24:39.5370255+00:00 ContainerStream:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+2026-06-04T09:24:39.5370281+00:00 ContainerStream:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+2026-06-04T09:24:39.5370308+00:00 ContainerStream:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+2026-06-04T09:24:39.5370330+00:00 ContainerStream:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-06-04T09:24:39.5370353+00:00 ContainerStream:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-06-04T09:24:39.5370377+00:00 ContainerStream:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+2026-06-04T09:24:39.5370401+00:00 ContainerStream:     at require (node:internal/modules/helpers:147:16)
+2026-06-04T09:24:39.5370448+00:00 ContainerStream:     at Object.<anonymous> (/home/site/wwwroot/server.js:5:14)
+2026-06-04T09:24:39.5370472+00:00 ContainerStream:     at Module._compile (node:internal/modules/cjs/loader:1705:14) {
+2026-06-04T09:24:39.5370495+00:00 ContainerStream:   code: 'MODULE_NOT_FOUND',
+2026-06-04T09:24:39.5370521+00:00 ContainerStream:   requireStack: [ '/home/site/wwwroot/server.js' ]
+2026-06-04T09:24:39.5370539+00:00 ContainerStream: }
+2026-06-04T09:24:39.5370558+00:00 ContainerStream: 
+2026-06-04T09:24:39.5370579+00:00 ContainerStream: Node.js v22.22.2
+2026-06-04T09:24:39.5444583+00:00 ContainerStream: npm http fetch GET 200 https://registry.npmjs.org/npm 250ms
+2026-06-04T09:24:39.5468318+00:00 ContainerStream: npm notice
+2026-06-04T09:24:39.5468607+00:00 ContainerStream: npm notice New major version of npm available! 10.9.2 -> 11.16.0
+2026-06-04T09:24:39.5468688+00:00 ContainerStream: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+2026-06-04T09:24:39.5468715+00:00 ContainerStream: npm notice To update run: npm install -g npm@11.16.0
+2026-06-04T09:24:39.5468737+00:00 ContainerStream: npm notice
+2026-06-04T09:24:39.5925230+00:00 ContainerStatus: Container has finished running with exit code: 1.
+2026-06-04T09:24:39.5927245+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:24:39.5931792+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:24:39.5937380+00:00 ContainerStatus: Stopping container: cc43af04a95f_app-director-portal-learneu-demo.
+2026-06-04T09:24:39.6378534+00:00 ContainerStatus: Deleting container: cc43af04a95f_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:24:39.9208999+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:24:39.9211263+00:00 ContainerStatus: Container is terminated. Total time elapsed: 328 ms.
+2026-06-04T09:24:39.9214082+00:00 ContainerStatus: Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:24:39.9421992+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:21:03, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:39.9717174+00:00 ContainerStatus: Site startup probe failed after 9.0946511 seconds.
+2026-06-04T09:24:40.0458507+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0494647+00:00 ContainerStatus: Failed to start site. Revert by stopping site.
+2026-06-04T09:24:40.0518813+00:00 ContainerStatus: State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0526309+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:24:40.0526576+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.
+========== New Cold Start Attempt (2026-06-04T09:29:04.3392064+00:00) ==========
+2026-06-04T09:29:04.3392064+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site is blocked due to multiple, consecutive cold start failures. Site scheduled to be unblocked at 06/04/2026 09:25:40, DetailsLevel: WARN
+2026-06-04T09:29:04.8296208+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site is blocked due to multiple, consecutive cold start failures. Site scheduled to be unblocked at 06/04/2026 09:25:40, DetailsLevel: WARN
+2026-06-04T09:29:04.8297969+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:29:04.8298730+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:29:04.8300072+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:29:04.8317125+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:29:04.9296068+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:29:04.9297069+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:29:04.9298488+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:29:04.9307175+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:29:04.9308933+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:29:04.9310845+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:29:04.9440897+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:29:04.9499706+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:29:04.9520689+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:29:04.9593553+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:29:05.0267431+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:29:05.0268780+00:00 ContainerStatus: Creating container.
+2026-06-04T09:29:05.0269914+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:29:05.0271051+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0303012+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0309460+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457 for reading in non-blocking mode.
+2026-06-04T09:29:05.0316997+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0323768+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stdout_0099fb257a894f33a4f44a5d0a9a6457.
+2026-06-04T09:29:05.0331360+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0338519+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0344764+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241 for reading in non-blocking mode.
+2026-06-04T09:29:05.0350381+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0354039+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/87d6229b0cbb_app-director-portal-learneu-demo/stderr_374cda1c71d74c71ad28a08c1bad9241.
+2026-06-04T09:29:05.0359118+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:29:05.2569274+00:00 ContainerStatus: Starting container: 87d6229b0cbb_app-director-portal-learneu-demo.
+2026-06-04T09:29:05.2727702+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:29:05.2737060+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:29:05.2738923+00:00 ContainerStatus: Container is running.
+2026-06-04T09:29:05.2740054+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:29:05.2933784+00:00 ContainerStatus: Container start method finished after 463 ms.
+2026-06-04T09:29:05.2947296+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:29:05.2948343+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:29:05.4317788+00:00 ContainerStream:    _____                               
+2026-06-04T09:29:05.4319790+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:29:05.4319860+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:29:05.4319886+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:29:05.4319906+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:29:05.4319932+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:29:05.4319996+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:29:05.4320015+00:00 ContainerStream: 
+2026-06-04T09:29:05.4320040+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:29:05.4320064+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:29:05.4320084+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:29:05.4320105+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:29:05.4320145+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:29:05.4320164+00:00 ContainerStream: 
+2026-06-04T09:29:05.4320183+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:29:06.0627263+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:29:06.0672200+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:29:06.0861420+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:29:11.8656690+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:29:11.8664047+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:29:11.9209356+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:29:11.9316816+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:29:11.9325068+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:29:11.9344221+00:00 ContainerStream: done.
+2026-06-04T09:29:11.9386909+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:29:11.9694894+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:29:12.0734110+00:00 ContainerStream: Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2026-06-04T09:29:12.0750958+00:00 ContainerStream: Build Operation ID: d38f5683b0f27179
+2026-06-04T09:29:12.1588668+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:29:12.1615204+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:29:12.1689057+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:29:12.1689647+00:00 ContainerStream: 
+2026-06-04T09:29:12.1689710+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:29:12.1689832+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:29:12.1689859+00:00 ContainerStream: 
+2026-06-04T09:29:12.1689890+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:29:12.1689923+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:29:12.1689950+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:29:12.1689975+00:00 ContainerStream: fi
+2026-06-04T09:29:12.1690003+00:00 ContainerStream: 
+2026-06-04T09:29:12.1690033+00:00 ContainerStream: echo Found tar.gz based node_modules.
+2026-06-04T09:29:12.1690087+00:00 ContainerStream: extractionCommand="tar -xzf node_modules.tar.gz -C /node_modules"
+2026-06-04T09:29:12.1690118+00:00 ContainerStream: echo "Removing existing modules directory from root..."
+2026-06-04T09:29:12.1690146+00:00 ContainerStream: rm -fr /node_modules
+2026-06-04T09:29:12.1690181+00:00 ContainerStream: mkdir -p /node_modules
+2026-06-04T09:29:12.1690210+00:00 ContainerStream: echo Extracting modules...
+2026-06-04T09:29:12.1690237+00:00 ContainerStream: $extractionCommand
+2026-06-04T09:29:12.1690325+00:00 ContainerStream: export NODE_PATH="/node_modules":$NODE_PATH
+2026-06-04T09:29:12.1690360+00:00 ContainerStream: export PATH=/node_modules/.bin:$PATH
+2026-06-04T09:29:12.1690390+00:00 ContainerStream: if [ -d node_modules ]; then
+2026-06-04T09:29:12.1690422+00:00 ContainerStream:     mv -f node_modules _del_node_modules || true
+2026-06-04T09:29:12.1690450+00:00 ContainerStream: fi
+2026-06-04T09:29:12.1690481+00:00 ContainerStream: 
+2026-06-04T09:29:12.1690509+00:00 ContainerStream: if [ -d /node_modules ]; then
+2026-06-04T09:29:12.1690556+00:00 ContainerStream:     ln -sfn /node_modules ./node_modules 
+2026-06-04T09:29:12.1690581+00:00 ContainerStream: fi
+2026-06-04T09:29:12.1690606+00:00 ContainerStream: 
+2026-06-04T09:29:12.1690633+00:00 ContainerStream: echo "Done."
+2026-06-04T09:29:12.1690659+00:00 ContainerStream: npm start
+2026-06-04T09:29:12.1719531+00:00 ContainerStream: Found tar.gz based node_modules.
+2026-06-04T09:29:12.1719820+00:00 ContainerStream: Removing existing modules directory from root...
+2026-06-04T09:29:12.1810769+00:00 ContainerStream: Extracting modules...
+2026-06-04T09:29:12.9011261+00:00 ContainerStream: Done.
+2026-06-04T09:29:13.3038034+00:00 ContainerStream: npm info using npm@10.9.2
+2026-06-04T09:29:13.3053419+00:00 ContainerStream: npm info using node@v22.22.2
+2026-06-04T09:29:13.8691402+00:00 ContainerStream: 
+2026-06-04T09:29:13.8692175+00:00 ContainerStream: > learneu-director-portal@0.1.0 start
+2026-06-04T09:29:13.8692236+00:00 ContainerStream: > node server.js
+2026-06-04T09:29:13.8692277+00:00 ContainerStream: 
+2026-06-04T09:29:14.1015750+00:00 ContainerStream: node:internal/modules/cjs/loader:1386
+2026-06-04T09:29:14.1016525+00:00 ContainerStream:   throw err;
+2026-06-04T09:29:14.1016572+00:00 ContainerStream:   ^
+2026-06-04T09:29:14.1016603+00:00 ContainerStream: 
+2026-06-04T09:29:14.1016638+00:00 ContainerStream: Error: Cannot find module './auth'
+2026-06-04T09:29:14.1016668+00:00 ContainerStream: Require stack:
+2026-06-04T09:29:14.1016699+00:00 ContainerStream: - /home/site/wwwroot/server.js
+2026-06-04T09:29:14.1016730+00:00 ContainerStream:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+2026-06-04T09:29:14.1016780+00:00 ContainerStream:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+2026-06-04T09:29:14.1016814+00:00 ContainerStream:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+2026-06-04T09:29:14.1016845+00:00 ContainerStream:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+2026-06-04T09:29:14.1016876+00:00 ContainerStream:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-06-04T09:29:14.1016908+00:00 ContainerStream:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-06-04T09:29:14.1016941+00:00 ContainerStream:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+2026-06-04T09:29:14.1016988+00:00 ContainerStream:     at require (node:internal/modules/helpers:147:16)
+2026-06-04T09:29:14.1017016+00:00 ContainerStream:     at Object.<anonymous> (/home/site/wwwroot/server.js:5:14)
+2026-06-04T09:29:14.1017044+00:00 ContainerStream:     at Module._compile (node:internal/modules/cjs/loader:1705:14) {
+2026-06-04T09:29:14.1017073+00:00 ContainerStream:   code: 'MODULE_NOT_FOUND',
+2026-06-04T09:29:14.1017104+00:00 ContainerStream:   requireStack: [ '/home/site/wwwroot/server.js' ]
+2026-06-04T09:29:14.1017131+00:00 ContainerStream: }
+2026-06-04T09:29:14.1017156+00:00 ContainerStream: 
+2026-06-04T09:29:14.1017199+00:00 ContainerStream: Node.js v22.22.2
+2026-06-04T09:29:14.1076414+00:00 ContainerStream: npm http fetch GET 200 https://registry.npmjs.org/npm 157ms
+2026-06-04T09:29:14.1103637+00:00 ContainerStream: npm notice
+2026-06-04T09:29:14.1104347+00:00 ContainerStream: npm notice New major version of npm available! 10.9.2 -> 11.16.0
+2026-06-04T09:29:14.1104417+00:00 ContainerStream: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+2026-06-04T09:29:14.1104452+00:00 ContainerStream: npm notice To update run: npm install -g npm@11.16.0
+2026-06-04T09:29:14.1104512+00:00 ContainerStream: npm notice
+2026-06-04T09:29:14.1487101+00:00 ContainerStatus: Container has finished running with exit code: 1.
+2026-06-04T09:29:14.1489761+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:29:14.1495533+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:29:14.1497519+00:00 ContainerStatus: Stopping container: 87d6229b0cbb_app-director-portal-learneu-demo.
+2026-06-04T09:29:14.1751382+00:00 ContainerStatus: Deleting container: 87d6229b0cbb_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:29:14.8747484+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:29:14.8749839+00:00 ContainerStatus: Container is terminated. Total time elapsed: 725 ms.
+2026-06-04T09:29:14.8751295+00:00 ContainerStatus: Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:29:14.8752637+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:24:40, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.8922296+00:00 ContainerStatus: Site startup probe failed after 9.5968141 seconds.
+2026-06-04T09:29:14.9719835+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9733902+00:00 ContainerStatus: Failed to start site. Revert by stopping site.
+2026-06-04T09:29:14.9734992+00:00 ContainerStatus: State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9737470+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:14.9737631+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.
+========== New Cold Start Attempt (2026-06-04T09:29:14.9767101+00:00) ==========
+2026-06-04T09:29:14.9767101+00:00 ContainerStatus: State: Stopping, Action: UnmountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:15.1832262+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:29:15.2820618+00:00 ContainerStatus: State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:29:15.5121493+00:00 ContainerStatus: State: Stopped, Action: None, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.1904979+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.6064272+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site stopped at 06/04/2026 09:29:15 (UTC), DetailsLevel: ERR
+2026-06-04T09:30:36.6065617+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:30:36.6066121+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:30:36.6067157+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:30:36.6068166+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:30:36.6869269+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:30:36.6870254+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:30:36.6871945+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:30:36.6873468+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:30:36.6876069+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:30:36.6879244+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:30:36.6904891+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:30:36.6949738+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:30:36.6985899+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:30:36.6999307+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:30:36.8012352+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:30:36.8018106+00:00 ContainerStatus: Creating container.
+2026-06-04T09:30:36.8019757+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:30:36.8028270+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8030988+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8032610+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda for reading in non-blocking mode.
+2026-06-04T09:30:36.8036963+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8038698+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stdout_51d658208428489a8af54a9adda2bbda.
+2026-06-04T09:30:36.8047274+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8049548+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8051103+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999 for reading in non-blocking mode.
+2026-06-04T09:30:36.8053187+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8054745+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/26a1d4769a77_app-director-portal-learneu-demo/stderr_566fa31d62a242a18b02b8d240742999.
+2026-06-04T09:30:36.8078694+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:30:36.9743518+00:00 ContainerStatus: Starting container: 26a1d4769a77_app-director-portal-learneu-demo.
+2026-06-04T09:30:36.9933775+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:30:36.9963405+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:30:36.9972010+00:00 ContainerStatus: Container is running.
+2026-06-04T09:30:36.9973226+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:30:37.0261239+00:00 ContainerStatus: Container start method finished after 419 ms.
+2026-06-04T09:30:37.0263884+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:30:37.0264258+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:30:37.0500862+00:00 ContainerStream:    _____                               
+2026-06-04T09:30:37.0501248+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:30:37.0501293+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:30:37.0501317+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:30:37.0501342+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:30:37.0501366+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:30:37.0501420+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:30:37.0501444+00:00 ContainerStream: 
+2026-06-04T09:30:37.0501469+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:30:37.0501494+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:30:37.0501518+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:30:37.0501542+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:30:37.0501571+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:30:37.0501593+00:00 ContainerStream: 
+2026-06-04T09:30:37.0501620+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:30:37.7099451+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:30:37.7136452+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:30:37.7237936+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:30:40.9081099+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:30:40.9086361+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:30:40.9851009+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:30:40.9957711+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:30:40.9958249+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:30:40.9978751+00:00 ContainerStream: done.
+2026-06-04T09:30:41.0027595+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:30:41.0472857+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:30:41.0927231+00:00 ContainerStream: Found build manifest file at '/home/site/wwwroot/oryx-manifest.toml'. Deserializing it...
+2026-06-04T09:30:41.0944771+00:00 ContainerStream: Build Operation ID: d38f5683b0f27179
+2026-06-04T09:30:41.1771238+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:30:41.1798508+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:30:41.1900376+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:30:41.1900778+00:00 ContainerStream: 
+2026-06-04T09:30:41.1900818+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:30:41.1900841+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:30:41.1900859+00:00 ContainerStream: 
+2026-06-04T09:30:41.1900888+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:30:41.1900908+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:30:41.1901011+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:30:41.1901032+00:00 ContainerStream: fi
+2026-06-04T09:30:41.1901052+00:00 ContainerStream: 
+2026-06-04T09:30:41.1901075+00:00 ContainerStream: echo Found tar.gz based node_modules.
+2026-06-04T09:30:41.1901100+00:00 ContainerStream: extractionCommand="tar -xzf node_modules.tar.gz -C /node_modules"
+2026-06-04T09:30:41.1901124+00:00 ContainerStream: echo "Removing existing modules directory from root..."
+2026-06-04T09:30:41.1901145+00:00 ContainerStream: rm -fr /node_modules
+2026-06-04T09:30:41.1901167+00:00 ContainerStream: mkdir -p /node_modules
+2026-06-04T09:30:41.1901187+00:00 ContainerStream: echo Extracting modules...
+2026-06-04T09:30:41.1901210+00:00 ContainerStream: $extractionCommand
+2026-06-04T09:30:41.1901232+00:00 ContainerStream: export NODE_PATH="/node_modules":$NODE_PATH
+2026-06-04T09:30:41.1901276+00:00 ContainerStream: export PATH=/node_modules/.bin:$PATH
+2026-06-04T09:30:41.1901301+00:00 ContainerStream: if [ -d node_modules ]; then
+2026-06-04T09:30:41.1901323+00:00 ContainerStream:     mv -f node_modules _del_node_modules || true
+2026-06-04T09:30:41.1901343+00:00 ContainerStream: fi
+2026-06-04T09:30:41.1901362+00:00 ContainerStream: 
+2026-06-04T09:30:41.1901384+00:00 ContainerStream: if [ -d /node_modules ]; then
+2026-06-04T09:30:41.1901407+00:00 ContainerStream:     ln -sfn /node_modules ./node_modules 
+2026-06-04T09:30:41.1901427+00:00 ContainerStream: fi
+2026-06-04T09:30:41.1901450+00:00 ContainerStream: 
+2026-06-04T09:30:41.1901473+00:00 ContainerStream: echo "Done."
+2026-06-04T09:30:41.1901915+00:00 ContainerStream: npm start
+2026-06-04T09:30:41.1944335+00:00 ContainerStream: Found tar.gz based node_modules.
+2026-06-04T09:30:41.1950552+00:00 ContainerStream: Removing existing modules directory from root...
+2026-06-04T09:30:41.2026711+00:00 ContainerStream: Extracting modules...
+2026-06-04T09:30:41.9158635+00:00 ContainerStream: Done.
+2026-06-04T09:30:42.0970408+00:00 ContainerStream: npm info using npm@10.9.2
+2026-06-04T09:30:42.0975375+00:00 ContainerStream: npm info using node@v22.22.2
+2026-06-04T09:30:42.3795040+00:00 ContainerStream: 
+2026-06-04T09:30:42.3795453+00:00 ContainerStream: > learneu-director-portal@0.1.0 start
+2026-06-04T09:30:42.3795493+00:00 ContainerStream: > node server.js
+2026-06-04T09:30:42.3795516+00:00 ContainerStream: 
+2026-06-04T09:30:42.7145146+00:00 ContainerStream: node:internal/modules/cjs/loader:1386
+2026-06-04T09:30:42.7145757+00:00 ContainerStream:   throw err;
+2026-06-04T09:30:42.7145786+00:00 ContainerStream:   ^
+2026-06-04T09:30:42.7145807+00:00 ContainerStream: 
+2026-06-04T09:30:42.7145827+00:00 ContainerStream: Error: Cannot find module './auth'
+2026-06-04T09:30:42.7145844+00:00 ContainerStream: Require stack:
+2026-06-04T09:30:42.7145869+00:00 ContainerStream: - /home/site/wwwroot/server.js
+2026-06-04T09:30:42.7145894+00:00 ContainerStream:     at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+2026-06-04T09:30:42.7145924+00:00 ContainerStream:     at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+2026-06-04T09:30:42.7146038+00:00 ContainerStream:     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+2026-06-04T09:30:42.7146062+00:00 ContainerStream:     at Function._load (node:internal/modules/cjs/loader:1192:37)
+2026-06-04T09:30:42.7146085+00:00 ContainerStream:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-06-04T09:30:42.7146114+00:00 ContainerStream:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-06-04T09:30:42.7146138+00:00 ContainerStream:     at Module.require (node:internal/modules/cjs/loader:1463:12)
+2026-06-04T09:30:42.7146163+00:00 ContainerStream:     at require (node:internal/modules/helpers:147:16)
+2026-06-04T09:30:42.7146185+00:00 ContainerStream:     at Object.<anonymous> (/home/site/wwwroot/server.js:5:14)
+2026-06-04T09:30:42.7146209+00:00 ContainerStream:     at Module._compile (node:internal/modules/cjs/loader:1705:14) {
+2026-06-04T09:30:42.7146232+00:00 ContainerStream:   code: 'MODULE_NOT_FOUND',
+2026-06-04T09:30:42.7146254+00:00 ContainerStream:   requireStack: [ '/home/site/wwwroot/server.js' ]
+2026-06-04T09:30:42.7146272+00:00 ContainerStream: }
+2026-06-04T09:30:42.7146313+00:00 ContainerStream: 
+2026-06-04T09:30:42.7146334+00:00 ContainerStream: Node.js v22.22.2
+2026-06-04T09:30:42.7229012+00:00 ContainerStream: npm http fetch GET 200 https://registry.npmjs.org/npm 135ms
+2026-06-04T09:30:42.7260573+00:00 ContainerStream: npm notice
+2026-06-04T09:30:42.7260806+00:00 ContainerStream: npm notice New major version of npm available! 10.9.2 -> 11.16.0
+2026-06-04T09:30:42.7263145+00:00 ContainerStream: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+2026-06-04T09:30:42.7263182+00:00 ContainerStream: npm notice To update run: npm install -g npm@11.16.0
+2026-06-04T09:30:42.7263205+00:00 ContainerStream: npm notice
+2026-06-04T09:30:42.7634914+00:00 ContainerStatus: Container has finished running with exit code: 1.
+2026-06-04T09:30:42.7636833+00:00 ContainerStatus: Container is terminating. Grace period: 5 seconds.
+2026-06-04T09:30:42.7640239+00:00 ContainerStatus: Stop and delete container. Retry count = 0
+2026-06-04T09:30:42.7641281+00:00 ContainerStatus: Stopping container: 26a1d4769a77_app-director-portal-learneu-demo.
+2026-06-04T09:30:42.7813860+00:00 ContainerStatus: Deleting container: 26a1d4769a77_app-director-portal-learneu-demo. Retry count = 0
+2026-06-04T09:30:43.1420370+00:00 ContainerStatus: Container spec TerminationMessagePolicy  path 
+2026-06-04T09:30:43.1422445+00:00 ContainerStatus: Container is terminated. Total time elapsed: 378 ms.
+2026-06-04T09:30:43.1423719+00:00 ContainerStatus: Site container: app-director-portal-learneu-demo terminated during site startup.
+2026-06-04T09:30:43.1425005+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:29:14, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.1562959+00:00 ContainerStatus: Site startup probe failed after 6.1292854 seconds.
+2026-06-04T09:30:43.2356993+00:00 ContainerStatus: State: Stopping, Action: CancellingStartup, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2370226+00:00 ContainerStatus: Failed to start site. Revert by stopping site.
+2026-06-04T09:30:43.2371551+00:00 ContainerStatus: State: Stopping, Action: StoppingSite, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2374363+00:00 ContainerStatus: State: Stopping, Action: StoppingSiteContainers, LastError: ContainerTimeout, LastErrorTimestamp: 06/04/2026 09:30:43, LastErrorDetails: Container did not start within expected time limit of 230s. Please inspect your container logs for more details., Details: Site container: app-director-portal-learneu-demo terminated during site startup. Cancelling site startup., DetailsLevel: ERR
+2026-06-04T09:30:43.2374556+00:00 ContainerStatus: Site: app-director-portal-learneu-demo stopped.

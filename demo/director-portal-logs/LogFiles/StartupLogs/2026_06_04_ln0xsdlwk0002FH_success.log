@@ -1,0 +1,171 @@
+2026-06-04T09:18:25.8230123+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:18:26.5738978+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:18:26.5764123+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:18:26.5783037+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.4:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:18:26.5784901+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:18:26.5801288+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:18:26.8877552+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:18:26.8881029+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:18:26.8882565+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:18:26.8883577+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:18:26.8884662+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:18:26.8898033+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:18:27.1228407+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:18:27.1383561+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:18:27.1844423+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:18:27.1945502+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:18:27.3617145+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:18:27.3619445+00:00 ContainerStatus: Creating container.
+2026-06-04T09:18:27.3621491+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:18:27.3623310+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3631206+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3633064+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882 for reading in non-blocking mode.
+2026-06-04T09:18:27.3635438+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3732818+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stdout_da49cb18d627481c9edbf0125ecc5882.
+2026-06-04T09:18:27.3757266+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3759690+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3760971+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552 for reading in non-blocking mode.
+2026-06-04T09:18:27.3762372+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3763693+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/465130004f55_app-director-portal-learneu-demo/stderr_aaf0d6ebc2af4dcfbdb22b8890bd8552.
+2026-06-04T09:18:27.3765410+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.4:13209 and fully qualified image name: 10.1.0.4:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:18:27.8480923+00:00 ContainerStatus: Starting container: 465130004f55_app-director-portal-learneu-demo.
+2026-06-04T09:18:28.0585652+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:18:28.0704853+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:18:28.0758390+00:00 ContainerStatus: Container is running.
+2026-06-04T09:18:28.0763587+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:18:28.1444257+00:00 ContainerStatus: Container start method finished after 1567 ms.
+2026-06-04T09:18:28.1447844+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:18:28.1448279+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:18:28.3132921+00:00 ContainerStream:    _____                               
+2026-06-04T09:18:28.3148676+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:18:28.3148979+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:18:28.3149016+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:18:28.3149044+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:18:28.3149073+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:18:28.3149150+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:18:28.3149177+00:00 ContainerStream: 
+2026-06-04T09:18:28.3149216+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:18:28.3149246+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:18:28.3149277+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:18:28.3149304+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:18:28.3149358+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:18:28.3149388+00:00 ContainerStream: 
+2026-06-04T09:18:28.3149416+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:18:29.6884304+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:18:29.6942722+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:18:29.7223637+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:18:33.2523380+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:18:33.2557020+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:18:33.3072824+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:18:33.3201825+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:18:33.3202793+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:18:33.3223418+00:00 ContainerStream: done.
+2026-06-04T09:18:33.3272862+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:18:33.3715567+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:18:33.4614353+00:00 ContainerStream: Could not find build manifest file at '/home/site/wwwroot/oryx-manifest.toml'
+2026-06-04T09:18:33.4618772+00:00 ContainerStream: Could not find operation ID in manifest. Generating an operation id...
+2026-06-04T09:18:33.4618997+00:00 ContainerStream: Build Operation ID: bfc7c10c-444e-47b1-9e37-704bb79ec3f9
+2026-06-04T09:18:33.5569506+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:18:33.5626721+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:18:33.5716113+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:18:33.5716789+00:00 ContainerStream: 
+2026-06-04T09:18:33.5716920+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:18:33.5716964+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:18:33.5716991+00:00 ContainerStream: 
+2026-06-04T09:18:33.5717020+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:18:33.5717051+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:18:33.5717079+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:18:33.5717105+00:00 ContainerStream: fi
+2026-06-04T09:18:33.5717147+00:00 ContainerStream: 
+2026-06-04T09:18:33.5717486+00:00 ContainerStream: node /opt/startup/default-static-site.js
+2026-06-04T09:18:34.2003498+00:00 ContainerStatus: Site startup probe succeeded after 6.0312623 seconds.
+2026-06-04T09:18:34.2891785+00:00 ContainerStatus: State: Starting, Action: WarmUpProbeSucceeded, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site startup probe succeeded after 6.0312623 seconds., DetailsLevel: INFO
+2026-06-04T09:18:34.4089443+00:00 ContainerStatus: Site started.
+2026-06-04T09:18:34.4090549+00:00 ContainerStatus: State: Started, Action: None, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:18:34 (UTC), DetailsLevel: INFO
+2026-06-04T09:18:34.4260645+00:00 ContainerStatus: Site is running with patch version NODE 22.22.2
+========== New Cold Start Attempt (2026-06-04T09:19:34.0182637+00:00) ==========
+2026-06-04T09:19:34.0182637+00:00 ContainerStatus: State: Starting, Action: EstablishingSiteNetworks, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:19:34.4995927+00:00 ContainerStatus: State: Starting, Action: StartingSiteContainers, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: , DetailsLevel: INFO
+2026-06-04T09:19:34.5005609+00:00 ContainerStatus: Container start method called.
+2026-06-04T09:19:34.5007409+00:00 ContainerStatus: State: Starting, Action: PullingImage, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pulling image 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:19:34.5016110+00:00 ContainerStatus: Establishing network.
+2026-06-04T09:19:34.5023592+00:00 ContainerStatus: Pulling image: appsvc/node:22-lts_20260504.4.tuxprod.
+2026-06-04T09:19:35.3349391+00:00 ContainerStatus: Container is starting.
+2026-06-04T09:19:35.3350681+00:00 ContainerStatus: State: Starting, Action: MountingVolumes, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Mounting volumes for app-director-portal-learneu-demo., DetailsLevel: INFO
+2026-06-04T09:19:35.3352252+00:00 ContainerStatus: Establishing user namespace if not established already.
+2026-06-04T09:19:35.3357668+00:00 ContainerStatus: Establishing network if not established already.
+2026-06-04T09:19:35.3362458+00:00 ContainerStatus: Mounting volumes.
+2026-06-04T09:19:35.3367592+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:19:35.3623484+00:00 ContainerStatus: Nested mountpoint volatile/logs
+2026-06-04T09:19:35.3809877+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:19:35.3818255+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:19:35.3969287+00:00 ContainerStatus: Nested mountpoint 
+2026-06-04T09:19:35.5444433+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Finished pulling container image and mounting volumes for app-director-portal-learneu-demo. Allocatinng the rest of the container resources to finish container creation., DetailsLevel: INFO
+2026-06-04T09:19:35.5446238+00:00 ContainerStatus: Creating container.
+2026-06-04T09:19:35.5447551+00:00 ContainerStatus: Creating pipes for streaming container io.
+2026-06-04T09:19:35.5449114+00:00 ContainerStatus: Creating stdout named pipe at /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5452046+00:00 ContainerStatus: Successfully created stdout named pipe at: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5453273+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d for reading in non-blocking mode.
+2026-06-04T09:19:35.5454743+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5455876+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stdout_33dd6e4ddbba4a9c884f881cbc6b1d4d.
+2026-06-04T09:19:35.5545354+00:00 ContainerStatus: Creating stderr named pipe at /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5552459+00:00 ContainerStatus: Successfully created stderr named pipe at: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5590344+00:00 ContainerStatus: Opening named pipe /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508 for reading in non-blocking mode.
+2026-06-04T09:19:35.5597148+00:00 ContainerStatus: Successfully opened named pipe: /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5602126+00:00 ContainerStatus: Successfully removed non-blocking flag from /podr/container/pipe/7665cd9554f0_app-director-portal-learneu-demo/stderr_a9a10c3ee393430e855b5e614475f508.
+2026-06-04T09:19:35.5637140+00:00 ContainerStatus: Creating container with image: appsvc/node:22-lts_20260504.4.tuxprod from registry: 10.1.0.5:13209 and fully qualified image name: 10.1.0.5:13209/appsvc/node:22-lts_20260504.4.tuxprod
+2026-06-04T09:19:36.2037090+00:00 ContainerStatus: Starting container: 7665cd9554f0_app-director-portal-learneu-demo.
+2026-06-04T09:19:36.2258519+00:00 ContainerStatus: Starting watchers and probes.
+2026-06-04T09:19:36.2266161+00:00 ContainerStatus: Starting metrics collection.
+2026-06-04T09:19:36.2268920+00:00 ContainerStatus: Container is running.
+2026-06-04T09:19:36.2269812+00:00 ContainerStatus: State: Starting, Action: CreatingContainer, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:19:36.2719061+00:00 ContainerStream:    _____                               
+2026-06-04T09:19:36.2720634+00:00 ContainerStream:   /  _  \ __________ _________   ____  
+2026-06-04T09:19:36.2720700+00:00 ContainerStream:  /  /_\  \\___   /  |  \_  __ \_/ __ \ 
+2026-06-04T09:19:36.2720733+00:00 ContainerStream: /    |    \/    /|  |  /|  | \/\  ___/ 
+2026-06-04T09:19:36.2720764+00:00 ContainerStream: \____|__  /_____ \____/ |__|    \___  >
+2026-06-04T09:19:36.2720804+00:00 ContainerStream:         \/      \/                  \/ 
+2026-06-04T09:19:36.2720833+00:00 ContainerStream: A P P   S E R V I C E   O N   L I N U X
+2026-06-04T09:19:36.2720886+00:00 ContainerStream: 
+2026-06-04T09:19:36.2720925+00:00 ContainerStream: Documentation    : http://aka.ms/webapp-linux
+2026-06-04T09:19:36.2720964+00:00 ContainerStream: NodeJS quickstart: https://aka.ms/node-qs
+2026-06-04T09:19:36.2720997+00:00 ContainerStream: NodeJS Version   : v22.22.2
+2026-06-04T09:19:36.2721029+00:00 ContainerStream: Instance Name    : ln0xsdlwk0002FH
+2026-06-04T09:19:36.2721067+00:00 ContainerStream: Instance Id      : 4f3a3deb9606e51707d88e606795b069e4b16fdea3522a6fb0b54ad592ae1978
+2026-06-04T09:19:36.2721116+00:00 ContainerStream: 
+2026-06-04T09:19:36.2721148+00:00 ContainerStream: Note: Any data outside '/home' is not persisted
+2026-06-04T09:19:36.2866821+00:00 ContainerStatus: Container start method finished after 1785 ms.
+2026-06-04T09:19:36.2899251+00:00 ContainerStatus: State: Starting, Action: InitiatingSiteWarmUpProbe, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Container app-director-portal-learneu-demo successfully created and is running., DetailsLevel: INFO
+2026-06-04T09:19:36.2899542+00:00 ContainerStatus: State: Starting, Action: WaitingForSiteWarmUpProbeSuccess, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Pinging warmup path to ensure container is ready to receive requests., DetailsLevel: INFO
+2026-06-04T09:19:37.6247706+00:00 ContainerStream: Starting OpenBSD Secure Shell server: sshd.
+2026-06-04T09:19:37.6291282+00:00 ContainerStream: WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-06-04T09:19:37.6482890+00:00 ContainerStream: Updating certificates in /etc/ssl/certs...
+2026-06-04T09:19:41.0107949+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_ECC_Root_CA_2022.pem
+2026-06-04T09:19:41.0115481+00:00 ContainerStream: rehash: warning: skipping duplicate certificate in azl_SSL.com_TLS_RSA_Root_CA_2022.pem
+2026-06-04T09:19:41.1027081+00:00 ContainerStream: rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-06-04T09:19:41.1158456+00:00 ContainerStream: 4 added, 0 removed; done.
+2026-06-04T09:19:41.1158993+00:00 ContainerStream: Running hooks in /etc/ca-certificates/update.d...
+2026-06-04T09:19:41.1185038+00:00 ContainerStream: done.
+2026-06-04T09:19:41.1227923+00:00 ContainerStream: CA certificates copied and updated successfully.
+2026-06-04T09:19:41.1638518+00:00 ContainerStream: Starting periodic command scheduler: cron.
+2026-06-04T09:19:41.1933399+00:00 ContainerStream: Could not find build manifest file at '/home/site/wwwroot/oryx-manifest.toml'
+2026-06-04T09:19:41.1934614+00:00 ContainerStream: Could not find operation ID in manifest. Generating an operation id...
+2026-06-04T09:19:41.1934674+00:00 ContainerStream: Build Operation ID: 1cbb1571-9ece-4a29-85aa-866dd569d718
+2026-06-04T09:19:41.2913435+00:00 ContainerStream: Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-06-04T09:19:41.2960354+00:00 ContainerStream: Writing output script to '/opt/startup/startup.sh'
+2026-06-04T09:19:41.3383672+00:00 ContainerStream: Running #!/bin/sh
+2026-06-04T09:19:41.3384381+00:00 ContainerStream: 
+2026-06-04T09:19:41.3384440+00:00 ContainerStream: # Enter the source directory to make sure the script runs where the user expects
+2026-06-04T09:19:41.3384490+00:00 ContainerStream: cd "/home/site/wwwroot"
+2026-06-04T09:19:41.3384521+00:00 ContainerStream: 
+2026-06-04T09:19:41.3384556+00:00 ContainerStream: export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-06-04T09:19:41.3390236+00:00 ContainerStream: if [ -z "$PORT" ]; then
+2026-06-04T09:19:41.3390297+00:00 ContainerStream: 		export PORT=8080
+2026-06-04T09:19:41.3390329+00:00 ContainerStream: fi
+2026-06-04T09:19:41.3390358+00:00 ContainerStream: 
+2026-06-04T09:19:41.3426731+00:00 ContainerStream: node /opt/startup/default-static-site.js
+2026-06-04T09:19:42.3136147+00:00 ContainerStatus: Site startup probe succeeded after 6.023177 seconds.
+2026-06-04T09:19:42.3691619+00:00 ContainerStatus: State: Starting, Action: WarmUpProbeSucceeded, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site startup probe succeeded after 6.023177 seconds., DetailsLevel: INFO
+2026-06-04T09:19:42.4399429+00:00 ContainerStatus: Site started.
+2026-06-04T09:19:42.4400600+00:00 ContainerStatus: State: Started, Action: None, LastError: , LastErrorTimestamp: 01/01/0001 00:00:00, LastErrorDetails: , Details: Site started at 06/04/2026 09:19:42 (UTC), DetailsLevel: INFO
+2026-06-04T09:19:42.4414726+00:00 ContainerStatus: Site is running with patch version NODE 22.22.2
