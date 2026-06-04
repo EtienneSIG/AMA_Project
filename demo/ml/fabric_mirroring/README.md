@@ -75,6 +75,46 @@ LearnEU app tables: `connection_logs`, `ask_history`, `sheets`,
 script grants `SELECT` by default privilege so newly created tables are
 mirrored automatically.
 
+## Troubleshooting: source connection not found or not permitted
+
+If Fabric shows the error below, the issue is usually in Fabric connection
+ownership/permission or a stale data-source rule binding, not in application code:
+
+Failed to get source connection. Please check if the source connection exists and you have the permission.
+
+Recommended recovery order:
+
+1. In Fabric workspace, open the mirrored PostgreSQL item and check the source
+  connection binding. Confirm the shown Connection ID exists in Manage
+  connections and gateways.
+2. If the connection exists, verify your identity has permission to use it
+  (connection owner or shared access).
+3. If the connection does not exist, create a new PostgreSQL Basic connection
+  and rebind the mirrored database source to this new connection.
+4. Re-enter database credentials for the source connection (password rotation is
+  a common root cause).
+5. Confirm network path from the selected Fabric gateway to the private server
+  endpoint is still valid.
+6. Re-save replication configuration and restart replication in the mirrored
+  item.
+
+Azure-side refresh commands (safe to rerun):
+
+1. Refresh mirrored database allowlist:
+  az postgres flexible-server fabric-mirroring update-databases -g rg-learneu-demo -s pg-learneu-demo --database-names learneu --yes
+2. Re-register mirroring:
+  az postgres flexible-server fabric-mirroring start -g rg-learneu-demo -s pg-learneu-demo --database-names learneu --yes
+
+Current environment checks already validated:
+
+- Postgres server state is Ready.
+- Tier is GeneralPurpose (Standard_D2ds_v5), supported by Fabric mirroring.
+- Mirroring allowlist contains learneu.
+- Mirroring start command completes successfully.
+
+If the same error persists after rebinding to a new connection, capture the
+mirrored item run history and open a Fabric support ticket with the Connection ID.
+
 ## References
 
 - [Fabric mirroring concepts (Postgres)](https://learn.microsoft.com/azure/postgresql/integration/concepts-fabric-mirroring)

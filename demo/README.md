@@ -14,7 +14,7 @@ Layout:
 
 ```
 demo/
-├── azure.yaml                   # azd entrypoint (4 services: parent-portal, learner-web, teacher-console, admin)
+├── azure.yaml                   # azd entrypoint (5 services: parent-portal, learner-web, teacher-console, admin, director-portal)
 ├── infra/                       # Bicep — single subscription deployment
 │   ├── main.bicep               # subscription-scope; creates RG + modules
 │   └── modules/
@@ -37,6 +37,7 @@ demo/
 ├── apps/                        # Parent / Teacher / Learner / Admin web apps
 │   ├── _shared/                 # Canonical auth.js, server.js, login.html, db/{index.js,schema.sql}; sync.ps1 propagates to each app
 │   ├── admin/                   # Operator console (ARM + Postgres-backed audit panels)
+│   ├── director-portal/         # Director reporting portal (aggregated school/region scope, fail-closed metadata)
 │   ├── learner-web/
 │   ├── parent-portal/
 │   └── teacher-console/

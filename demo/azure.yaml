@@ -32,6 +32,11 @@ services:
     language: js
     host: appservice
     resourceName: app-admin-learneu-demo
+  director-portal:
+    project: ./apps/director-portal
+    language: js
+    host: appservice
+    resourceName: app-director-portal-learneu-demo
 
 hooks:
   preprovision:

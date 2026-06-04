@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>LearnEU — Sign in</title>
+<title>LearnEU — Director Portal sign in</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <style>
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0F1B2D,#1a3658); font-family:'Inter',sans-serif; padding:1rem; }
-  .card { background:#fff; padding:2.2rem 2.4rem; border-radius:14px; width:380px; max-width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25); box-sizing:border-box; }
+  .card { background:#fff; padding:2.2rem 2.4rem; border-radius:14px; width:400px; max-width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25); box-sizing:border-box; }
   h1 { font-family:'Poppins',sans-serif; color:#0F1B2D; margin:0 0 .25rem; font-size:1.4rem; }
   p.sub { color:#3F4A5A; margin:0 0 1.4rem; font-size:.9rem; }
   label { display:block; font-size:.78rem; color:#3F4A5A; margin:.65rem 0 .2rem; font-weight:600; letter-spacing:.02em; text-transform:uppercase; }
@@ -26,9 +26,9 @@
 <body>
   <form class="card" onsubmit="return signIn(event)">
     <img src="/logo.svg" alt="EdTech Group" />
-    <span class="lang-pill" id="portalPill">Portal</span>
-    <h1>Sign in to LearnEU</h1>
-    <p class="sub" id="appHint">Use your role-specific account.</p>
+    <span class="lang-pill" id="portalPill">Director Portal</span>
+    <h1>Sign in to the director portal</h1>
+    <p class="sub" id="appHint">Aggregated school and region reporting only.</p>
     <label for="email">Email</label>
     <input id="email" type="email" autocomplete="username" required />
     <label for="password">Password</label>
@@ -36,31 +36,18 @@
     <button type="submit">Sign in</button>
     <div class="err" id="err"></div>
     <div class="demo">
-      <strong>Demo accounts</strong> &mdash; password is <code>DemoPass2026!</code> for all.<br>
-      Suggested for this portal: <code id="demoEmail">…</code>
+      <strong>Demo account</strong> &mdash; password is <code>DemoPass2026!</code>.<br>
+      Use <code>director@learneu.demo</code> for the approved scope or <code>director.noscope@learneu.demo</code> to verify the safe no-access state.
     </div>
   </form>
 <script>
-  const APPS = {
-    'app-learner-web-learneu-demo':    { label:'Learner Web (students)',     pill:'For Students',  email:'student@learneu.demo' },
-    'app-parent-portal-learneu-demo':  { label:'Parent Portal (families)',   pill:'For Families',  email:'parent@learneu.demo'  },
-    'app-teacher-console-learneu-demo':{ label:'Teacher Console (educators)',pill:'For Educators', email:'teacher@learneu.demo' },
-    'app-admin-learneu-demo':          { label:'Admin Console (operations)', pill:'For Admins',    email:'admin@learneu.demo'   },
-    'app-director-portal-learneu-demo':{ label:'Director Portal (aggregated reporting)', pill:'For Directors', email:'director@learneu.demo' }
-  };
-  const host = location.host.split('.')[0];
-  const meta = APPS[host] || { label:'LearnEU', pill:'LearnEU', email:'admin@learneu.demo' };
-  document.getElementById('portalPill').textContent = meta.pill;
-  document.getElementById('appHint').textContent = 'You are signing in to ' + meta.label + '.';
-  document.getElementById('demoEmail').textContent = meta.email;
-  document.getElementById('email').value = meta.email;
+  document.getElementById('email').value = 'director@learneu.demo';
 
   async function signIn(e) {
     e.preventDefault();
     const errEl = document.getElementById('err');
     errEl.textContent = '';
     try {
-      // Read CSRF token from cookie
       const csrfToken = (document.cookie.match(/(?:^|;\s*)learneu_csrf=([^;]+)/) || [])[1] || '';
       const r = await fetch('/api/auth/login', {
         method:'POST',

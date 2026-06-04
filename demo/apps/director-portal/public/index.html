@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — Director Portal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --navy:#0F1B2D; --navy-2:#1a3658; --orange:#F26334; --orange-dark:#D44E22; --teal:#2BB4B8; --grey:#3F4A5A; --line:#E3E7EE; --bg:#F5F7FA; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--grey); font-family:'Inter',system-ui,sans-serif; line-height:1.55; }
+  nav.top { background:#fff; border-bottom:1px solid var(--line); }
+  nav.top .wrap { max-width:1180px; margin:0 auto; padding:.9rem 1.5rem; display:flex; align-items:center; gap:1rem; }
+  nav.top img { height:42px; }
+  nav.top .label { margin-left:auto; background:rgba(43,180,184,.12); color:var(--teal); padding:.35rem .75rem; border-radius:999px; font-size:.8rem; font-weight:700; letter-spacing:.03em; }
+  .hero { background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%); color:#fff; padding:2.8rem 1.5rem 4rem; }
+  .hero .wrap, main { max-width:1180px; margin:0 auto; }
+  .hero h1, h2 { font-family:'Poppins',sans-serif; margin:0; }
+  .hero h1 { font-size:2.2rem; }
+  .hero p { max-width:780px; opacity:.88; margin:.75rem 0 0; font-size:1.02rem; }
+  main { margin:-2rem auto 3rem; padding:0 1.5rem; display:grid; grid-template-columns:1.3fr .9fr; gap:1.2rem; }
+  @media (max-width: 960px) { main { grid-template-columns:1fr; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 4px 24px rgba(15,27,45,.06); padding:1.6rem; }
+  .card h2 { color:var(--navy); font-size:1.25rem; margin-bottom:.35rem; }
+  .muted { color:var(--grey); opacity:.8; }
+  .scope { display:flex; flex-wrap:wrap; gap:.5rem; margin:1rem 0 0; }
+  .chip { background:#EEF2F7; color:var(--navy); border-radius:999px; padding:.35rem .7rem; font-size:.82rem; font-weight:600; }
+  .report-list { display:grid; grid-template-columns:1fr; gap:.85rem; margin-top:1rem; }
+  .report { border:1px solid var(--line); border-radius:12px; padding:1rem 1.05rem; background:#FBFCFE; }
+  .report .name { color:var(--navy); font-weight:700; margin-bottom:.25rem; }
+  .report .meta { font-size:.82rem; color:var(--grey); }
+  .report .status { display:inline-block; margin-top:.65rem; padding:.2rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; background:rgba(43,180,184,.12); color:var(--teal); }
+  .embed-wrap { margin-top:.8rem; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .embed-wrap iframe, .embed-wrap .pbi-host { width:100%; min-height:380px; border:0; display:block; }
+  .embed-placeholder { font-size:.82rem; color:var(--grey); padding:.75rem; }
+  .empty { border:1px dashed var(--line); background:#fff; border-radius:12px; padding:1rem; color:var(--grey); }
+  pre { background:#0F1B2D; color:#E3E7EE; padding:1rem; border-radius:10px; overflow:auto; font-size:.78rem; }
+  footer { background:var(--navy); color:rgba(255,255,255,.7); padding:1.6rem; text-align:center; }
+</style>
+</head>
+<body>
+<nav class="top">
+  <div class="wrap">
+    <img src="/logo.svg" alt="EdTech Group" />
+    <div class="label">Aggregated reporting only</div>
+  </div>
+</nav>
+<section class="hero">
+  <div class="wrap">
+    <h1>Director Portal</h1>
+    <p>Approved directors can review aggregated school and region reporting for their assigned scope. No learner-level records are shown, and every report open stays within the EU-hosted governance boundary.</p>
+  </div>
+</section>
+<main>
+  <section class="card">
+    <h2>Scope</h2>
+    <div class="muted" id="scopeText">Loading your approved scope…</div>
+    <div class="scope" id="scopeChips"></div>
+    <div class="report-list" id="reportList" style="margin-top:1.25rem;">
+      <div class="empty">Loading approved reports…</div>
+    </div>
+  </section>
+  <aside class="card">
+    <h2>Configuration</h2>
+    <p class="muted">The portal fails closed when reporting metadata is missing or incomplete. This keeps the release safe until the Fabric-backed report contract is supplied.</p>
+    <pre id="configBox">{ "status": "loading" }</pre>
+  </aside>
+</main>
+<footer>© LearnEU · West Europe · Aggregated reporting by default</footer>
+<script>
+  function chip(text) {
+    const el = document.createElement('span');
+    el.className = 'chip';
+    el.textContent = text;
+    return el;
+  }
+
+  async function loadEmbed(report, embedWrap) {
+    embedWrap.innerHTML = '<div class="embed-placeholder">Loading embedded report…</div>';
+    try {
+      const payload = await fetch('/api/reporting/embed/' + encodeURIComponent(report.reportId), { cache:'no-store' }).then(async r => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'embed unavailable');
+        return r.json();
+      });
+      const host = document.createElement('div');
+      host.className = 'pbi-host';
+      embedWrap.innerHTML = '';
+      embedWrap.appendChild(host);
+      const models = window['powerbi-client'].models;
+      window.powerbi.embed(host, {
+        type: 'report',
+        tokenType: models.TokenType.Embed,
+        accessToken: payload.embed.accessToken,
+        embedUrl: payload.embed.embedUrl,
+        id: payload.embed.reportId,
+        permissions: models.Permissions.Read,
+        settings: {
+          panes: {
+            filters: { visible: false },
+            pageNavigation: { visible: true }
+          },
+          background: models.BackgroundType.Transparent
+        }
+      });
+    } catch (error) {
+      embedWrap.innerHTML = '<div class="embed-placeholder">Embedded report unavailable: ' + String(error.message || error) + '</div>';
+    }
+  }
+
+  function renderReports(payload) {
+    const reportList = document.getElementById('reportList');
+    reportList.innerHTML = '';
+    if (!payload.reports || !payload.reports.length) {
+      reportList.innerHTML = '<div class="empty">No approved reports are configured yet. The portal is intentionally fail-closed until the reporting contract is supplied.</div>';
+      return;
+    }
+    for (const report of payload.reports) {
+      const card = document.createElement('section');
+      card.className = 'report';
+      card.innerHTML = '<div class="name"></div><div class="meta"></div><div class="status">Approved aggregated report</div><div class="embed-wrap"></div>';
+      card.querySelector('.name').textContent = report.displayName;
+      card.querySelector('.meta').textContent = 'Aggregation: ' + report.aggregationLevel + ' · Sensitivity: ' + report.sensitivityLabel + ' · Workspace: ' + report.workspaceId;
+      const embedWrap = card.querySelector('.embed-wrap');
+      if (report.embedUrl) {
+        loadEmbed(report, embedWrap);
+      } else {
+        embedWrap.innerHTML = '<div class="embed-placeholder">No embed URL configured for this approved report.</div>';
+      }
+      reportList.appendChild(card);
+    }
+  }
+
+  async function boot() {
+    const configBox = document.getElementById('configBox');
+    try {
+      const auth = await fetch('/api/auth/me', { cache:'no-store' }).then(r => r.json());
+      const authState = auth.directorAuthorization || (auth.user && auth.user.directorAuthorization) || { granted: false, scope: { schoolIds: [], regionIds: [] } };
+      const scopeChips = document.getElementById('scopeChips');
+      scopeChips.innerHTML = '';
+      const schoolIds = authState.scope && authState.scope.schoolIds ? authState.scope.schoolIds : [];
+      const regionIds = authState.scope && authState.scope.regionIds ? authState.scope.regionIds : [];
+      document.getElementById('scopeText').textContent = authState.granted ? 'Approved scope loaded for this director session.' : 'No approved director scope was found.';
+      for (const item of schoolIds) scopeChips.appendChild(chip('School ' + item));
+      for (const item of regionIds) scopeChips.appendChild(chip('Region ' + item));
+
+      const payload = await fetch('/api/reporting/metadata', { cache:'no-store' }).then(async r => {
+        if (!r.ok) throw new Error('reporting metadata unavailable');
+        return r.json();
+      });
+      configBox.textContent = JSON.stringify({ status: payload.status, reporting: payload.reporting, scope: payload.scope, reports: payload.reports.map(r => r.displayName) }, null, 2);
+      renderReports(payload);
+    } catch (error) {
+      configBox.textContent = JSON.stringify({ status: 'fail-closed', error: String(error) }, null, 2);
+      document.getElementById('reportList').innerHTML = '<div class="empty">The portal is currently fail-closed. Check the no-access page or reporting configuration.</div>';
+    }
+  }
+
+  boot();
+</script>
+</body>
+</html>

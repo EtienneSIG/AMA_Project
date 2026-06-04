@@ -139,6 +139,7 @@ var appNames = [
   'learner-web'
   'teacher-console'
   'admin'
+  'director-portal'
 ]
 var adminIndex = 3
 // Map app name -> auth role (must match SEED_USERS roles in apps/_shared/auth.js).
@@ -147,6 +148,7 @@ var appRoles = {
   'learner-web':     'student'
   'teacher-console': 'teacher'
   'admin':           'admin'
+  'director-portal': 'director'
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' existing = {

@@ -422,6 +422,92 @@ $modelBim = @{
         )
         partitions = @( (New-DLPartition -Name "skill-competency-partition" -EntityName "skill_competency_map") )
       }
+
+      # ===================== DIMENSION: Director Profiles =====================
+      @{
+        name             = "Director Profiles"
+        sourceLineageTag = "[_public].[director_profile]"
+        columns = @(
+          (New-Col -Name "director_subject_id" -IsKey $true)
+          (New-Col -Name "director_email")
+          (New-Col -Name "display_name")
+          (New-Col -Name "primary_school_id")
+          (New-Col -Name "primary_region_id")
+          (New-Col -Name "status")
+          (New-Col -Name "created_at" -DataType "dateTime")
+        )
+        partitions = @( (New-DLPartition -Name "director-profiles-partition" -EntityName "director_profile") )
+      }
+
+      # ===================== FACT: Reporting Scope =====================
+      @{
+        name             = "Reporting Scope"
+        sourceLineageTag = "[_public].[reporting_scope]"
+        columns = @(
+          (New-Col -Name "id" -DataType "int64" -IsKey $true)
+          (New-Col -Name "director_subject_id")
+          (New-Col -Name "school_id")
+          (New-Col -Name "region_id")
+          (New-Col -Name "role")
+          (New-Col -Name "effective_from" -DataType "dateTime")
+          (New-Col -Name "effective_to" -DataType "dateTime")
+          (New-Col -Name "granted_by")
+          (New-Col -Name "granted_at" -DataType "dateTime")
+          (New-Col -Name "status")
+        )
+        partitions = @( (New-DLPartition -Name "reporting-scope-partition" -EntityName "reporting_scope") )
+        measures = @(
+          @{ name = "Active Scope Grants"; expression = 'COUNTROWS(FILTER(''Reporting Scope'', ''Reporting Scope''[status] = "active"))' }
+          @{ name = "Directors With Scope"; expression = "DISTINCTCOUNT('Reporting Scope'[director_subject_id])" }
+        )
+      }
+
+      # ===================== FACT: Hierarchy Assignments =====================
+      @{
+        name             = "Hierarchy Assignments"
+        sourceLineageTag = "[_public].[learner_hierarchy_assignment]"
+        columns = @(
+          (New-Col -Name "id" -DataType "int64" -IsKey $true)
+          (New-Col -Name "learner_id")
+          (New-Col -Name "class_id")
+          (New-Col -Name "school_id")
+          (New-Col -Name "region_id")
+          (New-Col -Name "effective_from" -DataType "dateTime")
+          (New-Col -Name "effective_to" -DataType "dateTime")
+          (New-Col -Name "source_system")
+          (New-Col -Name "status")
+          (New-Col -Name "exception_flag" -DataType "boolean")
+          (New-Col -Name "created_at" -DataType "dateTime")
+        )
+        partitions = @( (New-DLPartition -Name "hierarchy-assignments-partition" -EntityName "learner_hierarchy_assignment") )
+        measures = @(
+          @{ name = "Hierarchy Rows"; expression = "COUNTROWS('Hierarchy Assignments')" }
+          @{ name = "Assigned Learners"; expression = "DISTINCTCOUNT('Hierarchy Assignments'[learner_id])" }
+          @{ name = "Hierarchy Exception Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Hierarchy Assignments'', ''Hierarchy Assignments''[exception_flag] = TRUE())), COUNTROWS(''Hierarchy Assignments''), 0)'; formatString = "0.0%" }
+        )
+      }
+
+      # ===================== FACT: Hierarchy Exceptions =====================
+      @{
+        name             = "Hierarchy Exceptions"
+        sourceLineageTag = "[_public].[hierarchy_exception]"
+        columns = @(
+          (New-Col -Name "id" -DataType "int64" -IsKey $true)
+          (New-Col -Name "learner_id")
+          (New-Col -Name "issue_type")
+          (New-Col -Name "issue_detail")
+          (New-Col -Name "severity")
+          (New-Col -Name "detected_at" -DataType "dateTime")
+          (New-Col -Name "status")
+          (New-Col -Name "resolved_at" -DataType "dateTime")
+          (New-Col -Name "resolved_by")
+        )
+        partitions = @( (New-DLPartition -Name "hierarchy-exceptions-partition" -EntityName "hierarchy_exception") )
+        measures = @(
+          @{ name = "Open Hierarchy Exceptions"; expression = 'COUNTROWS(FILTER(''Hierarchy Exceptions'', ''Hierarchy Exceptions''[status] = "open"))' }
+          @{ name = "High Severity Exceptions"; expression = 'COUNTROWS(FILTER(''Hierarchy Exceptions'', ''Hierarchy Exceptions''[severity] = "high" && ''Hierarchy Exceptions''[status] = "open"))' }
+        )
+      }
     ) # end tables
 
     # --- RELATIONSHIPS ---
@@ -476,6 +562,13 @@ $modelBim = @{
         name = "Curricula_to_CompetencyMap"
         fromTable = "Skill Competency Map"; fromColumn = "competency_id"
         toTable = "Curricula"; toColumn = "id"
+      }
+
+      # Director Profiles ← Reporting Scope
+      @{
+        name = "DirectorProfiles_to_ReportingScope"
+        fromTable = "Reporting Scope"; fromColumn = "director_subject_id"
+        toTable = "Director Profiles"; toColumn = "director_subject_id"
       }
     ) # end relationships
 

@@ -2,7 +2,7 @@
 # Usage: pwsh ./sync.ps1
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
-$apps = 'learner-web','parent-portal','teacher-console','admin'
+$apps = 'learner-web','parent-portal','teacher-console','admin','director-portal'
 foreach ($a in $apps) {
     $appDir = Join-Path (Split-Path $here -Parent) $a
     if (-not (Test-Path $appDir)) { Write-Host "skip $a (not found)" -ForegroundColor Yellow; continue }
@@ -14,6 +14,16 @@ foreach ($a in $apps) {
     $publicDir = Join-Path $appDir 'public'
     if (-not (Test-Path $publicDir)) { New-Item -ItemType Directory -Force -Path $publicDir | Out-Null }
     Copy-Item -Force -Path (Join-Path $here 'login.html') -Destination (Join-Path $publicDir 'login.html')
+    $sharedPublic = Join-Path $here 'public'
+    if (Test-Path $sharedPublic) {
+        Get-ChildItem $sharedPublic -Recurse -File | ForEach-Object {
+            $relative = $_.FullName.Substring($sharedPublic.Length + 1)
+            $destination = Join-Path $publicDir $relative
+            $destinationDir = Split-Path $destination -Parent
+            if (-not (Test-Path $destinationDir)) { New-Item -ItemType Directory -Force -Path $destinationDir | Out-Null }
+            Copy-Item -Force -Path $_.FullName -Destination $destination
+        }
+    }
     # CSRF helper — intercepts fetch() to inject X-CSRF-Token header
     $csrfSrc = Join-Path $here 'public/csrf.js'
     if (Test-Path $csrfSrc) { Copy-Item -Force -Path $csrfSrc -Destination (Join-Path $publicDir 'csrf.js') }

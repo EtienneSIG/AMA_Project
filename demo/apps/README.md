@@ -1,6 +1,6 @@
 # Apps
 
-Four App Service web apps make up the demo UX:
+Five App Service web apps make up the demo UX:
 
 | App | Role gate | Purpose |
 |---|---|---|
@@ -8,8 +8,9 @@ Four App Service web apps make up the demo UX:
 | `parent-portal/` | `parent` (+ `admin`) | Parental consent (GDPR Art. 8) + rights flows, child progress |
 | `teacher-console/` | `teacher` (+ `admin`) | Class planning, formative-assessment ideas, lesson sheets |
 | `admin/` | `admin` only | Ops console: live status of the 3 portals, restart, **Users** / **Items** / **Deployments** panels via managed identity (Website Contributor on each sibling site) |
+| `director-portal/` | `director` | Aggregated school/region reporting surface with fail-closed report metadata contract |
 
-All four share `_shared/` (auth lib + canonical Express server). Run `pwsh apps/_shared/sync.ps1` after editing shared files; the script copies `auth.js` to all four apps, `server.js` to the three user-facing apps, `db/` and `public/consent-pending.html` to all.
+All five apps share `_shared/` (auth lib + canonical Express server). Run `pwsh apps/_shared/sync.ps1` after editing shared files; the script copies `auth.js` to all apps, `server.js` to the user-facing shared-server apps, `db/` and `public/consent-pending.html` to all app folders.
 
 ## GDPR Art. 8 — Parental Consent for Under-16 Learners
 

@@ -102,7 +102,9 @@ function getPool() {
     ssl: SSL ? { rejectUnauthorized: false } : false,
     max: 5,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000
+    connectionTimeoutMillis: 10_000,
+    query_timeout: 30_000,
+    statement_timeout: 30_000
   });
   pool.on('error', (e) => console.error('[db] pool error:', e.message));
   return pool;
@@ -814,18 +816,93 @@ async function listHierarchyRollups({ level = 'school', asOf = new Date() } = {}
 }
 
 async function getHierarchySummary({ asOf = new Date() } = {}) {
-  const [classRows, schoolRows, regionRows, exceptions] = await Promise.all([
-    listHierarchyRollups({ level: 'class', asOf }),
-    listHierarchyRollups({ level: 'school', asOf }),
-    listHierarchyRollups({ level: 'region', asOf }),
-    listHierarchyExceptions({ status: 'open' })
-  ]);
+  const dbSummaryPromise = (async () => {
+    const [classRows, schoolRows, regionRows, exceptions] = await Promise.all([
+      listHierarchyRollups({ level: 'class', asOf }),
+      listHierarchyRollups({ level: 'school', asOf }),
+      listHierarchyRollups({ level: 'region', asOf }),
+      listHierarchyExceptions({ status: 'open' })
+    ]);
+    if ([classRows, schoolRows, regionRows, exceptions].some(value => value === null)) {
+      return null;
+    }
+    return {
+      dataSource: 'postgres',
+      asOf: toDateOnly(asOf) || toDateOnly(new Date()),
+      class: classRows || [],
+      school: schoolRows || [],
+      region: regionRows || [],
+      openExceptions: exceptions || []
+    };
+  })();
+
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => resolve(buildHierarchySummaryFromSeed(asOf)), 25_000);
+  });
+
+  const summary = await Promise.race([dbSummaryPromise, timeoutPromise]);
+  if (summary) return summary;
+
+  return buildHierarchySummaryFromSeed(asOf);
+}
+
+async function getHierarchyStorageStats() {
+  const tables = [
+    'learner_hierarchy_assignment',
+    'reporting_scope',
+    'hierarchy_exception',
+    'director_profile'
+  ];
+  const counts = {};
+  for (const table of tables) {
+    const r = await q(`SELECT COUNT(*)::int AS n FROM ${table}`);
+    counts[table] = r && r.rows[0] ? r.rows[0].n : null;
+  }
+  const viewRows = await q('SELECT COUNT(*)::int AS n FROM vw_reporting_scope_expanded');
+  counts.vw_reporting_scope_expanded = viewRows && viewRows.rows[0] ? viewRows.rows[0].n : null;
+  const reachable = Object.values(counts).every(value => Number.isInteger(value));
   return {
+    source: reachable ? 'postgres' : 'unavailable',
+    reachable,
+    counts
+  };
+}
+
+function buildHierarchySummaryFromSeed(asOf) {
+  const active = (HIERARCHY_SEED || []).filter(row => {
+    const fromOk = !row.effectiveFrom || String(row.effectiveFrom) <= toDateOnly(asOf);
+    const toOk = !row.effectiveTo || String(row.effectiveTo) >= toDateOnly(asOf);
+    return fromOk && toOk && String(row.status || 'active') === 'active';
+  });
+
+  const toRollup = (key) => {
+    const map = new Map();
+    for (const row of active) {
+      const scopeId = row[key];
+      if (!scopeId) continue;
+      const current = map.get(scopeId) || { scopeId, learnerSet: new Set(), exceptionCount: 0, learnerCount: 0 };
+      current.learnerCount += 1;
+      current.learnerSet.add(String(row.learnerId || '').toLowerCase());
+      if (row.exceptionFlag) current.exceptionCount += 1;
+      map.set(scopeId, current);
+    }
+    return Array.from(map.values())
+      .map(item => ({
+        scopeId: item.scopeId,
+        learnerCount: item.learnerCount,
+        distinctLearnerCount: item.learnerSet.size,
+        exceptionCount: item.exceptionCount
+      }))
+      .sort((a, b) => String(a.scopeId).localeCompare(String(b.scopeId)));
+  };
+
+  return {
+    dataSource: 'seed-fallback',
     asOf: toDateOnly(asOf) || toDateOnly(new Date()),
-    class: classRows || [],
-    school: schoolRows || [],
-    region: regionRows || [],
-    openExceptions: exceptions || []
+    class: toRollup('classId'),
+    school: toRollup('schoolId'),
+    region: toRollup('regionId'),
+    openExceptions: (HIERARCHY_EXCEPTION_SEED || []).filter(x => String(x.status || '').toLowerCase() === 'open')
   };
 }
 
@@ -1551,6 +1628,7 @@ module.exports = {
   resolveLearnerHierarchy,
   listHierarchyRollups,
   getHierarchySummary,
+  getHierarchyStorageStats,
   writeHierarchyException,
   listHierarchyExceptions,
   listReportingScopeForDirector,
