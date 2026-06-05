@@ -76,8 +76,9 @@
 <body>
 <nav class="top">
   <div class="wrap">
-    <img src="/logo.svg" alt="EdTech Group" onerror="this.style.display='none'" />
-    <span style="font-family:'Poppins',sans-serif;font-weight:700;color:var(--navy);font-size:1.05rem">LearnEU · Admin</span>
+    <img src="/logo.svg" alt="EdTech Group" />
+    <span style="font-family:'Poppins',sans-serif;font-weight:700;color:var(--navy);font-size:1.05rem">EdTech Group</span>
+    <span style="font-size:.85rem;color:var(--grey);">LearnEU · Admin</span>
     <div class="links">
       <a href="https://app-learner-web-learneu-demo.azurewebsites.net" target="_blank">Learner</a>
       <a href="https://app-parent-portal-learneu-demo.azurewebsites.net" target="_blank">Parents</a>
@@ -99,7 +100,6 @@
   <button data-tab="activity" onclick="setTab('activity')">Activity</button>
   <button data-tab="safety" onclick="setTab('safety')">Safety &amp; Quality</button>
   <button data-tab="data" onclick="setTab('data')">Reference data</button>
-  <button data-tab="diagnostics" onclick="setTab('diagnostics')">Diagnostics</button>
 </div>
 <main>
   <div class="grid" id="cards" data-group="overview">
@@ -243,15 +243,6 @@
     <div id="gamificationKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.6rem;margin-top:.6rem;">Loading…</div>
   </div>
 
-  <div class="panel" data-group="diagnostics">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <h2>Raw inventory <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/sites</span></h2>
-      <div>
-        <button class="btn secondary" onclick="refreshAll()">Refresh all</button>
-      </div>
-    </div>
-    <pre id="raw">…</pre>
-  </div>
 </main>
 <footer>
   © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
@@ -281,7 +272,6 @@ function setTab(g) {
 
 async function loadCards() {
   const cards = document.getElementById('cards');
-  const raw = document.getElementById('raw');
   try {
     const [sitesR, healthR, pgR, fabricR] = await Promise.all([
       fetch('/api/admin/sites', { cache:'no-store' }).then(r=>r.json()),
@@ -289,7 +279,6 @@ async function loadCards() {
       fetch('/api/admin/postgres/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) })),
       fetch('/api/admin/fabric/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) }))
     ]);
-    raw.textContent = JSON.stringify(sitesR, null, 2);
     const byName = {};
     for (const s of (sitesR.sites||[])) byName[s.name] = s;
     const checkByName = {};
@@ -308,8 +297,6 @@ async function loadCards() {
         <div class="sub">${escapeHtml(s.hostname || name + '.azurewebsites.net')}</div>
         <div class="stat-row"><span>ARM state</span><span>${escapeHtml(s.state || (s.error ? 'ERR' : '—'))}</span></div>
         <div class="stat-row"><span>HTTP /api/health</span><span>${h.status || 'n/a'}${h.ms ? ' · ' + h.ms + ' ms' : ''}</span></div>
-        <div class="stat-row"><span>Role configured</span><span>${escapeHtml(h.payload?.role || '—')}</span></div>
-        <div class="stat-row"><span>KV key</span><span>${h.payload?.keyConfigured ? 'OK' : '—'}</span></div>
         <div class="stat-row"><span>Last modified</span><span>${s.lastModifiedTimeUtc ? new Date(s.lastModifiedTimeUtc).toLocaleString() : '—'}</span></div>
         <div class="actions">
           <a class="btn secondary" href="https://${escapeHtml(s.hostname || name + '.azurewebsites.net')}" target="_blank">Open</a>
@@ -353,7 +340,6 @@ async function loadCards() {
       </div>`;
     cards.appendChild(fabricCard);
   } catch (e) {
-    raw.textContent = String(e);
     toast('Load failed: ' + e, 'err');
   }
 }
@@ -631,7 +617,7 @@ async function loadDeployments() {
   loadPostgresOps();
   loadFabricOps();
   const initial = (location.hash || '').replace(/^#/, '');
-  const valid = new Set(['overview','users','activity','safety','data','diagnostics']);
+  const valid = new Set(['overview','users','activity','safety','data']);
   setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();

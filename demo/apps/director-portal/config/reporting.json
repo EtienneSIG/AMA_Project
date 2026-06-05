@@ -8,17 +8,17 @@
   },
   "reports": [
     {
-      "reportId": "3f38a2d1-a6f5-482c-91db-edcb2de374bd",
+      "reportId": "c649c106-e788-4467-9056-bf0989154e7d",
       "workspaceId": "127a12ab-fa94-421b-bee3-4f534264d3ff",
-      "datasetId": "08b3758f-e419-4ebc-a884-2d2306bf9ed4",
-      "displayName": "Director Governance Overview",
+      "datasetId": "1a230c29-c864-44e2-bc3d-d3ecd2dedcd9",
+      "displayName": "test director",
       "allowedScopeDimensions": [
         "school",
         "region"
       ],
       "aggregationLevel": "school-region",
       "sensitivityLabel": "Confidential-aggregated",
-      "embedUrl": "https://app.powerbi.com/reportEmbed?reportId=3f38a2d1-a6f5-482c-91db-edcb2de374bd&groupId=127a12ab-fa94-421b-bee3-4f534264d3ff&autoAuth=true",
+      "embedUrl": "https://app.powerbi.com/reportEmbed?reportId=c649c106-e788-4467-9056-bf0989154e7d&groupId=127a12ab-fa94-421b-bee3-4f534264d3ff&autoAuth=true",
       "approved": true
     }
   ]

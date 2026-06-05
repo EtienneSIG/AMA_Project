@@ -4,7 +4,7 @@ Role-gated portal for school directors with aggregated school and region reporti
 
 ## Purpose
 
-- Show approved, embedded reporting metadata for director scope.
+- Show the approved director report directly in-app for the current scope.
 - Enforce fail-closed behavior when reporting metadata is missing.
 - Keep learner-identifying data out of this portal by default.
 
@@ -28,13 +28,20 @@ Role-gated portal for school directors with aggregated school and region reporti
 - Access requires role=director and non-empty school/region scope.
 - No-scope users are redirected to public/no-access.html or receive 403 JSON.
 - Reporting metadata is loaded from config/reporting.json.
+- The configured report is rendered in-app through the report embed URL, with a fallback link to open Fabric in a new tab.
 - Power BI embed tokens are issued only when `PBI_TENANT_ID`, `PBI_CLIENT_ID`, and `PBI_CLIENT_SECRET` are configured.
 - When metadata is missing or empty, the portal stays fail-closed.
 - Audit events are written for portal access attempts and report session usage.
 
+## Current live report
+
+- Workspace: `EULearn`
+- Report: `test director`
+- Semantic model: `test`
+
 ## Power BI embed unblock
 
-If reports stay on "Loading your report..." and `/api/health` shows missing `PBI_*` values, configure director app settings:
+If the backend `/api/reporting/embed/:reportId` route is required and `/api/health` shows missing `PBI_*` values, configure director app settings:
 
 ```powershell
 pwsh ./demo/scripts/configure-director-powerbi-embed.ps1 -ResourceGroup rg-learneu-demo -WebAppName app-director-portal-learneu-demo -Restart
@@ -75,7 +82,7 @@ This verifies:
 
 ## Latest verification
 
-- Verified on 2026-06-04 against https://app-director-portal-learneu-demo.azurewebsites.net.
+- Verified on 2026-06-05 against https://app-director-portal-learneu-demo.azurewebsites.net.
 - Smoke script result: passed (approved scope, blocked no-scope, no-access page).
 - Live PostgreSQL verification: `director_profile=2`, `reporting_scope=3`, `hierarchy_exception=2`, `learner_hierarchy_assignment=10`.
-- Fabric workspace verification: `Director Governance Overview` published in `EULearn` workspace with semantic model `LearnEU - Director Reporting`.
+- Fabric workspace verification: `test director` published in `EULearn` workspace with semantic model `test`.
