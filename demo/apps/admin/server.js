@@ -20,6 +20,7 @@ const APP_NAME = 'admin';
 const ALLOWED = ['admin'];
 const SUB = process.env.AZURE_SUBSCRIPTION_ID || '';
 const RG  = process.env.AZURE_RESOURCE_GROUP  || '';
+const FABRIC_RG = String(process.env.FABRIC_RESOURCE_GROUP || RG || '').trim();
 const ENV_NAME = process.env.ENV_NAME || 'learneu-demo';
 const PG_SERVER = process.env.PG_SERVER_NAME || (process.env.PG_HOST || '').split('.')[0] || `pg-${ENV_NAME}`;
 const PG_API_VERSION = process.env.PG_ARM_API_VERSION || '2024-08-01';
@@ -85,7 +86,7 @@ function pgResourcePath() {
 }
 
 function fabricResourcePath(capacityName) {
-  return `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.Fabric/capacities/${encodeURIComponent(capacityName)}`;
+  return `/subscriptions/${SUB}/resourceGroups/${FABRIC_RG}/providers/Microsoft.Fabric/capacities/${encodeURIComponent(capacityName)}`;
 }
 
 function requestCorrelationId(req) {
@@ -105,7 +106,7 @@ async function readPostgresState() {
 
 async function resolveFabricCapacityName() {
   if (cachedFabricCapacityName) return cachedFabricCapacityName;
-  const list = await arm('GET', `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.Fabric/capacities?api-version=${FABRIC_API_VERSION}`);
+  const list = await arm('GET', `/subscriptions/${SUB}/resourceGroups/${FABRIC_RG}/providers/Microsoft.Fabric/capacities?api-version=${FABRIC_API_VERSION}`);
   const capacities = Array.isArray(list?.value) ? list.value : [];
   if (!capacities.length) {
     const error = new Error('No Microsoft.Fabric/capacities resource found in this resource group.');
