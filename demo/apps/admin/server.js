@@ -23,12 +23,15 @@ const RG  = process.env.AZURE_RESOURCE_GROUP  || '';
 const ENV_NAME = process.env.ENV_NAME || 'learneu-demo';
 const PG_SERVER = process.env.PG_SERVER_NAME || (process.env.PG_HOST || '').split('.')[0] || `pg-${ENV_NAME}`;
 const PG_API_VERSION = process.env.PG_ARM_API_VERSION || '2024-08-01';
+const FABRIC_CAPACITY = String(process.env.FABRIC_CAPACITY_NAME || '').trim();
+const FABRIC_API_VERSION = process.env.FABRIC_ARM_API_VERSION || '2023-11-01';
 // Sites this admin app manages (admin itself excluded — never restart yourself).
 const MANAGED_SITES = [
   `app-learner-web-${ENV_NAME}`,
   `app-parent-portal-${ENV_NAME}`,
   `app-teacher-console-${ENV_NAME}`
 ];
+let cachedFabricCapacityName = FABRIC_CAPACITY || null;
 
 // Fire-and-forget DB schema init.
 db.init().then(ok => { if (ok) console.log('[admin] db ready'); }).catch(() => {});
@@ -81,6 +84,10 @@ function pgResourcePath() {
   return `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${encodeURIComponent(PG_SERVER)}`;
 }
 
+function fabricResourcePath(capacityName) {
+  return `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.Fabric/capacities/${encodeURIComponent(capacityName)}`;
+}
+
 function requestCorrelationId(req) {
   const fromHeader = String(req.headers['x-correlation-id'] || '').trim();
   if (fromHeader) return fromHeader.slice(0, 128);
@@ -96,7 +103,52 @@ async function readPostgresState() {
   };
 }
 
+async function resolveFabricCapacityName() {
+  if (cachedFabricCapacityName) return cachedFabricCapacityName;
+  const list = await arm('GET', `/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.Fabric/capacities?api-version=${FABRIC_API_VERSION}`);
+  const capacities = Array.isArray(list?.value) ? list.value : [];
+  if (!capacities.length) {
+    const error = new Error('No Microsoft.Fabric/capacities resource found in this resource group.');
+    error.code = 'fabric_capacity_not_found';
+    throw error;
+  }
+  if (capacities.length > 1) {
+    const names = capacities.map(c => c?.name).filter(Boolean);
+    const error = new Error(`Multiple Fabric capacities found (${names.join(', ')}). Set FABRIC_CAPACITY_NAME on the admin app.`);
+    error.code = 'fabric_capacity_ambiguous';
+    throw error;
+  }
+  cachedFabricCapacityName = capacities[0]?.name || null;
+  return cachedFabricCapacityName;
+}
+
+async function readFabricState() {
+  const capacityName = await resolveFabricCapacityName();
+  const data = await arm('GET', `${fabricResourcePath(capacityName)}?api-version=${FABRIC_API_VERSION}`);
+  const state = data.properties?.state || data.properties?.provisioningState || 'Unknown';
+  return {
+    capacityName,
+    state,
+    provisioningState: data.properties?.provisioningState || null,
+    location: data.location || null,
+    sku: data.sku?.name || null
+  };
+}
+
 async function auditPgEvent(req, eventType, outcome, correlationId, detail) {
+  if (!db.enabled || typeof db.logOperationalEvent !== 'function') return;
+  await db.logOperationalEvent({
+    app: APP_NAME,
+    actorEmail: req.user?.email,
+    actorRole: req.user?.role,
+    eventType,
+    outcome,
+    correlationId,
+    detail
+  });
+}
+
+async function auditFabricEvent(req, eventType, outcome, correlationId, detail) {
   if (!db.enabled || typeof db.logOperationalEvent !== 'function') return;
   await db.logOperationalEvent({
     app: APP_NAME,
@@ -231,6 +283,87 @@ app.post('/api/admin/postgres/wakeup', async (req, res) => {
       action: 'wakeup-failed',
       outcome: 'failed',
       error: 'postgres wakeup failed',
+      detail
+    });
+  }
+});
+
+app.get('/api/admin/fabric/status', async (req, res) => {
+  const correlationId = requestCorrelationId(req);
+  try {
+    const fabric = await readFabricState();
+    await auditFabricEvent(req, 'fabric_status_check', 'ok', correlationId, `state=${fabric.state}`);
+    res.json({
+      ok: true,
+      correlationId,
+      checkedAt: new Date().toISOString(),
+      capacityName: fabric.capacityName,
+      state: fabric.state,
+      provisioningState: fabric.provisioningState,
+      location: fabric.location,
+      sku: fabric.sku
+    });
+  } catch (e) {
+    const detail = e.body?.error?.message || e.message;
+    await auditFabricEvent(req, 'fabric_status_check', 'error', correlationId, detail);
+    res.status(e.status || 500).json({
+      ok: false,
+      correlationId,
+      checkedAt: new Date().toISOString(),
+      capacityName: cachedFabricCapacityName,
+      error: 'fabric status check failed',
+      detail
+    });
+  }
+});
+
+app.post('/api/admin/fabric/wakeup', async (req, res) => {
+  const correlationId = requestCorrelationId(req);
+  try {
+    const fabric = await readFabricState();
+    const current = String(fabric.state || '').toLowerCase();
+    if (current === 'active') {
+      await auditFabricEvent(req, 'fabric_wakeup', 'already-running', correlationId, `state=${fabric.state}`);
+      return res.json({
+        ok: true,
+        correlationId,
+        action: 'wakeup-skipped',
+        outcome: 'already-running',
+        state: fabric.state,
+        message: 'Fabric capacity is already active.'
+      });
+    }
+    if (current === 'resuming' || current === 'provisioning' || current === 'preparing' || current === 'updating' || current === 'scaling') {
+      await auditFabricEvent(req, 'fabric_wakeup', 'in-progress', correlationId, `state=${fabric.state}`);
+      return res.json({
+        ok: true,
+        correlationId,
+        action: 'wakeup-skipped',
+        outcome: 'in-progress',
+        state: fabric.state,
+        message: 'Fabric capacity resume is already in progress.'
+      });
+    }
+
+    await arm('POST', `${fabricResourcePath(fabric.capacityName)}/resume?api-version=${FABRIC_API_VERSION}`);
+    await auditFabricEvent(req, 'fabric_wakeup', 'accepted', correlationId, `previousState=${fabric.state}`);
+    return res.json({
+      ok: true,
+      correlationId,
+      action: 'wakeup-requested',
+      outcome: 'accepted',
+      previousState: fabric.state,
+      message: 'Resume request sent. Fabric capacity may take a short time to become Active.'
+    });
+  } catch (e) {
+    const detail = e.body?.error?.message || e.message;
+    await auditFabricEvent(req, 'fabric_wakeup', 'error', correlationId, detail);
+    return res.status(e.status || 500).json({
+      ok: false,
+      correlationId,
+      action: 'wakeup-failed',
+      outcome: 'failed',
+      error: 'fabric wakeup failed',
       detail
     });
   }

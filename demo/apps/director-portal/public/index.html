@@ -5,7 +5,7 @@
 <title>LearnEU — Director Portal</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="/csrf.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <style>
@@ -34,6 +34,10 @@
   .report .name { color:var(--navy); font-weight:700; margin-bottom:.25rem; }
   .report .meta { font-size:.82rem; color:var(--grey); }
   .report .status { display:inline-block; margin-top:.65rem; padding:.2rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; background:rgba(43,180,184,.12); color:var(--teal); }
+  .report .actions { margin-top:.75rem; display:flex; gap:.5rem; }
+  .report button.open { appearance:none; border:0; border-radius:10px; padding:.5rem .75rem; background:var(--navy); color:#fff; font-weight:600; cursor:pointer; }
+  .report button.open:hover { background:var(--navy-2); }
+  .report button.open:disabled { opacity:.55; cursor:not-allowed; }
   .embed-wrap { margin-top:.8rem; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
   .embed-wrap iframe, .embed-wrap .pbi-host { width:100%; min-height:380px; border:0; display:block; }
   .embed-placeholder { font-size:.82rem; color:var(--grey); padding:.75rem; }
@@ -82,6 +86,9 @@
   async function loadEmbed(report, embedWrap) {
     embedWrap.innerHTML = '<div class="embed-placeholder">Loading embedded report…</div>';
     try {
+      if (!window['powerbi-client'] || !window.powerbi) {
+        throw new Error('Power BI client library not ready');
+      }
       const payload = await fetch('/api/reporting/embed/' + encodeURIComponent(report.reportId), { cache:'no-store' }).then(async r => {
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'embed unavailable');
         return r.json();
@@ -121,13 +128,22 @@
     for (const report of payload.reports) {
       const card = document.createElement('section');
       card.className = 'report';
-      card.innerHTML = '<div class="name"></div><div class="meta"></div><div class="status">Approved aggregated report</div><div class="embed-wrap"></div>';
+      card.innerHTML = '<div class="name"></div><div class="meta"></div><div class="status">Approved aggregated report</div><div class="actions"><button class="open" type="button">Open report</button></div><div class="embed-wrap"><div class="embed-placeholder">Click Open report to load this Power BI view.</div></div>';
       card.querySelector('.name').textContent = report.displayName;
       card.querySelector('.meta').textContent = 'Aggregation: ' + report.aggregationLevel + ' · Sensitivity: ' + report.sensitivityLabel + ' · Workspace: ' + report.workspaceId;
       const embedWrap = card.querySelector('.embed-wrap');
+      const openBtn = card.querySelector('button.open');
       if (report.embedUrl) {
-        loadEmbed(report, embedWrap);
+        openBtn.addEventListener('click', async () => {
+          openBtn.disabled = true;
+          openBtn.textContent = 'Loading...';
+          await loadEmbed(report, embedWrap);
+          openBtn.textContent = 'Reload report';
+          openBtn.disabled = false;
+        });
       } else {
+        openBtn.disabled = true;
+        openBtn.textContent = 'Unavailable';
         embedWrap.innerHTML = '<div class="embed-placeholder">No embed URL configured for this approved report.</div>';
       }
       reportList.appendChild(card);

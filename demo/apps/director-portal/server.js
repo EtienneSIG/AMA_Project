@@ -13,6 +13,8 @@ app.use(express.json({ limit: '64kb' }));
 const APP_ROLE = process.env.APP_ROLE || 'director';
 const APP_NAME = process.env.APP_NAME || 'director-portal';
 const ALLOWED = ['director'];
+const EMBED_CACHE_TTL_MS = Number(process.env.DIRECTOR_EMBED_CACHE_TTL_MS || 120000);
+const embedConfigCache = new Map();
 
 db.init().then(ok => { if (ok) console.log(`[${APP_ROLE}] db ready`); }).catch(() => {});
 
@@ -37,6 +39,33 @@ function sendNoAccess(req, res) {
 function hasDirectorScope(user) {
   const scope = buildScopeSnapshot(user);
   return scope.granted;
+}
+
+function toCacheKey(user, scopeSnapshot, reportId) {
+  const schoolIds = (scopeSnapshot && scopeSnapshot.scope && scopeSnapshot.scope.schoolIds || []).slice().sort().join(',');
+  const regionIds = (scopeSnapshot && scopeSnapshot.scope && scopeSnapshot.scope.regionIds || []).slice().sort().join(',');
+  return [user.email, user.role, schoolIds, regionIds, reportId].join('|');
+}
+
+function readCachedEmbed(cacheKey) {
+  const existing = embedConfigCache.get(cacheKey);
+  if (!existing) return null;
+  if (existing.expiresAt <= Date.now()) {
+    embedConfigCache.delete(cacheKey);
+    return null;
+  }
+  return existing.value;
+}
+
+function writeCachedEmbed(cacheKey, embed) {
+  const expirationTs = embed && embed.expiration ? Date.parse(embed.expiration) : NaN;
+  const safeTokenTtl = Number.isNaN(expirationTs)
+    ? EMBED_CACHE_TTL_MS
+    : Math.max(Math.min(expirationTs - Date.now() - 60000, EMBED_CACHE_TTL_MS), 10000);
+  embedConfigCache.set(cacheKey, {
+    value: embed,
+    expiresAt: Date.now() + safeTokenTtl
+  });
 }
 
 app.get('/api/health', (_req, res) => {
@@ -176,8 +205,14 @@ app.get('/api/reporting/embed/:reportId', async (req, res) => {
     }).catch(() => {});
     return res.status(404).json({ error: 'report_not_available_for_scope' });
   }
+  const cacheKey = toCacheKey(req.user, scopeSnapshot, reportId);
+  const cachedEmbed = readCachedEmbed(cacheKey);
+  if (cachedEmbed) {
+    return res.json({ ok: true, report, embed: cachedEmbed, cached: true });
+  }
   try {
     const embed = await generateEmbedConfig(report);
+    writeCachedEmbed(cacheKey, embed);
     await db.logDirectorReportUsageAudit({
       directorSubjectId: req.user.email,
       actorRole: req.user.role,

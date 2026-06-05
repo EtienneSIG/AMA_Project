@@ -49,6 +49,15 @@ param deployFabric bool = false
 @secure()
 param postgresAdminPassword string = '${toUpper(uniqueString(subscription().id, 'pg', newGuid()))}aZ9!${uniqueString(newGuid())}'
 
+@description('Microsoft Entra tenant ID used for Power BI embed token acquisition in the director portal. Leave empty to keep embed disabled.')
+param pbiTenantId string = ''
+
+@description('Microsoft Entra app registration client ID used for Power BI embed token acquisition in the director portal. Leave empty to keep embed disabled.')
+param pbiClientId string = ''
+
+@description('Key Vault secret name containing the Power BI app registration client secret. Leave empty to keep embed disabled.')
+param pbiClientSecretName string = ''
+
 // -----------------------------
 // Resource group
 // -----------------------------
@@ -202,6 +211,10 @@ module appService 'modules/app-service.bicep' = {
     pgPasswordSecretName: postgres.outputs.passwordSecretName
     contentSafetyEndpoint: contentSafety.outputs.endpoint
     contentSafetyAccountName: contentSafety.outputs.accountName
+    fabricCapacityName: deployFabric ? fabric.outputs.fabricCapacityName : ''
+    pbiTenantId: pbiTenantId
+    pbiClientId: pbiClientId
+    pbiClientSecretName: pbiClientSecretName
   }
 }
 
@@ -237,6 +250,17 @@ module fabric 'modules/fabric-capacity.bicep' = if (deployFabric) {
     envName: envName
     location: location
     tags: tags
+  }
+}
+
+resource adminFabricContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployFabric) {
+  scope: resourceId(rg.name, 'Microsoft.Fabric/capacities', fabric.outputs.fabricCapacityName)
+  name: guid(resourceId(rg.name, 'Microsoft.Fabric/capacities', fabric.outputs.fabricCapacityName), appService.outputs.adminPrincipalId, 'fabric-contributor')
+  properties: {
+    // Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+    principalId: appService.outputs.adminPrincipalId
+    principalType: 'ServicePrincipal'
   }
 }
 

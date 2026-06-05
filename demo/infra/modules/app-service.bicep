@@ -44,6 +44,18 @@ param contentSafetyEndpoint string
 @description('Azure AI Content Safety account name (for role assignment scoping).')
 param contentSafetyAccountName string
 
+@description('Fabric capacity name to inject into the admin app settings. Optional; admin can auto-discover when omitted.')
+param fabricCapacityName string = ''
+
+@description('Microsoft Entra tenant ID used for Power BI embed token acquisition (director portal only).')
+param pbiTenantId string = ''
+
+@description('Microsoft Entra app registration client ID used for Power BI embed token acquisition (director portal only).')
+param pbiClientId string = ''
+
+@description('Key Vault secret name containing the Power BI app registration client secret (director portal only).')
+param pbiClientSecretName string = ''
+
 var planName = 'asp-${envName}'
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -200,6 +212,15 @@ resource apps 'Microsoft.Web/sites@2023-12-01' = [for (n, i) in appNames: {
         { name: 'AZURE_SUBSCRIPTION_ID', value: subscription().subscriptionId }
         { name: 'AZURE_RESOURCE_GROUP', value: resourceGroup().name }
         { name: 'ENV_NAME', value: envName }
+      ] : [], n == 'admin' && !empty(fabricCapacityName) ? [
+        { name: 'FABRIC_CAPACITY_NAME', value: fabricCapacityName }
+      ] : [], n == 'director-portal' && !empty(pbiTenantId) && !empty(pbiClientId) && !empty(pbiClientSecretName) ? [
+        { name: 'PBI_TENANT_ID', value: pbiTenantId }
+        { name: 'PBI_CLIENT_ID', value: pbiClientId }
+        {
+          name: 'PBI_CLIENT_SECRET'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=${pbiClientSecretName})'
+        }
       ] : [])
     }
   }
@@ -257,3 +278,4 @@ module appDiag 'app-diag.bicep' = [for (n, i) in appNames: {
 
 output appNames array = [for (n, i) in appNames: apps[i].name]
 output appHostnames array = [for (n, i) in appNames: apps[i].properties.defaultHostName]
+output adminPrincipalId string = apps[adminIndex].identity.principalId

@@ -32,6 +32,22 @@ Role-gated portal for school directors with aggregated school and region reporti
 - When metadata is missing or empty, the portal stays fail-closed.
 - Audit events are written for portal access attempts and report session usage.
 
+## Power BI embed unblock
+
+If reports stay on "Loading your report..." and `/api/health` shows missing `PBI_*` values, configure director app settings:
+
+```powershell
+pwsh ./demo/scripts/configure-director-powerbi-embed.ps1 -ResourceGroup rg-learneu-demo -WebAppName app-director-portal-learneu-demo -Restart
+```
+
+You will be prompted for:
+
+1. `PBI_TENANT_ID`
+2. `PBI_CLIENT_ID`
+3. `PBI_CLIENT_SECRET`
+
+The script sets app settings and validates `/api/health` immediately after.
+
 ## Packaging notes
 
 - This app expects local shared modules in the app folder at deploy time:

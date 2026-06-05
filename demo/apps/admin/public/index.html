@@ -120,6 +120,18 @@
     <div id="pg-outcome" style="margin-top:.45rem;font-size:.84rem;color:var(--grey);"></div>
   </div>
 
+  <div class="panel" data-group="overview">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Fabric capacity operations <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/fabric/* · ARM</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="loadFabricOps()">Refresh state</button>
+        <button class="btn" id="fabricWakeBtn" onclick="wakeUpFabric()">Wake up Fabric</button>
+      </div>
+    </div>
+    <div id="fabric-status" style="margin-top:.5rem;"></div>
+    <div id="fabric-outcome" style="margin-top:.45rem;font-size:.84rem;color:var(--grey);"></div>
+  </div>
+
   <div class="panel" data-group="users">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
       <h2>Users <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/users</span></h2>
@@ -271,10 +283,11 @@ async function loadCards() {
   const cards = document.getElementById('cards');
   const raw = document.getElementById('raw');
   try {
-    const [sitesR, healthR, pgR] = await Promise.all([
+    const [sitesR, healthR, pgR, fabricR] = await Promise.all([
       fetch('/api/admin/sites', { cache:'no-store' }).then(r=>r.json()),
       fetch('/api/admin/health', { cache:'no-store' }).then(r=>r.json()),
-      fetch('/api/admin/postgres/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) }))
+      fetch('/api/admin/postgres/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) })),
+      fetch('/api/admin/fabric/status', { cache:'no-store' }).then(async r => ({ ok: r.ok, payload: await r.json().catch(() => ({})) }))
     ]);
     raw.textContent = JSON.stringify(sitesR, null, 2);
     const byName = {};
@@ -321,6 +334,24 @@ async function loadCards() {
         <button class="btn" onclick="wakeUpPostgres()" ${pgStateLc === 'ready' ? 'disabled' : ''}>Wake up</button>
       </div>`;
     cards.appendChild(pgCard);
+
+    const fabricState = fabricR && fabricR.payload ? (fabricR.payload.state || 'Unknown') : 'Unknown';
+    const fabricStateLc = String(fabricState).toLowerCase();
+    const fabricDotClass = fabricStateLc === 'active' ? 'ok' : (fabricStateLc === 'resuming' || fabricStateLc === 'provisioning' || fabricStateLc === 'preparing' ? 'warn' : 'err');
+    const fabricCard = document.createElement('div');
+    fabricCard.className = 'card';
+    fabricCard.innerHTML = `
+      <h3><span class="dot ${fabricDotClass}"></span>Fabric capacity</h3>
+      <div class="sub">${escapeHtml(fabricR.payload?.capacityName || 'not configured')}</div>
+      <div class="stat-row"><span>Lifecycle state</span><span>${escapeHtml(fabricState)}</span></div>
+      <div class="stat-row"><span>Provisioning</span><span>${escapeHtml(fabricR.payload?.provisioningState || '—')}</span></div>
+      <div class="stat-row"><span>Checked</span><span>${fabricR.payload?.checkedAt ? new Date(fabricR.payload.checkedAt).toLocaleString() : '—'}</span></div>
+      <div class="stat-row"><span>SKU</span><span>${escapeHtml(fabricR.payload?.sku || '—')}</span></div>
+      <div class="actions">
+        <button class="btn secondary" onclick="loadFabricOps();loadCards();">Refresh</button>
+        <button class="btn" onclick="wakeUpFabric()" ${fabricStateLc === 'active' ? 'disabled' : ''}>Wake up</button>
+      </div>`;
+    cards.appendChild(fabricCard);
   } catch (e) {
     raw.textContent = String(e);
     toast('Load failed: ' + e, 'err');
@@ -345,10 +376,11 @@ async function restartSite(btn) {
   }
 }
 
-async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); loadQuality(); loadPostgresOps(); }
+async function refreshAll() { toast('Refreshing…'); loadCards(); loadUsers(); loadItems(); loadDeployments(); loadQuality(); loadPostgresOps(); loadFabricOps(); }
 async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/login.html'; }
 
 let pgWakePollingTimer = null;
+let fabricWakePollingTimer = null;
 
 function pgBadgeClass(state) {
   const s = String(state || '').toLowerCase();
@@ -364,6 +396,22 @@ function pgAdvice(state) {
   if (s === 'starting') return 'Start is in progress. Refresh every 10-15 seconds.';
   if (s === 'stopped') return 'Database is stopped. Use the wake-up action before running learning flows.';
   return 'Unable to determine current lifecycle state. Check ARM permissions and retry.';
+}
+
+function fabricBadgeClass(state) {
+  const s = String(state || '').toLowerCase();
+  if (s === 'active') return 'ok';
+  if (s === 'resuming' || s === 'provisioning' || s === 'preparing') return '';
+  if (s === 'paused' || s === 'suspended' || s === 'pausing' || s === 'suspending') return 'err';
+  return '';
+}
+
+function fabricAdvice(state) {
+  const s = String(state || '').toLowerCase();
+  if (s === 'active') return 'Fabric capacity is active. No action required.';
+  if (s === 'resuming' || s === 'provisioning' || s === 'preparing') return 'Resume is in progress. Refresh every 10-15 seconds.';
+  if (s === 'paused' || s === 'suspended' || s === 'pausing' || s === 'suspending') return 'Capacity is paused/suspended. Use wake-up to resume report serving.';
+  return 'Unable to determine current Fabric lifecycle state. Check ARM permissions and capacity configuration.';
 }
 
 async function loadPostgresOps() {
@@ -432,6 +480,77 @@ async function wakeUpPostgres() {
     toast('PostgreSQL wake-up failed', 'err');
   } finally {
     wakeBtn.textContent = 'Wake up PostgreSQL';
+  }
+}
+
+async function loadFabricOps() {
+  const statusEl = document.getElementById('fabric-status');
+  const outcomeEl = document.getElementById('fabric-outcome');
+  const wakeBtn = document.getElementById('fabricWakeBtn');
+  if (!statusEl || !wakeBtn) return;
+  statusEl.innerHTML = '<em>Loading…</em>';
+  try {
+    const r = await fetch('/api/admin/fabric/status', { cache: 'no-store' });
+    const j = await r.json();
+    if (!r.ok || j.ok === false) {
+      const msg = escapeHtml(j.detail || j.error || 'status check failed');
+      statusEl.innerHTML = `<span class="badge err">status error</span> ${msg}`;
+      outcomeEl.textContent = `Correlation: ${j.correlationId || '-'} · Checked: ${j.checkedAt ? new Date(j.checkedAt).toLocaleString() : '-'}`;
+      wakeBtn.disabled = true;
+      return;
+    }
+    const state = j.state || 'Unknown';
+    const badge = fabricBadgeClass(state);
+    statusEl.innerHTML = `
+      <div class="stat-row"><span>Capacity</span><span>${escapeHtml(j.capacityName || '-')}</span></div>
+      <div class="stat-row"><span>State</span><span><span class="badge ${badge}">${escapeHtml(state)}</span></span></div>
+      <div class="stat-row"><span>Provisioning</span><span>${escapeHtml(j.provisioningState || '-')}</span></div>
+      <div class="stat-row"><span>Checked at</span><span>${j.checkedAt ? new Date(j.checkedAt).toLocaleString() : '-'}</span></div>
+      <div class="stat-row"><span>Location</span><span>${escapeHtml(j.location || '-')}</span></div>
+      <div class="stat-row"><span>SKU</span><span>${escapeHtml(j.sku || '-')}</span></div>
+      <div style="margin-top:.45rem;font-size:.84rem;color:var(--grey);">${escapeHtml(fabricAdvice(state))}</div>
+    `;
+    wakeBtn.disabled = String(state).toLowerCase() === 'active';
+    if (String(state).toLowerCase() !== 'resuming' && fabricWakePollingTimer) {
+      clearInterval(fabricWakePollingTimer);
+      fabricWakePollingTimer = null;
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="badge err">status error</span> ${escapeHtml(String(e))}`;
+    wakeBtn.disabled = true;
+  }
+}
+
+async function wakeUpFabric() {
+  const wakeBtn = document.getElementById('fabricWakeBtn');
+  const outcomeEl = document.getElementById('fabric-outcome');
+  if (!wakeBtn || !outcomeEl) return;
+  if (!confirm('Send wake-up request to Fabric capacity?')) return;
+  wakeBtn.disabled = true;
+  wakeBtn.textContent = 'Requesting…';
+  outcomeEl.textContent = 'Sending wake-up request…';
+  try {
+    const r = await fetch('/api/admin/fabric/wakeup', { method: 'POST' });
+    const j = await r.json();
+    const outcome = j.outcome || 'unknown';
+    if (!r.ok || j.ok === false) {
+      outcomeEl.textContent = `Wake-up failed (${outcome}): ${j.detail || j.error || 'unknown error'} · Correlation: ${j.correlationId || '-'}`;
+      toast('Fabric wake-up failed', 'err');
+      await loadFabricOps();
+      return;
+    }
+    outcomeEl.textContent = `${j.message || 'Wake-up request processed.'} · Outcome: ${outcome} · Correlation: ${j.correlationId || '-'}`;
+    toast('Fabric operation sent', 'ok');
+    await loadFabricOps();
+    if (outcome === 'accepted' || outcome === 'in-progress') {
+      if (fabricWakePollingTimer) clearInterval(fabricWakePollingTimer);
+      fabricWakePollingTimer = setInterval(loadFabricOps, 15000);
+    }
+  } catch (e) {
+    outcomeEl.textContent = `Wake-up failed: ${String(e)}`;
+    toast('Fabric wake-up failed', 'err');
+  } finally {
+    wakeBtn.textContent = 'Wake up Fabric';
   }
 }
 
@@ -510,10 +629,11 @@ async function loadDeployments() {
   loadQuality();
   loadGamificationKpis();
   loadPostgresOps();
+  loadFabricOps();
   const initial = (location.hash || '').replace(/^#/, '');
   const valid = new Set(['overview','users','activity','safety','data','diagnostics']);
   setTab(valid.has(initial) ? initial : 'overview');
-  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); }, 30000);
+  setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();
 
 // ---- Content Safety panel ---------------------------------------------------
