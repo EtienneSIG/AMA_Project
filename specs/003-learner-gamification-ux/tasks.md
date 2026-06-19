@@ -11,13 +11,13 @@
 
 Gamification features require explicit review and approval from the Learning Sciences specialist to confirm alignment with Zone of Proximal Development (ZPD), formative assessment principles, and Universal Design for Learning. No user story implementation may begin until sign-off is documented.
 
-- [ ] T001 Learning Sciences Expert: conduct pedagogical review of gamification design (engagement mechanics, reward fairness, collaborative safety, teacher override controls) and provide written sign-off in specs/003-learner-gamification-ux/quickstart.md before Phase 2 tasks begin (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T001a EdTech Program Orchestrator: confirm pedagogical sign-off is complete and documented; block Phase 2 tasks if sign-off is not present (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002 Create implementation plan with technical stack, constraints, and architecture notes in specs/003-learner-gamification-ux/plan.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002a [P] Create feature data model for quest, season, badge, and oversight entities in specs/003-learner-gamification-ux/data-model.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T003 [P] Draft learner and teacher API contract for gamification endpoints in specs/003-learner-gamification-ux/contracts/learner-gamification.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T004 [P] Add executable feature validation scenarios in specs/003-learner-gamification-ux/quickstart.md (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T005 Align feature compliance scope (EU residency, bias prevention, teacher oversight) in specs/003-learner-gamification-ux/checklists/requirements.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T001 Learning Sciences Expert: conduct pedagogical review of gamification design (engagement mechanics, reward fairness, collaborative safety, teacher override controls) and provide written sign-off in specs/003-learner-gamification-ux/quickstart.md before Phase 2 tasks begin (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T001a EdTech Program Orchestrator: confirm pedagogical sign-off is complete and documented; block Phase 2 tasks if sign-off is not present (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T002 Create implementation plan with technical stack, constraints, and architecture notes in specs/003-learner-gamification-ux/plan.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T002a [P] Create feature data model for quest, season, badge, and oversight entities in specs/003-learner-gamification-ux/data-model.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T003 [P] Draft learner and teacher API contract for gamification endpoints in specs/003-learner-gamification-ux/contracts/learner-gamification.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T004 [P] Add executable feature validation scenarios in specs/003-learner-gamification-ux/quickstart.md (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T005 Align feature compliance scope (EU residency, bias prevention, teacher oversight) in specs/003-learner-gamification-ux/checklists/requirements.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 ---
 
@@ -27,12 +27,12 @@ Gamification features require explicit review and approval from the Learning Sci
 
 **CRITICAL**: No user story implementation starts before this phase is complete.
 
-- [ ] T006 Add database schema for daily challenges, collaborative quests, season tiers, boss attempts, daily chest claims, badge catalog, motivation messages, and teacher oversight actions in demo/apps/learner-web/db/schema.sql (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T007 [P] Implement database access helpers for gamification entities and aggregate dashboard reads in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T008 [P] Implement anti-stigmatization query patterns that only expose class/guild aggregates (no individual ranking outputs) in demo/apps/learner-web/db/index.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T009 Add oversight audit persistence helpers (action, rationale, actor, timestamp, class scope) in demo/apps/learner-web/db/index.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T010 [P] Add role-aware API guardrails and EU-residency-safe response filtering for gamification routes in demo/apps/learner-web/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T011 Seed deterministic demo records for challenge, season tiers, daily chest eligibility, and collaborative quest state in demo/scripts/seed_learners.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T006 Add database schema for daily challenges, collaborative quests, season tiers, boss attempts, daily chest claims, badge catalog, motivation messages, and teacher oversight actions in demo/apps/learner-web/db/schema.sql (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T007 [P] Implement database access helpers for gamification entities and aggregate dashboard reads in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T008 [P] Implement anti-stigmatization query patterns that only expose class/guild aggregates (no individual ranking outputs) in demo/apps/learner-web/db/index.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T009 Add oversight audit persistence helpers (action, rationale, actor, timestamp, class scope) in demo/apps/learner-web/db/index.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T010 [P] Add role-aware API guardrails and EU-residency-safe response filtering for gamification routes in demo/apps/learner-web/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T011 Seed deterministic demo records for challenge, season tiers, daily chest eligibility, and collaborative quest state in demo/scripts/seed_learners.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 **Checkpoint**: Shared schema, access layer, and safety/compliance guardrails are available.
 
@@ -46,14 +46,14 @@ Gamification features require explicit review and approval from the Learning Sci
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Add acceptance coverage for dashboard default entry, challenge completion, chest single-claim behavior, and 10-correct boss completion in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T013 [US1] Implement GET /api/learner/quest-dashboard aggregate endpoint in demo/apps/learner-web/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T014 [P] [US1] Implement POST endpoints for starting and completing challenge du jour with one-per-day enforcement in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T015 [P] [US1] Implement POST /api/learner/daily-chest/claim with idempotent same-day protection in demo/apps/learner-web/server.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T016 [P] [US1] Implement boss battle streak tracking endpoint that resets on incorrect answers and completes exactly at 10 consecutive correct answers in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T017 [US1] Make Quest Dashboard the default main learner overview structure in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T018 [US1] Wire client data loading and live progress refresh for challenge, chest, season, and boss widgets in demo/apps/learner-web/public/index.html (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T019 [US1] Add learner feedback states for completion, streak reset, and reward notifications in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T012 [P] [US1] Add acceptance coverage for dashboard default entry, challenge completion, chest single-claim behavior, and 10-correct boss completion in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T013 [US1] Implement GET /api/learner/quest-dashboard aggregate endpoint in demo/apps/learner-web/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T014 [P] [US1] Implement POST endpoints for starting and completing challenge du jour with one-per-day enforcement in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T015 [P] [US1] Implement POST /api/learner/daily-chest/claim with idempotent same-day protection in demo/apps/learner-web/server.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T016 [P] [US1] Implement boss battle streak tracking endpoint that resets on incorrect answers and completes exactly at 10 consecutive correct answers in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T017 [US1] Make Quest Dashboard the default main learner overview structure in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T018 [US1] Wire client data loading and live progress refresh for challenge, chest, season, and boss widgets in demo/apps/learner-web/public/index.html (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T019 [US1] Add learner feedback states for completion, streak reset, and reward notifications in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 **Checkpoint**: User Story 1 is independently functional and demo-ready.
 
@@ -67,13 +67,13 @@ Gamification features require explicit review and approval from the Learning Sci
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Add acceptance coverage for collaborative quest contribution, class objective aggregation, and motivation channel visibility in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T021 [US2] Implement class/guild objective and collaborative quest API endpoints in demo/apps/learner-web/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T022 [P] [US2] Implement motivation channel post/list endpoints with moderation status fields in demo/apps/learner-web/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T023 [P] [US2] Implement database operations for collaborative contributions and motivation channel records in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T024 [US2] Add collaborative objective and quest cards to learner dashboard UI in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T025 [US2] Add motivation channel composer, message thread, and moderation-state rendering in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T026 [US2] Enforce non-harmful comparative presentation in collaborative widgets (aggregate progress only, no learner rank ordering) in demo/apps/learner-web/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T020 [P] [US2] Add acceptance coverage for collaborative quest contribution, class objective aggregation, and motivation channel visibility in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T021 [US2] Implement class/guild objective and collaborative quest API endpoints in demo/apps/learner-web/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T022 [P] [US2] Implement motivation channel post/list endpoints with moderation status fields in demo/apps/learner-web/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T023 [P] [US2] Implement database operations for collaborative contributions and motivation channel records in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T024 [US2] Add collaborative objective and quest cards to learner dashboard UI in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T025 [US2] Add motivation channel composer, message thread, and moderation-state rendering in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T026 [US2] Enforce non-harmful comparative presentation in collaborative widgets (aggregate progress only, no learner rank ordering) in demo/apps/learner-web/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: User Story 2 is independently functional with collaborative and social motivation flows.
 
@@ -87,11 +87,11 @@ Gamification features require explicit review and approval from the Learning Sci
 
 ### Implementation for User Story 3
 
-- [ ] T027 [P] [US3] Add acceptance coverage for chest reward issuance, quest reward issuance, and badge gallery states in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T028 [US3] Implement badge reward issuance logic connected to chest claims and quest completions in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T029 [P] [US3] Implement badge catalog and learner-earned badge query helpers in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T030 [US3] Build learner badge gallery UI with earned, locked, and criteria summary states in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T031 [US3] Validate and remove any learner-visible individual leaderboard/ranking surface from gamification views in demo/apps/learner-web/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T027 [P] [US3] Add acceptance coverage for chest reward issuance, quest reward issuance, and badge gallery states in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T028 [US3] Implement badge reward issuance logic connected to chest claims and quest completions in demo/apps/learner-web/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T029 [P] [US3] Implement badge catalog and learner-earned badge query helpers in demo/apps/learner-web/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T030 [US3] Build learner badge gallery UI with earned, locked, and criteria summary states in demo/apps/learner-web/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T031 [US3] Validate and remove any learner-visible individual leaderboard/ranking surface from gamification views in demo/apps/learner-web/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: User Story 3 delivers fair recognition and reflective progress visibility.
 
@@ -105,12 +105,12 @@ Gamification features require explicit review and approval from the Learning Sci
 
 ### Implementation for User Story 4
 
-- [ ] T032 [P] [US4] Add acceptance coverage for teacher pause/adjust controls, moderation actions, and audit retrieval timing in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T033 [US4] Implement teacher gamification control endpoints (pause, resume, adjust objective/quest states) in demo/apps/teacher-console/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T034 [P] [US4] Implement teacher moderation endpoints for motivation messages in demo/apps/teacher-console/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T035 [US4] Implement oversight audit read/write API integration for teacher actions in demo/apps/learner-web/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T036 [US4] Add teacher-console UI controls for gamification safety actions and rationale capture in demo/apps/teacher-console/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T037 [US4] Add learner-facing handling for teacher override states on dashboard and collaboration widgets in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T032 [P] [US4] Add acceptance coverage for teacher pause/adjust controls, moderation actions, and audit retrieval timing in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T033 [US4] Implement teacher gamification control endpoints (pause, resume, adjust objective/quest states) in demo/apps/teacher-console/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T034 [P] [US4] Implement teacher moderation endpoints for motivation messages in demo/apps/teacher-console/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T035 [US4] Implement oversight audit read/write API integration for teacher actions in demo/apps/learner-web/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T036 [US4] Add teacher-console UI controls for gamification safety actions and rationale capture in demo/apps/teacher-console/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T037 [US4] Add learner-facing handling for teacher override states on dashboard and collaboration widgets in demo/apps/learner-web/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 **Checkpoint**: User Story 4 satisfies teacher-in-the-loop oversight and moderation requirements.
 
@@ -120,10 +120,10 @@ Gamification features require explicit review and approval from the Learning Sci
 
 **Purpose**: Final compliance evidence, quality checks, and release readiness.
 
-- [ ] T038 [P] Reconcile implemented endpoints with contract documentation in specs/003-learner-gamification-ux/contracts/learner-gamification.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T039 [P] Document EU AI Act and GDPR controls evidence for gamification feature release in plan/04-compliance-eu-ai-act-gdpr.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T040 Run full scripted validation and capture pass/fail evidence in demo/DEPLOYMENT-REPORT.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T041 Record final pedagogical, RAI, and cross-agent QA sign-off status in specs/003-learner-gamification-ux/checklists/requirements.md (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T038 [P] Reconcile implemented endpoints with contract documentation in specs/003-learner-gamification-ux/contracts/learner-gamification.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T039 [P] Document EU AI Act and GDPR controls evidence for gamification feature release in plan/04-compliance-eu-ai-act-gdpr.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T040 Run full scripted validation and capture pass/fail evidence in demo/DEPLOYMENT-REPORT.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T041 Record final pedagogical, RAI, and cross-agent QA sign-off status in specs/003-learner-gamification-ux/checklists/requirements.md (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ---
 
