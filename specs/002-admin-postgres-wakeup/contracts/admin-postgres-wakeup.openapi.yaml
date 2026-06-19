@@ -22,17 +22,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PostgreSQLServiceState'
+              examples:
+                ready:
+                  value:
+                    ok: true
+                    correlationId: 8f3c2a91-7b4e-4d2a-9c10-1a2b3c4d5e6f
+                    checkedAt: '2026-06-19T09:12:44.512Z'
+                    serverName: pg-learneu-demo
+                    state: Ready
+                    location: francecentral
         '401':
           description: Authentication required
         '403':
           description: Admin role required
         '500':
           description: ARM control-plane lookup failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostgreSQLStateError'
+              examples:
+                armFailure:
+                  value:
+                    ok: false
+                    correlationId: 8f3c2a91-7b4e-4d2a-9c10-1a2b3c4d5e6f
+                    checkedAt: '2026-06-19T09:12:44.512Z'
+                    serverName: pg-learneu-demo
+                    error: postgres status check failed
+                    detail: 'ARM GET ... -> 403'
   /api/admin/postgres/wakeup:
     post:
       summary: Request wake-up for stopped PostgreSQL server
       operationId: requestPostgresWakeup
       tags: [PostgresOperations]
+      description: |
+        State-changing operation. Requires the double-submit CSRF token: the
+        `X-CSRF-Token` request header must match the `learneu_csrf` cookie issued at login.
+        The endpoint is idempotent — calling it while the server is Ready or Starting is a
+        safe no-op (`already-running` / `in-progress`).
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+          description: Must equal the learneu_csrf cookie value (double-submit CSRF).
       responses:
         '200':
           description: Idempotent or accepted operation result
@@ -40,14 +74,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WakeUpOperationResult'
+              examples:
+                accepted:
+                  value:
+                    ok: true
+                    correlationId: 1b2c3d4e-5f60-4711-8899-aabbccddeeff
+                    action: wakeup-requested
+                    outcome: accepted
+                    previousState: Stopped
+                    message: 'Start request sent. PostgreSQL may take 3-6 minutes to become Ready.'
+                alreadyRunning:
+                  value:
+                    ok: true
+                    correlationId: 1b2c3d4e-5f60-4711-8899-aabbccddeeff
+                    action: wakeup-skipped
+                    outcome: already-running
+                    state: Ready
+                    message: 'PostgreSQL is already running.'
+                inProgress:
+                  value:
+                    ok: true
+                    correlationId: 1b2c3d4e-5f60-4711-8899-aabbccddeeff
+                    action: wakeup-skipped
+                    outcome: in-progress
+                    state: Starting
+                    message: 'PostgreSQL start is already in progress.'
         '401':
           description: Authentication required
         '403':
-          description: Admin role required
-        '409':
-          description: Wake-up conflict/operation in indeterminate state
+          description: Admin role required, or CSRF token missing/invalid
         '500':
           description: ARM start request failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WakeUpOperationError'
+              examples:
+                failed:
+                  value:
+                    ok: false
+                    correlationId: 1b2c3d4e-5f60-4711-8899-aabbccddeeff
+                    action: wakeup-failed
+                    outcome: failed
+                    error: postgres wakeup failed
+                    detail: 'ARM POST ... -> 429'
 
 components:
   securitySchemes:
@@ -60,27 +130,49 @@ components:
     PostgreSQLServiceState:
       type: object
       required:
+        - ok
         - serverName
-        - resourceGroup
         - state
         - checkedAt
-        - freshnessSeconds
         - correlationId
       properties:
+        ok:
+          type: boolean
+          enum: [true]
         serverName:
-          type: string
-        resourceGroup:
           type: string
         state:
           type: string
           enum: [Ready, Stopped, Starting, Updating, Unknown]
+        location:
+          type: string
+          description: Azure region of the Flexible Server.
         checkedAt:
           type: string
           format: date-time
-        freshnessSeconds:
-          type: integer
-          minimum: 0
         correlationId:
+          type: string
+
+    PostgreSQLStateError:
+      type: object
+      required:
+        - ok
+        - serverName
+        - checkedAt
+        - correlationId
+        - error
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        serverName:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+        error:
           type: string
         detail:
           type: string
@@ -88,25 +180,55 @@ components:
     WakeUpOperationResult:
       type: object
       required:
+        - ok
+        - action
         - outcome
-        - state
         - message
         - correlationId
-        - acknowledgedAt
       properties:
+        ok:
+          type: boolean
+          enum: [true]
+        action:
+          type: string
+          enum: [wakeup-requested, wakeup-skipped]
         outcome:
           type: string
-          enum: [accepted, in-progress, already-running, failed]
+          enum: [accepted, in-progress, already-running]
         state:
           type: string
+          description: Present when action=wakeup-skipped (current server state).
+          enum: [Ready, Stopped, Starting, Updating, Unknown]
+        previousState:
+          type: string
+          description: Present when action=wakeup-requested (state before the start request).
           enum: [Ready, Stopped, Starting, Updating, Unknown]
         message:
           type: string
         correlationId:
           type: string
-        acknowledgedAt:
+
+    WakeUpOperationError:
+      type: object
+      required:
+        - ok
+        - action
+        - outcome
+        - error
+        - correlationId
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        action:
           type: string
-          format: date-time
-        retryAfterSeconds:
-          type: integer
-          minimum: 1
+          enum: [wakeup-failed]
+        outcome:
+          type: string
+          enum: [failed]
+        error:
+          type: string
+        detail:
+          type: string
+        correlationId:
+          type: string

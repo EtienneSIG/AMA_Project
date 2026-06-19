@@ -21,6 +21,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+
+// Current plain-language consent disclosure version (GDPR Art. 8, US3). Bump when the
+// disclosure copy changes so each recorded consent is tied to the exact text agreed to.
+const CONSENT_DISCLOSURE_VERSION = 'v1.0';
+const CONSENT_TTL_DAYS = parseInt(process.env.CONSENT_LINK_TTL_DAYS || '7', 10);
 
 const HOST = process.env.PG_HOST || '';
 const PORT = parseInt(process.env.PG_PORT || '5432', 10);
@@ -1384,28 +1390,29 @@ async function getConsentsForParent({ parentEmail }) {
   return r ? r.rows : null;
 }
 
-async function upsertConsent({ parentEmail, childEmail, consentType, granted, ip, userAgent }) {
+async function upsertConsent({ parentEmail, childEmail, consentType, granted, ip, userAgent, disclosureVersion }) {
   const pEmail = String(parentEmail).toLowerCase();
   const cEmail = String(childEmail).toLowerCase();
   const cType = consentType || 'gdpr_art8';
+  const dVer = disclosureVersion || CONSENT_DISCLOSURE_VERSION;
   let r;
   if (granted) {
     r = await q(
-      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, granted_at, ip, user_agent, updated_at)
-       VALUES ($1, $2, $3, true, now(), $4, $5, now())
+      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, granted_at, ip, user_agent, disclosure_version, updated_at)
+       VALUES ($1, $2, $3, true, now(), $4, $5, $6, now())
        ON CONFLICT (parent_email, child_email, consent_type) DO UPDATE
-         SET granted = true, granted_at = now(), withdrawn_at = NULL, ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, updated_at = now()
+         SET granted = true, granted_at = now(), withdrawn_at = NULL, ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, disclosure_version = EXCLUDED.disclosure_version, updated_at = now()
        RETURNING *`,
-      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256)]
+      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256), dVer]
     );
   } else {
     r = await q(
-      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, withdrawn_at, ip, user_agent, updated_at)
-       VALUES ($1, $2, $3, false, now(), $4, $5, now())
+      `INSERT INTO parental_consents (parent_email, child_email, consent_type, granted, withdrawn_at, ip, user_agent, disclosure_version, updated_at)
+       VALUES ($1, $2, $3, false, now(), $4, $5, $6, now())
        ON CONFLICT (parent_email, child_email, consent_type) DO UPDATE
-         SET granted = false, withdrawn_at = now(), ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, updated_at = now()
+         SET granted = false, withdrawn_at = now(), ip = EXCLUDED.ip, user_agent = EXCLUDED.user_agent, disclosure_version = EXCLUDED.disclosure_version, updated_at = now()
        RETURNING *`,
-      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256)]
+      [pEmail, cEmail, cType, ip || null, (userAgent || '').slice(0, 256), dVer]
     );
   }
   return r && r.rows[0] ? r.rows[0] : null;
@@ -1419,6 +1426,131 @@ async function hasActiveConsentForLearner({ childEmail }) {
     [String(childEmail).toLowerCase()]
   );
   return !!(r && r.rows && r.rows.length);
+}
+
+// --- Consent requests: token issuance, expiry, versioned recording (US3, T037) -----------
+
+// Create (or reuse) a pending consent request for a parent↔child pair. Idempotent: if an
+// unexpired pending request already exists it is returned unchanged so we never spam links.
+async function createConsentRequest({ parentEmail, childEmail, consentType, ttlDays, disclosureVersion }) {
+  const pEmail = String(parentEmail).toLowerCase();
+  const cEmail = String(childEmail).toLowerCase();
+  const cType = consentType || 'gdpr_art8';
+  const dVer = disclosureVersion || CONSENT_DISCLOSURE_VERSION;
+  const ttl = Number.isFinite(Number(ttlDays)) && Number(ttlDays) > 0 ? Number(ttlDays) : CONSENT_TTL_DAYS;
+  // First retire any stale (expired) pending rows so the lookup below is accurate.
+  await q(
+    `UPDATE consent_requests SET status = 'expired'
+       WHERE child_email = $1 AND parent_email = $2 AND consent_type = $3
+         AND status = 'pending' AND expires_at < now()`,
+    [cEmail, pEmail, cType]
+  );
+  const existing = await q(
+    `SELECT * FROM consent_requests
+       WHERE child_email = $1 AND parent_email = $2 AND consent_type = $3
+         AND status = 'pending' AND expires_at >= now()
+       ORDER BY requested_at DESC LIMIT 1`,
+    [cEmail, pEmail, cType]
+  );
+  if (existing && existing.rows && existing.rows[0]) return existing.rows[0];
+  const token = crypto.randomBytes(24).toString('hex');
+  const r = await q(
+    `INSERT INTO consent_requests (token, parent_email, child_email, consent_type, disclosure_version, status, requested_at, expires_at)
+     VALUES ($1, $2, $3, $4, $5, 'pending', now(), now() + ($6 || ' days')::interval)
+     RETURNING *`,
+    [token, pEmail, cEmail, cType, dVer, String(ttl)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Look up a request by its opaque token; flags whether it has expired (pending past TTL).
+async function getConsentRequestByToken({ token }) {
+  const r = await q(
+    `SELECT *, (status = 'pending' AND expires_at < now()) AS is_expired
+       FROM consent_requests WHERE token = $1 LIMIT 1`,
+    [String(token || '')]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Resolve a pending request with an explicit parent decision. Validates token + expiry,
+// records the versioned consent on grant, and stamps evidence (ip/user_agent/resolved_at).
+async function resolveConsentRequest({ token, decision, ip, userAgent }) {
+  const req = await getConsentRequestByToken({ token });
+  if (!req) return { ok: false, reason: 'not_found' };
+  if (req.status === 'granted' || req.status === 'declined') return { ok: false, reason: 'already_resolved', request: req };
+  if (req.status === 'expired' || req.is_expired) {
+    if (req.status !== 'expired') {
+      await q(`UPDATE consent_requests SET status = 'expired' WHERE id = $1`, [req.id]);
+    }
+    return { ok: false, reason: 'expired', request: req };
+  }
+  const grant = decision === 'granted';
+  const ua = (userAgent || '').slice(0, 256);
+  const upd = await q(
+    `UPDATE consent_requests
+        SET status = $2, resolved_at = now(), ip = $3, user_agent = $4
+      WHERE id = $1 AND status = 'pending'
+      RETURNING *`,
+    [req.id, grant ? 'granted' : 'declined', ip || null, ua]
+  );
+  const request = upd && upd.rows[0] ? upd.rows[0] : req;
+  let consent = null;
+  if (grant) {
+    consent = await upsertConsent({
+      parentEmail: req.parent_email,
+      childEmail: req.child_email,
+      consentType: req.consent_type,
+      granted: true,
+      ip, userAgent: ua,
+      disclosureVersion: req.disclosure_version
+    });
+  }
+  return { ok: true, decision: grant ? 'granted' : 'declined', request, consent };
+}
+
+// Pending requests still unresolved and not yet reminded after `reminderAfterDays` (default 6).
+async function listConsentRequestsNeedingReminder({ reminderAfterDays } = {}) {
+  const days = Number.isFinite(Number(reminderAfterDays)) ? Number(reminderAfterDays) : 6;
+  const r = await q(
+    `SELECT * FROM consent_requests
+       WHERE status = 'pending' AND reminded_at IS NULL
+         AND requested_at <= now() - ($1 || ' days')::interval
+         AND expires_at >= now()
+       ORDER BY requested_at ASC`,
+    [String(days)]
+  );
+  return r ? r.rows : [];
+}
+
+async function markConsentRequestReminded({ id }) {
+  const r = await q(
+    `UPDATE consent_requests SET reminded_at = now() WHERE id = $1 RETURNING id, reminded_at`,
+    [Number(id)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Sweep: mark any pending requests past their TTL as expired. Returns the count expired.
+async function expireStaleConsentRequests() {
+  const r = await q(
+    `UPDATE consent_requests SET status = 'expired'
+       WHERE status = 'pending' AND expires_at < now()
+       RETURNING id`
+  );
+  return r ? r.rowCount : 0;
+}
+
+// All consent requests for a parent (history + pending), newest first.
+async function listConsentRequestsForParent({ parentEmail }) {
+  const r = await q(
+    `SELECT id, token, child_email, consent_type, disclosure_version, status,
+            requested_at, expires_at, reminded_at, resolved_at,
+            (status = 'pending' AND expires_at < now()) AS is_expired
+       FROM consent_requests WHERE parent_email = $1 ORDER BY requested_at DESC`,
+    [String(parentEmail).toLowerCase()]
+  );
+  return r ? r.rows : [];
 }
 
 // --- Parent portal: messaging (Feature 6, US2) -----------------------------
@@ -1830,6 +1962,15 @@ module.exports = {
   getConsentsForParent,
   upsertConsent,
   hasActiveConsentForLearner,
+  createConsentRequest,
+  getConsentRequestByToken,
+  resolveConsentRequest,
+  listConsentRequestsNeedingReminder,
+  markConsentRequestReminded,
+  expireStaleConsentRequests,
+  listConsentRequestsForParent,
+  CONSENT_DISCLOSURE_VERSION,
+  CONSENT_TTL_DAYS,
   parentThreadId,
   createParentMessage,
   listParentThread,

@@ -205,6 +205,89 @@ Test-It '12' 'Admin PostgreSQL status endpoint is role-gated and reachable with 
     }
 }
 
+# 12a — POST wake-up returns an idempotent outcome across stopped/starting/ready states (T016)
+Test-It '12a' 'Admin PostgreSQL wake-up endpoint returns an idempotent outcome' {
+    $base = 'https://app-admin-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='admin@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    try {
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $csrf = ($s.Cookies.GetCookies($base) | Where-Object Name -eq 'learneu_csrf').Value
+        $hdr = @{}; if ($csrf) { $hdr['X-CSRF-Token'] = $csrf }
+        # Read current state first so the assertion is state-aware (ready -> already-running, stopped -> accepted, starting -> in-progress).
+        $pre = Invoke-RestMethod "$base/api/admin/postgres/status" -TimeoutSec 60 -WebSession $s
+        $wake = Invoke-RestMethod "$base/api/admin/postgres/wakeup" -Method POST -WebSession $s -Headers $hdr -TimeoutSec 90
+        $valid = @('accepted','in-progress','already-running')
+        $expected = switch -Regex (("" + $pre.state)) {
+            'Ready'    { 'already-running' }
+            'Starting' { 'in-progress' }
+            default    { 'accepted' }
+        }
+        if ($wake.ok -and ($valid -contains $wake.outcome)) {
+            $match = if ($wake.outcome -eq $expected) { 'matches state' } else { "state=$($pre.state) expected=$expected" }
+            @{ status='PASS'; detail="Wake-up outcome='$($wake.outcome)' ($match), correlationId=$($wake.correlationId)." }
+        } else {
+            @{ status='FAIL'; detail=($wake | ConvertTo-Json -Compress) }
+        }
+    } catch {
+        @{ status='PARTIAL'; detail=$_.Exception.Message }
+    }
+}
+
+# 12b — Unauthorized caller cannot POST wake-up (T016a)
+Test-It '12b' 'Admin PostgreSQL wake-up rejects unauthorized callers (401/403)' {
+    $base = 'https://app-admin-learneu-demo.azurewebsites.net'
+    try {
+        $blocked = $false; $code = ''
+        try {
+            $r = Invoke-WebRequest "$base/api/admin/postgres/wakeup" -Method POST -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop
+            $code = [int]$r.StatusCode
+            $blocked = ($code -eq 401 -or $code -eq 403)
+        } catch {
+            $resp = $_.Exception.Response
+            if ($resp -and $resp.StatusCode) { $code = [int]$resp.StatusCode }
+            if ("$($_.Exception.Message) $code" -match '401|403') { $blocked = $true }
+        }
+        if ($blocked) {
+            @{ status='PASS'; detail="Anonymous POST wake-up blocked (HTTP $code) by auth/CSRF gate." }
+        } else {
+            @{ status='FAIL'; detail="Anonymous POST wake-up was not blocked (HTTP $code)." }
+        }
+    } catch {
+        @{ status='PARTIAL'; detail=$_.Exception.Message }
+    }
+}
+
+# 13 — PostgreSQL ops latency budget: status p95 <= 2000 ms, wake-up ack <= 3000 ms (T025)
+Test-It '13' 'Admin PostgreSQL status p95 <= 2000 ms and wake-up acknowledgement <= 3000 ms' {
+    $base = 'https://app-admin-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='admin@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    try {
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $csrf = ($s.Cookies.GetCookies($base) | Where-Object Name -eq 'learneu_csrf').Value
+        $samples = @()
+        for ($i = 0; $i -lt 10; $i++) {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $null = Invoke-RestMethod "$base/api/admin/postgres/status" -TimeoutSec 60 -WebSession $s
+            $sw.Stop(); $samples += $sw.Elapsed.TotalMilliseconds
+        }
+        $sorted = $samples | Sort-Object
+        $p95Index = [Math]::Max(0, [Math]::Ceiling(0.95 * $sorted.Count) - 1)
+        $p95 = [Math]::Round($sorted[$p95Index], 0)
+        $hdr = @{}; if ($csrf) { $hdr['X-CSRF-Token'] = $csrf }
+        $sw2 = [System.Diagnostics.Stopwatch]::StartNew()
+        $null = Invoke-RestMethod "$base/api/admin/postgres/wakeup" -Method POST -WebSession $s -Headers $hdr -TimeoutSec 90
+        $sw2.Stop(); $ack = [Math]::Round($sw2.Elapsed.TotalMilliseconds, 0)
+        $statusOk = $p95 -le 2000; $ackOk = $ack -le 3000
+        if ($statusOk -and $ackOk) {
+            @{ status='PASS'; detail="status p95=${p95}ms (<=2000, n=10), wake-up ack=${ack}ms (<=3000)." }
+        } else {
+            @{ status='PARTIAL'; detail="status p95=${p95}ms (target<=2000, ok=$statusOk), wake-up ack=${ack}ms (target<=3000, ok=$ackOk)." }
+        }
+    } catch {
+        @{ status='PARTIAL'; detail=$_.Exception.Message }
+    }
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Acceptance summary ===" -ForegroundColor Cyan

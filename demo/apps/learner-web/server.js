@@ -5,6 +5,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const auth = require('./auth');
 const db = require('./db');
 const cs = require('./contentSafety');
@@ -42,6 +43,89 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// --- Public parental consent flow (GDPR Art. 8, US3) -----------------------
+// These two endpoints are intentionally PUBLIC (registered before the auth gate): a
+// parent follows an emailed token link without logging in to review the disclosure and
+// grant/decline consent for an under-16 learner. No PII beyond the demo seed is exposed.
+const CONSENT_RIGHTS_SURFACE = {
+  legalBasis: 'GDPR Article 8 — consent for information-society services offered to a child under 16.',
+  dataResidency: 'All personal data stays in the EU (Azure West Europe). No transfer outside the EU.',
+  withdrawable: 'Consent can be withdrawn at any time from the Parent Portal; processing stops on withdrawal.',
+  retention: 'Consent evidence (timestamp, version, source) is retained as an audit record for accountability.',
+  noProfiling: 'No facial/emotion recognition, no behavioural advertising, no autonomous grading.',
+  controller: 'EdTech Group (LearnEU demo) — data protection contact available in the Parent Portal.'
+};
+
+function consentClientIp(req) {
+  return (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.ip || null;
+}
+
+function consentChildDisplayName(childEmail) {
+  try {
+    const u = (auth.SEED_USERS || []).find(x => x.email && x.email.toLowerCase() === String(childEmail).toLowerCase());
+    if (u) return [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || childEmail;
+  } catch (_) { /* ignore */ }
+  return childEmail;
+}
+
+// GET disclosure + status for a consent token (parent lands here from the link).
+app.get('/api/consent/requests/:token', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const reqRow = await db.getConsentRequestByToken({ token: req.params.token });
+  if (!reqRow) return res.status(404).json({ error: 'invalid_token' });
+  const status = reqRow.is_expired ? 'expired' : reqRow.status;
+  res.json({
+    token: reqRow.token,
+    status,
+    childDisplayName: consentChildDisplayName(reqRow.child_email),
+    consentType: reqRow.consent_type,
+    disclosureVersion: reqRow.disclosure_version,
+    expiresAt: reqRow.expires_at,
+    requestedAt: reqRow.requested_at,
+    resolvedAt: reqRow.resolved_at,
+    rights: CONSENT_RIGHTS_SURFACE
+  });
+});
+
+// POST an explicit parent decision for a consent token. Granting REQUIRES `agree === true`.
+app.post('/api/consent/requests/:token/decide', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const decision = String(req.body?.decision || '').toLowerCase();
+  const agree = req.body?.agree === true;
+  if (decision !== 'granted' && decision !== 'declined') {
+    return res.status(400).json({ error: 'decision must be "granted" or "declined"' });
+  }
+  if (decision === 'granted' && !agree) {
+    return res.status(400).json({ error: 'explicit_consent_required', message: 'You must tick the explicit consent box to grant consent.' });
+  }
+  const ip = consentClientIp(req);
+  const userAgent = (req.headers['user-agent'] || '').toString();
+  const result = await db.resolveConsentRequest({ token: req.params.token, decision, ip, userAgent });
+  if (!result.ok) {
+    const code = result.reason === 'not_found' ? 404 : (result.reason === 'expired' ? 410 : 409);
+    return res.status(code).json({ error: result.reason });
+  }
+  // GDPR Art. 8 evidence logging (T044): immutable audit record with the exact disclosure
+  // version, decision, and capture source for the DPIA / accountability trail.
+  db.recordAuditEvent({
+    eventType: 'parental_consent_decision',
+    actorId: result.request.parent_email,
+    actorRole: 'parent',
+    targetType: 'parental_consent',
+    targetId: result.request.child_email,
+    scope: {
+      decision: result.decision,
+      consentType: result.request.consent_type,
+      disclosureVersion: result.request.disclosure_version,
+      source: 'consent_link',
+      ip, userAgentHash: crypto.createHash('sha256').update(userAgent || '').digest('hex').slice(0, 16),
+      rightsSurfaced: Object.keys(CONSENT_RIGHTS_SURFACE)
+    },
+    outcome: result.decision
+  }).catch(() => {});
+  res.json({ ok: true, decision: result.decision, childDisplayName: consentChildDisplayName(result.request.child_email) });
+});
+
 app.use(auth.gateMiddleware(ALLOWED));
 
 // --- Learner consent gate (GDPR Art. 8) — only for student-facing app ---
@@ -56,6 +140,14 @@ if (APP_ROLE === 'student') {
     if (db.enabled) {
       const hasConsent = await db.hasActiveConsentForLearner({ childEmail: req.user.email });
       if (hasConsent) return next();
+      // Under-16 activation event: ensure a pending consent request exists for each linked
+      // parent so the day-6 reminder + expiry tracking have a row to act on (US3, T038).
+      db.listParentsForChild({ childEmail: req.user.email }).then(parents => {
+        for (const p of (parents || [])) {
+          const pe = (p.parentEmail || p.parent_email || '').toLowerCase();
+          if (pe) db.createConsentRequest({ parentEmail: pe, childEmail: req.user.email }).catch(() => {});
+        }
+      }).catch(() => {});
     }
     if (req.path.startsWith('/api/')) {
       return res.status(403).json({ error: 'parental_consent_required', message: 'Parental consent (GDPR Art. 8) is required for learners under 16. Ask your parent to grant consent through the Parent Portal.' });
@@ -1185,7 +1277,100 @@ app.post('/api/parent/consents', async (req, res) => {
     ip: (req.headers['x-forwarded-for'] || '').toString().split(',')[0].trim() || req.ip,
     userAgent: (req.headers['user-agent'] || '').slice(0, 256)
   });
+  // GDPR Art. 8 evidence logging (T044) for direct parent grant/withdraw from the portal.
+  db.recordAuditEvent({
+    eventType: 'parental_consent_decision',
+    actorId: req.user.email, actorRole: req.user.role,
+    targetType: 'parental_consent', targetId: childEmail,
+    scope: { decision: granted ? 'granted' : 'withdrawn', consentType, disclosureVersion: row ? row.disclosure_version : db.CONSENT_DISCLOSURE_VERSION, source: 'parent_portal' },
+    outcome: granted ? 'granted' : 'withdrawn'
+  }).catch(() => {});
   res.json({ ok: true, consent: row });
+});
+
+// --- Consent requests: enqueue, dispatch, reminders (GDPR Art. 8, US3) -----
+// Helper: build the absolute consent link a parent follows from an email/notification.
+function consentLinkFor(req, token) {
+  const proto = (req.headers['x-forwarded-proto'] || 'https').toString().split(',')[0].trim();
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+  return `${proto}://${host}/consent-pending.html?token=${token}`;
+}
+
+// Enqueue + dispatch a consent request for an under-16 learner's parent(s) (T038).
+// Admin or teacher initiates; one time-boxed token link is created per linked parent.
+app.post('/api/consent/requests', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const u = req.user;
+  if (!u || !['admin', 'teacher', 'parent'].includes(u.role)) return res.status(403).json({ error: 'staff or parent only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  if (!childEmail) return res.status(400).json({ error: 'childEmail required' });
+  // A parent may only request for their own linked child.
+  let parents = [];
+  if (u.role === 'parent') {
+    const linked = await db.isParentOfChild({ parentEmail: u.email, childEmail });
+    if (!linked) return res.status(403).json({ error: 'not linked to this learner' });
+    parents = [{ parentEmail: u.email }];
+  } else {
+    parents = (await db.listParentsForChild({ childEmail })) || [];
+  }
+  if (!parents.length) return res.status(404).json({ error: 'no parent linked to this learner' });
+  const out = [];
+  for (const p of parents) {
+    const parentEmail = (p.parentEmail || p.parent_email || '').toLowerCase();
+    if (!parentEmail) continue;
+    const reqRow = await db.createConsentRequest({ parentEmail, childEmail });
+    if (!reqRow) continue;
+    out.push({ parentEmail, token: reqRow.token, link: consentLinkFor(req, reqRow.token), expiresAt: reqRow.expires_at, status: reqRow.status });
+    db.recordAuditEvent({
+      eventType: 'parental_consent_request_created',
+      actorId: u.email, actorRole: u.role,
+      targetType: 'consent_request', targetId: childEmail,
+      scope: { parentEmail, disclosureVersion: reqRow.disclosure_version, ttlDays: db.CONSENT_TTL_DAYS, source: 'under16_activation' },
+      outcome: 'pending'
+    }).catch(() => {});
+  }
+  res.json({ ok: true, requests: out });
+});
+
+// Parent-facing list of their own consent requests (pending + history) (T044 rights-surface).
+app.get('/api/parent/consent-requests', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, requests: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const rows = await db.listConsentRequestsForParent({ parentEmail: req.user.email }) || [];
+  const requests = rows.map(r => ({
+    childEmail: r.child_email,
+    status: r.is_expired ? 'expired' : r.status,
+    disclosureVersion: r.disclosure_version,
+    requestedAt: r.requested_at,
+    expiresAt: r.expires_at,
+    resolvedAt: r.resolved_at,
+    link: r.status === 'pending' && !r.is_expired ? consentLinkFor(req, r.token) : null
+  }));
+  res.json({ enabled: true, requests });
+});
+
+// Reminder dispatch path for unresolved consent requests at day 6 (T043). Admin-triggered
+// (or invoked by a scheduled job). Expires stale requests first, then reminds the rest.
+app.post('/api/consent/reminders/run', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const u = req.user;
+  if (!u || u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  const reminderAfterDays = Number.isFinite(Number(req.body?.reminderAfterDays)) ? Number(req.body.reminderAfterDays) : 6;
+  const expiredCount = await db.expireStaleConsentRequests();
+  const due = await db.listConsentRequestsNeedingReminder({ reminderAfterDays }) || [];
+  const reminded = [];
+  for (const r of due) {
+    await db.markConsentRequestReminded({ id: r.id });
+    reminded.push({ parentEmail: r.parent_email, childEmail: r.child_email, link: consentLinkFor(req, r.token), expiresAt: r.expires_at });
+    db.recordAuditEvent({
+      eventType: 'parental_consent_reminder_sent',
+      actorId: u.email, actorRole: 'admin',
+      targetType: 'consent_request', targetId: r.child_email,
+      scope: { parentEmail: r.parent_email, reminderAfterDays, expiresAt: r.expires_at },
+      outcome: 'reminded'
+    }).catch(() => {});
+  }
+  res.json({ ok: true, expired: expiredCount, remindedCount: reminded.length, reminded });
 });
 // Admin-only rebuild of the mastery rollup from item_attempts.
 app.post('/api/learner/mastery/recompute', async (req, res) => {

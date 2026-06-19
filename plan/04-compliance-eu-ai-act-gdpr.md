@@ -43,6 +43,17 @@ This document is the **single source of truth** for compliance posture across th
 - **Default**: internal control (Art. 43 §2) since the system is covered by Annex III §3 and follows harmonised standards once published
 - **Re-evaluation triggers**: substantial modification (Art. 43 §4) — new market, new modality, model architecture change
 
+### Evidence log — Feature 002 (Admin PostgreSQL wake-up operational control)
+
+The admin PostgreSQL status/wake-up control is an **operational** control plane (ARM via managed identity); it makes no automated decision about learners. Its high-risk obligations are bounded to record-keeping (Art. 12) and human oversight (Art. 14), evidenced below.
+
+| Article | Requirement | Evidence in this feature | Source artifact |
+|---|---|---|---|
+| 12 — Record-keeping | Automatic, immutable logging of operation, actor, outcome, correlation id | Every `status` and `wakeup` call emits `auditPgEvent()` → `recordAuditEvent()` into the append-only `audit_event` table protected by `prevent_audit_event_mutation()` triggers (UPDATE/DELETE blocked). Each record carries `event_type`, `actor_id`, `actor_role`, `outcome`, `correlation_id`. | `demo/apps/admin/server.js` (`/api/admin/postgres/status`, `/api/admin/postgres/wakeup`); `demo/apps/admin/db/index.js` (`recordAuditEvent`); `demo/apps/admin/db/schema.sql` (`audit_event` + immutability triggers) |
+| 14 — Human oversight | Action taken only by an authorised natural person; no autonomous execution | Wake-up is **operator-initiated** only (admin UI button / role-gated POST). Endpoint is role-gated (anonymous calls return 401/403) and CSRF double-submit protected. Idempotent outcomes (`already-running`/`in-progress`) prevent duplicate side effects; a scripted fallback (`postgres_wakeup.ps1`) keeps a human in control during incidents. | `demo/apps/admin/public/index.html` (Wake up control); `demo/apps/admin/public/csrf.js`; `demo/scripts/postgres_wakeup.ps1`; acceptance tests 12/12a/12b/13 in `demo/scripts/acceptance_tests.ps1` |
+
+Verification: acceptance suite tests **12** (status role-gated), **12a** (idempotent wake-up outcome), **12b** (unauthorized POST blocked), **13** (status p95 ≤ 2000 ms, wake-up ack ≤ 3000 ms). Operator drill evidence recorded in `demo/DEPLOYMENT-REPORT.md`.
+
 ---
 
 ## Part B — GDPR (esp. Article 8)

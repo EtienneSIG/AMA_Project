@@ -7,9 +7,9 @@
 
 **Purpose**: Align operational scope, dependencies, and deployment surfaces before backend and UI work starts.
 
-- [ ] T001 Confirm feature environment variables and PostgreSQL ARM target naming in demo/apps/admin/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002 [P] Validate managed identity dependency and runtime assumptions in demo/apps/admin/package.json (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T003 [P] Create fallback script scaffold with parameters and usage banner in demo/scripts/postgres_wakeup.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T001 Confirm feature environment variables and PostgreSQL ARM target naming in demo/apps/admin/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T002 [P] Validate managed identity dependency and runtime assumptions in demo/apps/admin/package.json (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [X] T003 [P] Create fallback script scaffold with parameters and usage banner in demo/scripts/postgres_wakeup.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 ---
 
@@ -19,10 +19,10 @@
 
 **CRITICAL**: No user story implementation should start before this phase is complete.
 
-- [ ] T004 Add reusable PostgreSQL ARM helper functions (read state, request start, map outcomes) in demo/apps/admin/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T005 [P] Add operational audit persistence helper(s) for postgres status/wakeup events in demo/apps/admin/db/index.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T006 [P] Add schema migration for postgres operational audit event storage in demo/apps/admin/db/schema.sql (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T007 Add correlation-id propagation and structured error mapping for postgres operations in demo/apps/admin/server.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [X] T004 Add reusable PostgreSQL ARM helper functions (read state, request start, map outcomes) in demo/apps/admin/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [X] T005 [P] Add operational audit persistence helper(s) for postgres status/wakeup events in demo/apps/admin/db/index.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T006 [P] Add schema migration for postgres operational audit event storage in demo/apps/admin/db/schema.sql (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T007 Add correlation-id propagation and structured error mapping for postgres operations in demo/apps/admin/server.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: Shared ARM + audit foundations are in place.
 
@@ -36,10 +36,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement GET /api/admin/postgres/status with role-gated access and audit emission in demo/apps/admin/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T009 [P] [US1] Add PostgreSQL operations status panel markup and state legend in demo/apps/admin/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T010 [US1] Add client-side status fetch, refresh action, checked-at rendering, and transient-error guidance in demo/apps/admin/public/index.html (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T011 [US1] Add status endpoint acceptance coverage and expected-state assertions in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T008 [US1] Implement GET /api/admin/postgres/status with role-gated access and audit emission in demo/apps/admin/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T009 [P] [US1] Add PostgreSQL operations status panel markup and state legend in demo/apps/admin/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T010 [US1] Add client-side status fetch, refresh action, checked-at rendering, and transient-error guidance in demo/apps/admin/public/index.html (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T011 [US1] Add status endpoint acceptance coverage and expected-state assertions in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: User Story 1 is independently testable in admin UI and API.
 
@@ -53,12 +53,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Implement POST /api/admin/postgres/wakeup with idempotent outcome handling and audit emission in demo/apps/admin/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T013 [P] [US2] Add wake-up control, outcome banner, and progress-state placeholders in demo/apps/admin/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T014 [US2] Wire CSRF-safe wake-up request flow and polling refresh integration in demo/apps/admin/public/csrf.js (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T015 [US2] Extend PostgreSQL panel client logic for accepted, in-progress, already-running, and failed outcome messaging in demo/apps/admin/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T016 [US2] Add wake-up endpoint acceptance coverage for stopped, starting, and ready states in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T016a [US2] Add explicit unauthorized-caller checks (401/403) for POST wake-up in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T012 [US2] Implement POST /api/admin/postgres/wakeup with idempotent outcome handling and audit emission in demo/apps/admin/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [X] T013 [P] [US2] Add wake-up control, outcome banner, and progress-state placeholders in demo/apps/admin/public/index.html (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T014 [US2] Wire CSRF-safe wake-up request flow and polling refresh integration in demo/apps/admin/public/csrf.js (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T015 [US2] Extend PostgreSQL panel client logic for accepted, in-progress, already-running, and failed outcome messaging in demo/apps/admin/public/index.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [X] T016 [US2] Add wake-up endpoint acceptance coverage for stopped, starting, and ready states in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T016a [US2] Add explicit unauthorized-caller checks (401/403) for POST wake-up in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: User Story 2 wake-up flow is independently testable through admin UI and API.
 
@@ -72,11 +72,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Implement full fallback workflow (state check, start, readiness polling, timeout exits) in demo/scripts/postgres_wakeup.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T018 [US3] Integrate fallback invocation and operator prompts into demo/scripts/run_demo.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T019 [US3] Document admin UI recovery path and scripted fallback flow in demo/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T020 [US3] Update operator validation steps and escalation guidance in specs/002-admin-postgres-wakeup/quickstart.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T021 [US3] Add failure-mode remediation notes (RBAC, ARM throttling, prolonged starting) in demo/DEPLOYMENT-TUTORIAL.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T017 [US3] Implement full fallback workflow (state check, start, readiness polling, timeout exits) in demo/scripts/postgres_wakeup.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T018 [US3] Integrate fallback invocation and operator prompts into demo/scripts/run_demo.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T019 [US3] Document admin UI recovery path and scripted fallback flow in demo/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T020 [US3] Update operator validation steps and escalation guidance in specs/002-admin-postgres-wakeup/quickstart.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T021 [US3] Add failure-mode remediation notes (RBAC, ARM throttling, prolonged starting) in demo/DEPLOYMENT-TUTORIAL.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 **Checkpoint**: User Story 3 runbook and fallback execution are independently testable.
 
@@ -86,11 +86,11 @@
 
 **Purpose**: Final compliance, verification, and release readiness checks spanning all stories.
 
-- [ ] T022 [P] Reconcile API responses with OpenAPI examples and update specs/002-admin-postgres-wakeup/contracts/admin-postgres-wakeup.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T023 Validate constitutional compliance evidence for Art. 12 logging and Art. 14 human oversight in plan/04-compliance-eu-ai-act-gdpr.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T024 Run end-to-end operator drill and capture pass/fail evidence in demo/DEPLOYMENT-REPORT.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T025 Measure status endpoint p95 latency (<= 2000 ms) and wake-up acknowledgement timing (<= 3000 ms) using scripted checks in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T026 Record explicit sign-off gate from responsible-ai-evaluator and cross-agent-qa-verifier in specs/002-admin-postgres-wakeup/quickstart.md before implementation release (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T022 [P] Reconcile API responses with OpenAPI examples and update specs/002-admin-postgres-wakeup/contracts/admin-postgres-wakeup.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T023 Validate constitutional compliance evidence for Art. 12 logging and Art. 14 human oversight in plan/04-compliance-eu-ai-act-gdpr.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T024 Run end-to-end operator drill and capture pass/fail evidence in demo/DEPLOYMENT-REPORT.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [X] T025 Measure status endpoint p95 latency (<= 2000 ms) and wake-up acknowledgement timing (<= 3000 ms) using scripted checks in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T026 Record explicit sign-off gate from responsible-ai-evaluator and cross-agent-qa-verifier in specs/002-admin-postgres-wakeup/quickstart.md before implementation release (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 
 ---
 

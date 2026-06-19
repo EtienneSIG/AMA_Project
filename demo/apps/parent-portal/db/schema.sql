@@ -304,6 +304,33 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 );
 CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);
+-- Versioned consent recording (US3, T037): which plain-language disclosure version the
+-- parent agreed to. Added idempotently so existing demos upgrade in place.
+ALTER TABLE parental_consents ADD COLUMN IF NOT EXISTS disclosure_version TEXT NOT NULL DEFAULT 'v1.0';
+
+-- Consent requests (GDPR Art. 8, US3). A time-boxed (default 7-day) token link sent to a
+-- parent so they can review the disclosure and grant/decline consent for an under-16 learner.
+-- status: 'pending' (awaiting parent) | 'granted' | 'declined' | 'expired'.
+-- reminded_at marks the day-6 reminder; resolved_at marks grant/decline; expires_at enforces TTL.
+CREATE TABLE IF NOT EXISTS consent_requests (
+  id                 BIGSERIAL PRIMARY KEY,
+  token              TEXT NOT NULL UNIQUE,
+  parent_email       TEXT NOT NULL,
+  child_email        TEXT NOT NULL,
+  consent_type       TEXT NOT NULL DEFAULT 'gdpr_art8',
+  disclosure_version TEXT NOT NULL DEFAULT 'v1.0',
+  status             TEXT NOT NULL DEFAULT 'pending',
+  requested_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at         TIMESTAMPTZ NOT NULL,
+  reminded_at        TIMESTAMPTZ,
+  resolved_at        TIMESTAMPTZ,
+  ip                 TEXT,
+  user_agent         TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_consent_requests_token  ON consent_requests (token);
+CREATE INDEX IF NOT EXISTS idx_consent_requests_child  ON consent_requests (child_email);
+CREATE INDEX IF NOT EXISTS idx_consent_requests_status ON consent_requests (status);
 
 -- Parent ↔ teacher messaging (Feature 6, US2). Every message is scanned by Azure
 -- Content Safety before delivery; flagged content is quarantined for teacher moderation.

@@ -330,7 +330,9 @@ function mountAuth(app, options = {}) {
 
 // Gate every request after public ones. PUBLIC_PATHS + /api/auth/* + /api/health are open.
 function gateMiddleware(allowedRoles) {
-  const PUBLIC = new Set(['/login.html', '/logo.svg', '/favicon.ico', '/no-access.html']);
+  const PUBLIC = new Set(['/login.html', '/logo.svg', '/favicon.ico', '/no-access.html',
+    // Parental consent link is reached by an unauthenticated parent (GDPR Art. 8, US3).
+    '/consent-pending.html', '/csrf.js', '/models/consent.js']);
   return (req, res, next) => {
     if (PUBLIC.has(req.path) || req.path.startsWith('/api/auth/') || req.path === '/api/health') return next();
     if (!req.user) {

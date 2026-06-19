@@ -2,38 +2,67 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>LearnEU — Waiting for Parental Consent</title>
+<title>LearnEU — Parental Consent</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <style>
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0F1B2D,#1a3658); font-family:'Inter',sans-serif; padding:1rem; }
-  .card { background:#fff; padding:2.4rem 2.6rem; border-radius:14px; width:440px; max-width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25); box-sizing:border-box; text-align:center; }
-  img { display:block; margin:0 auto 1.4rem; height:38px; }
+  .card { background:#fff; padding:2.4rem 2.6rem; border-radius:14px; width:460px; max-width:100%; box-shadow:0 12px 40px rgba(0,0,0,0.25); box-sizing:border-box; text-align:center; }
+  img.logo { display:block; margin:0 auto 1.4rem; height:38px; }
   .icon { font-size:2.4rem; margin-bottom:0.8rem; }
   h1 { font-family:'Poppins',sans-serif; color:#0F1B2D; margin:0 0 .6rem; font-size:1.3rem; }
   p { color:#3F4A5A; margin:0 0 1rem; font-size:.9rem; line-height:1.6; }
   p.legal { background:#FEF3C7; border:1px solid #FCD34D; border-radius:8px; padding:.7rem .9rem; font-size:.82rem; color:#92400E; text-align:left; }
-  .actions { display:flex; flex-direction:column; gap:.6rem; margin-top:1.4rem; }
+  p.version { font-size:.75rem; color:#6B7280; margin:.2rem 0 1rem; }
+  p.version code { background:#F3F4F6; padding:.1rem .35rem; border-radius:4px; }
+  p.err { background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; border-radius:8px; padding:.6rem .8rem; font-size:.82rem; text-align:left; }
+  ul.rights { text-align:left; margin:0 0 1rem; padding-left:1.1rem; }
+  ul.rights li { color:#3F4A5A; font-size:.82rem; line-height:1.5; margin-bottom:.35rem; }
+  label.agree { display:flex; gap:.55rem; align-items:flex-start; text-align:left; font-size:.85rem; color:#0F1B2D; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:.7rem .8rem; margin:0 0 1rem; cursor:pointer; }
+  label.agree input { margin-top:.2rem; }
+  .actions { display:flex; flex-direction:column; gap:.6rem; margin-top:1rem; }
   button { width:100%; background:#F26334; color:#fff; border:0; padding:.75rem; border-radius:999px; font-weight:600; font-family:inherit; font-size:.95rem; cursor:pointer; }
   button:hover { background:#D44E22; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  button.secondary { background:#fff; color:#3F4A5A; border:1px solid #D1D5DB; }
+  button.secondary:hover { background:#F3F4F6; }
   a.sign-out { display:inline-block; margin-top:.8rem; color:#3F4A5A; font-size:.85rem; text-decoration:underline; }
   a.sign-out:hover { color:#0F1B2D; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <img src="/logo.svg" alt="EdTech Group" />
-    <div class="icon">🔒</div>
-    <h1>Waiting for Parental Consent</h1>
-    <p>Because you're under 16, your parent or guardian needs to grant consent before you can use LearnEU.</p>
-    <p class="legal">This is required by European data protection law (GDPR Article 8). Your parent can visit the <strong>Parent Portal</strong> and grant consent for your account.</p>
-    <div class="actions">
-      <button onclick="location.reload()">Check again</button>
+  <div class="card" id="consentCard">
+    <img class="logo" src="/logo.svg" alt="EdTech Group" />
+    <!-- Default (no token): learner waiting message. Replaced by the parent consent
+         form when the page is opened with a ?token= consent link. -->
+    <div id="consentForm">
+      <div class="icon">🔒</div>
+      <h1>Waiting for Parental Consent</h1>
+      <p>Because you're under 16, your parent or guardian needs to grant consent before you can use LearnEU.</p>
+      <p class="legal">This is required by European data protection law (GDPR Article 8). Your parent can visit the <strong>Parent Portal</strong> and grant consent for your account.</p>
+      <div class="actions">
+        <button onclick="location.reload()">Check again</button>
+      </div>
     </div>
-    <a href="#" class="sign-out" onclick="signOut(event)">Sign out</a>
+    <a href="#" class="sign-out" id="signOutLink" onclick="signOut(event)">Sign out</a>
   </div>
+<script src="/csrf.js"></script>
+<script src="/models/consent.js"></script>
 <script>
+  // No token => learner waiting card (above). With a token => parent consent flow.
+  var hasToken = !!new URLSearchParams(location.search).get('token');
+  if (hasToken) {
+    var so = document.getElementById('signOutLink');
+    if (so) so.style.display = 'none';
+    if (window.ConsentFlow && typeof window.ConsentFlow.init === 'function') {
+      window.ConsentFlow.init();
+    } else {
+      document.getElementById('consentForm').innerHTML =
+        '<div class="icon">⚠️</div><h1>Could not load</h1>' +
+        '<p>Please refresh the page to review this consent request.</p>';
+    }
+  }
   async function signOut(e) {
     e.preventDefault();
     try { await fetch('/api/auth/logout', { method:'POST' }); } catch(_){}

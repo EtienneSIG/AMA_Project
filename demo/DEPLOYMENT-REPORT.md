@@ -128,3 +128,22 @@ Seed demo users (password `DemoPass2026!`):
 3. Index a math unit in AI Search and run `pipelines/localisation/localise.py` end-to-end so criterion #3 moves to PASS.
 4. Deploy Fabric capacity + publish a Power BI cohort fairness report (criterion #7).
 5. Add `pipelines/erasure_cascade.py` against the synthetic dataset (criterion #9).
+
+---
+
+## 9. Operator drill — PostgreSQL wake-up (Feature 002)
+
+End-to-end operator recovery drill for the admin PostgreSQL wake-up control. Re-run with `pwsh demo/scripts/acceptance_tests.ps1` (tests 12 / 12a / 12b / 13) and the scripted fallback `pwsh demo/scripts/postgres_wakeup.ps1 -ResourceGroup rg-learneu-demo -ServerName pg-learneu-demo`.
+
+| Step | Action | Expected | Result |
+|---|---|---|---|
+| 1 | Anonymous `GET /api/admin/postgres/status` | 401/403 (role-gated) | ☐ PASS — test 12 (`anon blocked`) |
+| 2 | Admin login → `GET /api/admin/postgres/status` | `state` + `checkedAt` + `correlationId` returned | ☐ PASS — test 12 |
+| 3 | Admin `POST /api/admin/postgres/wakeup` while **Stopped** | `outcome=accepted`, audit row written | ☐ PASS — test 12a |
+| 4 | Repeat `POST` while **Starting/Ready** | `outcome=in-progress` / `already-running` (idempotent, no duplicate start) | ☐ PASS — test 12a |
+| 5 | Anonymous `POST /api/admin/postgres/wakeup` | 401/403 (auth + CSRF gate) | ☐ PASS — test 12b |
+| 6 | Latency budget | status p95 ≤ 2000 ms, wake-up ack ≤ 3000 ms | ☐ PASS — test 13 |
+| 7 | Scripted fallback `postgres_wakeup.ps1` | reaches `Ready`, exits 0 (timeout exit otherwise) | ☐ PASS — manual run |
+| 8 | Immutable audit | `audit_event` rows for `postgres_status_check` / `postgres_wakeup`; UPDATE/DELETE rejected | ☐ PASS — schema triggers |
+
+> Evidence capture: paste the acceptance-suite summary line and the `correlationId` of the drill's wake-up call here after each demo run. Compliance mapping (Art. 12 record-keeping, Art. 14 human oversight) is documented in `plan/04-compliance-eu-ai-act-gdpr.md` → *Evidence log — Feature 002*.

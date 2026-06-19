@@ -49,7 +49,7 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 - [X] T009 [P] Extend shared role-gated authentication to support parent role isolation and per-child authorization boundaries in demo/apps/_shared/auth.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T010 [P] Wire parent session middleware and secure cookie policy in demo/apps/parent-portal/auth.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T011 [P] Implement immutable audit event helper for consent, moderation, digest, and preference changes in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T012 Create GDPR Art. 8 plain-language consent disclosure template with version marker and rights copy in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T012 Create GDPR Art. 8 plain-language consent disclosure template with version marker and rights copy in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 - [x] T013 [P] Implement Content Safety wrapper with verdict normalization and moderation routing contract in demo/apps/parent-portal/contentSafety.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [x] T014 [P] Add translation resource scaffold for NL/DE/FR/ES/PL/RO parent UI keys in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
 - [ ] T015 [P] Create family-resources content manifest and locale mapping structure in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/content-localisation-lead.chatmode.md)
@@ -122,14 +122,14 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Implementation for User Story 3
 
-- [ ] T037 [P] [US3] Implement consent token issuance, expiry validation, and versioned consent recording in demo/apps/parent-portal/db/index.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T038 [US3] Add consent request enqueue and dispatch endpoint for under-16 activation events in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T037 [P] [US3] Implement consent token issuance, expiry validation, and versioned consent recording in demo/apps/parent-portal/db/index.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T038 [US3] Add consent request enqueue and dispatch endpoint for under-16 activation events in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 - [X] T039 [US3] Implement consent submission endpoint requiring explicit checkbox consent and timestamped signature audit in demo/apps/parent-portal/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T040 [P] [US3] Build parent consent UX for disclosure review and explicit agreement workflow in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T041 [P] [US3] Implement consent page interaction logic including explicit consent assertion and failure states in demo/apps/parent-portal/public/models/consent.js (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [X] T040 [P] [US3] Build parent consent UX for disclosure review and explicit agreement workflow in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T041 [P] [US3] Implement consent page interaction logic including explicit consent assertion and failure states in demo/apps/parent-portal/public/models/consent.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [X] T042 [US3] Enforce pending-consent learner gating checks before adaptive or assignment access in demo/apps/parent-portal/server.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T043 [US3] Implement reminder dispatch path for unresolved consent requests at day 6 in demo/apps/parent-portal/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T044 [US3] Add GDPR Art. 8 evidence logging and rights-surface metadata capture for DPIA delta in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T043 [US3] Implement reminder dispatch path for unresolved consent requests at day 6 in demo/apps/parent-portal/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T044 [US3] Add GDPR Art. 8 evidence logging and rights-surface metadata capture for DPIA delta in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 **Checkpoint**: US3 independently passes legal consent gating, auditability, and reminder/expiry behavior.
 
