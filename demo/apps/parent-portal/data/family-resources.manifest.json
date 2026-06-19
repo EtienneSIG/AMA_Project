@@ -1,0 +1,71 @@
+{
+  "_meta": {
+    "feature": "006-parent-portal",
+    "purpose": "Localized at-home family support resources surfaced in the Parent Portal (US5).",
+    "review": "Each resource carries a pedagogical + cultural review annotation (Learning Sciences). Links point to open, EU-appropriate guidance. No third-party tracking.",
+    "supported": ["en", "nl", "de", "fr", "es", "pl", "ro"],
+    "ageRanges": ["6-9", "10-12", "13-15", "16-18"]
+  },
+  "resources": [
+    {
+      "id": "RES-FRAC-HOME",
+      "topic": "numeracy",
+      "ageRange": "10-12",
+      "review": { "pedagogical": "ZPD-aligned, concrete-to-abstract; no rote drill.", "cultural": "Food/coin examples adapted per locale; avoids culture-specific currency assumptions." },
+      "i18n": {
+        "en": { "title": "Fractions at the kitchen table", "summary": "Use pizza slices and measuring cups to make fractions concrete before symbols.", "url": "https://www.bbc.co.uk/bitesize/topics/zt9k7ty" },
+        "nl": { "title": "Breuken aan de keukentafel", "summary": "Gebruik pizzapunten en maatbekers om breuken concreet te maken vóór de symbolen.", "url": "https://wikiwijs.nl" },
+        "de": { "title": "Brüche am Küchentisch", "summary": "Nutzen Sie Pizzastücke und Messbecher, um Brüche vor den Symbolen begreifbar zu machen.", "url": "https://www.kmk.org" },
+        "fr": { "title": "Les fractions à la table de cuisine", "summary": "Utilisez des parts de pizza et des verres doseurs pour rendre les fractions concrètes avant les symboles.", "url": "https://eduscol.education.fr" },
+        "es": { "title": "Las fracciones en la mesa de la cocina", "summary": "Use porciones de pizza y vasos medidores para hacer concretas las fracciones antes de los símbolos.", "url": "https://www.educacionyfp.gob.es" },
+        "pl": { "title": "Ułamki przy kuchennym stole", "summary": "Użyj kawałków pizzy i miarek, aby ułamki stały się konkretne przed symbolami.", "url": "https://zpe.gov.pl" },
+        "ro": { "title": "Fracțiile la masa din bucătărie", "summary": "Folosiți felii de pizza și căni gradate pentru a face fracțiile concrete înainte de simboluri.", "url": "https://www.edu.ro" }
+      }
+    },
+    {
+      "id": "RES-READ-ALOUD",
+      "topic": "literacy",
+      "ageRange": "6-9",
+      "review": { "pedagogical": "Shared reading builds vocabulary + comprehension; 10 min/day cadence.", "cultural": "Encourages reading in the home language alongside the school language." },
+      "i18n": {
+        "en": { "title": "Ten minutes of reading together", "summary": "Read aloud daily and ask your child to retell the story in their own words.", "url": "https://literacytrust.org.uk" },
+        "nl": { "title": "Tien minuten samen lezen", "summary": "Lees dagelijks voor en vraag uw kind het verhaal in eigen woorden na te vertellen.", "url": "https://www.lezen.nl" },
+        "de": { "title": "Zehn Minuten gemeinsam lesen", "summary": "Lesen Sie täglich vor und bitten Sie Ihr Kind, die Geschichte in eigenen Worten nachzuerzählen.", "url": "https://www.stiftunglesen.de" },
+        "fr": { "title": "Dix minutes de lecture ensemble", "summary": "Lisez à voix haute chaque jour et demandez à votre enfant de raconter l'histoire avec ses mots.", "url": "https://www.education.gouv.fr" },
+        "es": { "title": "Diez minutos de lectura juntos", "summary": "Lea en voz alta cada día y pida a su hijo/a que recuente la historia con sus palabras.", "url": "https://leer.es" },
+        "pl": { "title": "Dziesięć minut wspólnego czytania", "summary": "Czytajcie codziennie na głos i poproś dziecko, aby opowiedziało historię własnymi słowami.", "url": "https://www.gov.pl/web/edukacja" },
+        "ro": { "title": "Zece minute de citit împreună", "summary": "Citiți cu voce tare zilnic și cereți copilului să repovestească povestea cu cuvintele sale.", "url": "https://www.edu.ro" }
+      }
+    },
+    {
+      "id": "RES-KITCHEN-SCIENCE",
+      "topic": "science",
+      "ageRange": "10-12",
+      "review": { "pedagogical": "Inquiry-based: predict-observe-explain with everyday materials.", "cultural": "Recipes neutral; adaptable to local cuisine." },
+      "i18n": {
+        "en": { "title": "Kitchen science: hot and cold", "summary": "Cook together and talk about what changes when things heat or cool.", "url": "https://www.rigb.org" },
+        "nl": { "title": "Keukenwetenschap: warm en koud", "summary": "Kook samen en bespreek wat er verandert als dingen warm of koud worden.", "url": "https://www.nemosciencemuseum.nl" },
+        "de": { "title": "Küchenwissenschaft: heiß und kalt", "summary": "Kochen Sie zusammen und sprechen Sie darüber, was sich beim Erhitzen oder Abkühlen ändert.", "url": "https://www.haus-der-kleinen-forscher.de" },
+        "fr": { "title": "Science en cuisine : chaud et froid", "summary": "Cuisinez ensemble et parlez de ce qui change quand on chauffe ou refroidit.", "url": "https://www.fondation-lamap.org" },
+        "es": { "title": "Ciencia en la cocina: frío y calor", "summary": "Cocinen juntos y hablen de qué cambia al calentar o enfriar.", "url": "https://www.investigacionyciencia.es" },
+        "pl": { "title": "Nauka w kuchni: gorące i zimne", "summary": "Gotujcie razem i rozmawiajcie o tym, co się zmienia podczas ogrzewania lub chłodzenia.", "url": "https://www.kopernik.org.pl" },
+        "ro": { "title": "Știință în bucătărie: cald și rece", "summary": "Gătiți împreună și discutați ce se schimbă când lucrurile se încălzesc sau se răcesc.", "url": "https://www.edu.ro" }
+      }
+    },
+    {
+      "id": "RES-LANG-LABELS",
+      "topic": "language",
+      "ageRange": "10-12",
+      "review": { "pedagogical": "Spaced retrieval with environmental print; low-stakes daily review.", "cultural": "Supports multilingual households; target language flexible." },
+      "i18n": {
+        "en": { "title": "Label the house in a new language", "summary": "Put sticky labels on objects in the target language and review them at dinner.", "url": "https://www.britishcouncil.org" },
+        "nl": { "title": "Label het huis in een nieuwe taal", "summary": "Plak labels op voorwerpen in de doeltaal en herhaal ze tijdens het eten.", "url": "https://www.nuffic.nl" },
+        "de": { "title": "Das Haus in einer neuen Sprache beschriften", "summary": "Kleben Sie Etiketten in der Zielsprache auf Gegenstände und wiederholen Sie sie beim Essen.", "url": "https://www.goethe.de" },
+        "fr": { "title": "Étiqueter la maison dans une nouvelle langue", "summary": "Collez des étiquettes sur les objets dans la langue cible et révisez-les au dîner.", "url": "https://www.france-education-international.fr" },
+        "es": { "title": "Etiquetar la casa en un nuevo idioma", "summary": "Pegue etiquetas en los objetos en el idioma meta y repáselas en la cena.", "url": "https://www.cervantes.es" },
+        "pl": { "title": "Opisz dom w nowym języku", "summary": "Naklej etykiety na przedmioty w języku docelowym i powtarzaj je przy kolacji.", "url": "https://www.gov.pl/web/edukacja" },
+        "ro": { "title": "Etichetează casa într-o limbă nouă", "summary": "Lipiți etichete pe obiecte în limba țintă și recapitulați-le la cină.", "url": "https://www.edu.ro" }
+      }
+    }
+  ]
+}

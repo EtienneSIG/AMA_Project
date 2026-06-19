@@ -50,8 +50,8 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 - [X] T010 [P] Wire parent session middleware and secure cookie policy in demo/apps/parent-portal/auth.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T011 [P] Implement immutable audit event helper for consent, moderation, digest, and preference changes in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 - [ ] T012 Create GDPR Art. 8 plain-language consent disclosure template with version marker and rights copy in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T013 [P] Implement Content Safety wrapper with verdict normalization and moderation routing contract in demo/apps/parent-portal/contentSafety.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T014 [P] Add translation resource scaffold for NL/DE/FR/ES/PL/RO parent UI keys in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
+- [x] T013 [P] Implement Content Safety wrapper with verdict normalization and moderation routing contract in demo/apps/parent-portal/contentSafety.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T014 [P] Add translation resource scaffold for NL/DE/FR/ES/PL/RO parent UI keys in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
 - [ ] T015 [P] Create family-resources content manifest and locale mapping structure in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/content-localisation-lead.chatmode.md)
 - [ ] T016 Define foundational compliance acceptance cases for data minimization, EU residency assertions, and consent gating in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
@@ -102,7 +102,7 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 - [X] T030 [P] [US2] Add parent message inbox/thread UI with read state indicators in demo/apps/parent-portal/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [ ] T031 [P] [US2] Implement message compose/send/reply interactions with moderation status feedback in demo/apps/parent-portal/public/models/messages.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [X] T032 [US2] Extend teacher-side moderation endpoint handlers for approve/reject/reword actions in demo/apps/teacher-console/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T033 [P] [US2] Add moderation queue UI with Content Safety verdict and teacher override controls in demo/apps/teacher-console/public/moderation.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T033 [P] [US2] Add moderation queue UI with Content Safety verdict and teacher override controls in demo/apps/teacher-console/public/moderation.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [X] T034 [US2] Add EU AI Act Art. 12/13 trace logs for message scan verdicts, moderation action, and parent transparency notices in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 **Checkpoint**: US2 independently passes moderated messaging, delivery integrity, and read-receipt traceability.
@@ -150,7 +150,7 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 - [X] T047 [P] [US4] Implement parent digest preference read/write and weekly summary fetch helpers in demo/apps/parent-portal/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T048 [US4] Add digest preference endpoint and opt-out workflow handling in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T049 [US4] Implement scheduled digest dispatcher with Sunday 18:00 UTC batching in demo/scripts/send_digests.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T049 [US4] Implement scheduled digest dispatcher with Sunday 18:00 UTC batching in demo/scripts/send_digests.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
 - [ ] T050 [P] [US4] Create digest template renderer for per-child summary and action guidance copy in demo/apps/parent-portal/public/models/digest-template.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [X] T051 [US4] Add "How to help" recommendation sourcing from approved pedagogical resource set in demo/apps/parent-portal/server.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [ ] T052 [US4] Add email send audit and engagement tracking hooks for SC-003 measurement in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
@@ -173,12 +173,12 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 ### Implementation for User Story 5
 
 - [X] T055 [P] [US5] Implement language preference persistence and retrieval in parent preference store in demo/apps/parent-portal/db/index.js (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T056 [US5] Add language selection and localized notification/template endpoints in demo/apps/parent-portal/server.js (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T057 [P] [US5] Implement language picker and runtime localization binding in demo/apps/parent-portal/public/index.html (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T058 [P] [US5] Populate translated UI strings and email key variants for NL/DE/FR/ES/PL/RO in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T059 [US5] Implement Family Resources endpoint filtered by locale, learner age range, and topic in demo/apps/parent-portal/server.js (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T060 [P] [US5] Build Family Resources center UI and localized content cards in demo/apps/parent-portal/public/resources.html (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T061 [US5] Add cultural and pedagogical review annotations for translated family resources in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T056 [US5] Add language selection and localized notification/template endpoints in demo/apps/parent-portal/server.js (Accountable: agents/content-localisation-lead.chatmode.md)
+- [x] T057 [P] [US5] Implement language picker and runtime localization binding in demo/apps/parent-portal/public/index.html (Accountable: agents/content-localisation-lead.chatmode.md)
+- [x] T058 [P] [US5] Populate translated UI strings and email key variants for NL/DE/FR/ES/PL/RO in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
+- [x] T059 [US5] Implement Family Resources endpoint filtered by locale, learner age range, and topic in demo/apps/parent-portal/server.js (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T060 [P] [US5] Build Family Resources center UI and localized content cards in demo/apps/parent-portal/public/resources.html (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T061 [US5] Add cultural and pedagogical review annotations for translated family resources in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 **Checkpoint**: US5 independently passes localization fidelity and family-resource accessibility checks.
 

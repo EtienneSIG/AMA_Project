@@ -1603,6 +1603,21 @@ async function listParentDigests({ parentEmail, limit = 12 }) {
   return r ? r.rows : null;
 }
 
+// All (parent, child) pairs eligible for the weekly digest — opt-out aware.
+// Parents with no preference row default to opted-in (LEFT JOIN + IS NOT FALSE).
+async function listDigestRecipients() {
+  const r = await q(
+    `SELECT pl.parent_email AS "parentEmail", pl.child_email AS "childEmail",
+            COALESCE(pp.language, 'en') AS language
+       FROM parent_links pl
+       LEFT JOIN parent_preferences pp ON pp.parent_email = pl.parent_email
+      WHERE pp.digest_opt_in IS NOT FALSE
+      ORDER BY pl.parent_email, pl.child_email`,
+    []
+  );
+  return r ? r.rows : null;
+}
+
 // --- Skill catalogue (Feature 2) ------------------------------------------
 
 // List the skill catalogue with optional filters and per-skill counts of
@@ -1797,6 +1812,7 @@ module.exports = {
   upsertParentDigest,
   markDigestSent,
   listParentDigests,
+  listDigestRecipients,
   listSkillsCatalogue,
   getSkillById,
   logAskFeedback,

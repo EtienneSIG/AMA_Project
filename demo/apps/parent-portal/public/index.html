@@ -229,6 +229,7 @@
       <a href="https://app-learner-web-learneu-demo.azurewebsites.net">For Schools</a>
       <a href="https://app-parent-portal-learneu-demo.azurewebsites.net" class="active">For Families</a>
       <a href="https://app-teacher-console-learneu-demo.azurewebsites.net">For Educators</a>
+      <a href="/resources.html" data-i18n="nav.resources">Family resources</a>
       <div class="status-wrap">
         <button class="status-btn" id="statusBtn" onclick="toggleStatus(event)" aria-label="System status"><span class="status-dot" id="statusDot"></span><span id="statusLabel">Checking…</span></button>
         <div class="status-panel" id="statusPanel" role="dialog" aria-label="System status details">
@@ -247,9 +248,9 @@
 </nav>
 <section class="hero">
   <div class="wrap">
-    <span class="pill">Parent Portal</span>
-    <h1>Stay close to your child's learning journey.</h1>
-    <p>Manage parental consent (GDPR Art. 8), submit data access requests, and follow your child's progress — fully EU-hosted and aligned with EU AI Act Annex III §3 (education).</p>
+    <span class="pill" data-i18n="hero.pill">Parent Portal</span>
+    <h1 data-i18n="hero.title">Stay close to your child's learning journey.</h1>
+    <p data-i18n="hero.subtitle">Manage parental consent (GDPR Art. 8), submit data access requests, and follow your child's progress — fully EU-hosted and aligned with EU AI Act Annex III §3 (education).</p>
   </div>
 </section>
 <div class="consent-banner" id="consentBanner" style="margin-left:1.5rem;margin-right:1.5rem;">
@@ -258,10 +259,10 @@
   <div class="child-list" id="consentBannerList"></div>
 </div>
 <nav class="tabbar" role="tablist">
-  <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab">💬 Ask the assistant</button>
-  <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab">🧒 My child's progress</button>
-  <button class="tab-btn" data-tab-btn="messages" onclick="setTab('messages')" role="tab">✉️ Messages <span id="msgBadge" class="msg-badge" style="display:none;">0</span></button>
-  <button class="tab-btn" data-tab-btn="digest" onclick="setTab('digest')" role="tab">📊 Weekly digest</button>
+  <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab"><span data-i18n="tab.ask">💬 Ask the assistant</span></button>
+  <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab"><span data-i18n="tab.child">🧒 My child's progress</span></button>
+  <button class="tab-btn" data-tab-btn="messages" onclick="setTab('messages')" role="tab"><span data-i18n="tab.messages">✉️ Messages</span> <span id="msgBadge" class="msg-badge" style="display:none;">0</span></button>
+  <button class="tab-btn" data-tab-btn="digest" onclick="setTab('digest')" role="tab"><span data-i18n="tab.digest">📊 Weekly digest</span></button>
 </nav>
 <div data-tab="ask" class="active">
 <main class="grid2 ask-wrap" style="margin-top:0;">
@@ -318,16 +319,16 @@
 <div data-tab="messages">
   <div class="child-wrap">
     <div class="child-picker">
-      <label for="msgChildSel" style="font-weight:600;color:var(--navy);">Child:</label>
+      <label for="msgChildSel" style="font-weight:600;color:var(--navy);" data-i18n="common.child">Child:</label>
       <select id="msgChildSel" onchange="loadThread(this.value)"><option value="">Loading…</option></select>
     </div>
     <div class="card" style="margin-bottom:1rem;">
-      <h2 style="margin-top:0;">Conversation with the teacher</h2>
+      <h2 style="margin-top:0;" data-i18n="messages.heading">Conversation with the teacher</h2>
       <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Messages are scanned by Azure Content Safety before delivery. Flagged messages are held for teacher review (EU AI Act Art. 14 human oversight).</p>
       <div id="threadList" style="max-height:340px;overflow:auto;margin-bottom:1rem;"><div class="sheet-empty">Select a child to see the conversation.</div></div>
-      <textarea id="msgBody" placeholder="Write a message to your child's teacher…"></textarea>
+      <textarea id="msgBody" placeholder="Write a message to your child's teacher…" data-i18n-placeholder="messages.placeholder"></textarea>
       <div class="row">
-        <button class="btn" onclick="sendParentMessage()">Send message</button>
+        <button class="btn" onclick="sendParentMessage()" data-i18n="messages.send">Send message</button>
         <span id="msgNote" style="font-size:.82rem;color:var(--grey);"></span>
       </div>
     </div>
@@ -340,17 +341,17 @@
       <select id="digestChildSel" onchange="loadWeeklySummary(this.value)"><option value="">Loading…</option></select>
     </div>
     <div class="card" style="margin-bottom:1rem;">
-      <h2 style="margin-top:0;">This week at a glance</h2>
+      <h2 style="margin-top:0;" data-i18n="digest.heading">This week at a glance</h2>
       <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">A plain-language summary of your child's week, with one concrete way you can help at home.</p>
       <div class="kpi-grid" id="digestKpis"></div>
       <div id="digestHelp" class="reply" style="margin-top:1rem;">Select a child to see this week's summary.</div>
     </div>
     <div class="card" style="margin-bottom:1rem;">
-      <h2 style="margin-top:0;">Notification & language preferences</h2>
+      <h2 style="margin-top:0;" data-i18n="digest.prefHeading">Notification & language preferences</h2>
       <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Choose your language and whether you receive the weekly digest. You can change this any time (GDPR — withdrawable consent).</p>
       <div class="row">
-        <label style="font-weight:600;color:var(--navy);">Language:</label>
-        <select id="prefLang">
+        <label style="font-weight:600;color:var(--navy);" data-i18n="digest.language">Language:</label>
+        <select id="prefLang" onchange="applyI18n(this.value)">
           <option value="en">English</option>
           <option value="nl">Nederlands</option>
           <option value="de">Deutsch</option>
@@ -361,15 +362,15 @@
         </select>
       </div>
       <div class="row">
-        <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--navy);"><input type="checkbox" id="prefDigest" checked /> Send me the weekly digest</label>
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--navy);"><input type="checkbox" id="prefDigest" checked /> <span data-i18n="digest.sendDigest">Send me the weekly digest</span></label>
       </div>
       <div class="row">
-        <button class="btn" onclick="savePreferences()">Save preferences</button>
+        <button class="btn" onclick="savePreferences()" data-i18n="digest.save">Save preferences</button>
         <span id="prefNote" style="font-size:.82rem;color:var(--grey);"></span>
       </div>
     </div>
     <div class="card">
-      <h2 style="margin-top:0;">Past digests</h2>
+      <h2 style="margin-top:0;" data-i18n="digest.past">Past digests</h2>
       <div id="pastDigests"><div class="sheet-empty">—</div></div>
     </div>
   </div>
@@ -462,6 +463,33 @@ let lastAnswer = '';
 let lastPrompt = '';
 function initials(u) { return ((u?.firstName?.[0] || '') + (u?.lastName?.[0] || '')).toUpperCase() || '··'; }
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ===== Feature 6 US5 — runtime localization =====
+let _i18n = null;        // { en:{...}, nl:{...}, ... }
+let _lang = 'en';
+async function loadTranslations() {
+  if (_i18n) return _i18n;
+  try { _i18n = await (await fetch('/models/translations.json', { cache: 'force-cache' })).json(); }
+  catch (e) { _i18n = {}; }
+  return _i18n;
+}
+async function applyI18n(lang) {
+  await loadTranslations();
+  const dict = (_i18n && _i18n[lang]) || (_i18n && _i18n.en) || {};
+  if (!Object.keys(dict).length) return;
+  _lang = lang || 'en';
+  document.documentElement.lang = _lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k] != null) el.textContent = dict[k];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const k = el.getAttribute('data-i18n-placeholder');
+    if (dict[k] != null) el.setAttribute('placeholder', dict[k]);
+  });
+  const sel = document.getElementById('prefLang');
+  if (sel && sel.value !== _lang) sel.value = _lang;
+}
 
 async function refreshStatus() {
   const dot = document.getElementById('statusDot');
@@ -652,6 +680,7 @@ window.addEventListener('load', () => {
   loadMe();
   loadChildren();
   loadInboxBadge();
+  loadPreferences();
 });
 
 // ===== Feature 6 — child progress tab =====
@@ -841,6 +870,7 @@ async function loadPreferences() {
     const p = j.preferences;
     const lang = document.getElementById('prefLang'); if (lang && p.language) lang.value = p.language;
     const dg = document.getElementById('prefDigest'); if (dg) dg.checked = p.digest_opt_in !== false;
+    if (p.language) applyI18n(p.language);
     loadPastDigests();
   } catch (e) {}
 }
@@ -853,6 +883,7 @@ async function savePreferences() {
     const r = await fetch('/api/parent/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, digestOptIn }) });
     const j = await r.json();
     note.textContent = r.ok ? 'Preferences saved.' : (j.error || 'Failed to save.');
+    if (r.ok) applyI18n(language);
   } catch (e) { note.textContent = String(e); }
 }
 async function loadPastDigests() {

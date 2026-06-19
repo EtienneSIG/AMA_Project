@@ -4,6 +4,7 @@
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const auth = require('./auth');
 const db = require('./db');
 const cs = require('./contentSafety');
@@ -1344,6 +1345,39 @@ app.post('/api/parent/digests/generate', async (req, res) => {
     if (row) out.push(row);
   }
   res.json({ ok: true, generated: out.length, weekStart, digests: out });
+});
+
+// --- Family Resources Center (Feature 6, US5) ------------------------------
+// Localized at-home support content, filtered by locale, learner age range and topic.
+// Manifest is app-specific (parent-portal/data); other apps return an empty set.
+let _resourcesCache = null;
+function loadFamilyResources() {
+  if (_resourcesCache) return _resourcesCache;
+  try {
+    const p = path.join(__dirname, 'data', 'family-resources.manifest.json');
+    _resourcesCache = JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (e) { _resourcesCache = { resources: [], _meta: {} }; }
+  return _resourcesCache;
+}
+app.get('/api/parent/resources', async (req, res) => {
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const manifest = loadFamilyResources();
+  const SUPPORTED = (manifest._meta && manifest._meta.supported) || ['en'];
+  let locale = String(req.query.locale || '').toLowerCase();
+  if (!SUPPORTED.includes(locale)) {
+    // Fall back to the parent's saved language, then English.
+    if (db.enabled) { try { const pref = await db.getParentPreferences({ parentEmail: req.user.email }); locale = SUPPORTED.includes(pref.language) ? pref.language : 'en'; } catch (e) { locale = 'en'; } }
+    else locale = 'en';
+  }
+  const ageFilter = req.query.age ? String(req.query.age) : null;
+  const topicFilter = req.query.topic ? String(req.query.topic).toLowerCase() : null;
+  const items = (manifest.resources || [])
+    .filter(r => (!ageFilter || r.ageRange === ageFilter) && (!topicFilter || String(r.topic).toLowerCase() === topicFilter))
+    .map(r => {
+      const t = (r.i18n && (r.i18n[locale] || r.i18n.en)) || {};
+      return { id: r.id, topic: r.topic, ageRange: r.ageRange, title: t.title || '', summary: t.summary || '', url: t.url || '', review: r.review || null };
+    });
+  res.json({ enabled: true, locale, supported: SUPPORTED, count: items.length, resources: items });
 });
 
 // --- Teacher Q&A (learner ↔ teacher async messaging) ----------------------

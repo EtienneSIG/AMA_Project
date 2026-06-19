@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — Family Resources · EdTech Group</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --navy:#0F1B2D; --navy-2:#1a3658; --orange:#F26334; --orange-dark:#D44E22; --teal:#2BB4B8; --grey:#3F4A5A; --line:#E3E7EE; --bg:#F5F7FA; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--grey); background:var(--bg); line-height:1.55; }
+  h1,h2,h3 { font-family:'Poppins',sans-serif; color:var(--navy); margin:0 0 .5rem; line-height:1.2; }
+  h1 { font-size:1.9rem; }
+  a { color:var(--orange); text-decoration:none; }
+  nav.top { background:#fff; border-bottom:1px solid var(--line); }
+  nav.top .wrap { max-width:1000px; margin:0 auto; padding:.9rem 1.5rem; display:flex; align-items:center; gap:1.25rem; }
+  nav.top img { height:40px; }
+  nav.top .links { margin-left:auto; display:flex; gap:1.25rem; align-items:center; font-weight:500; font-size:.9rem; }
+  nav.top .links a { color:var(--navy); }
+  .hero { background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%); color:#fff; padding:2.2rem 1.5rem 2.6rem; }
+  .hero .wrap { max-width:1000px; margin:0 auto; }
+  .hero h1 { color:#fff; }
+  .hero p { max-width:640px; opacity:.85; margin:.5rem 0 0; }
+  .pill { display:inline-block; background:rgba(43,180,184,0.18); color:var(--teal); padding:.3rem .85rem; border-radius:999px; font-size:.72rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:.7rem; }
+  main { max-width:1000px; margin:-1.6rem auto 3rem; padding:0 1.5rem; position:relative; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.5rem; box-shadow:0 4px 24px rgba(15,27,45,0.06); margin-bottom:1rem; }
+  .filters { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
+  .filters label { font-weight:600; color:var(--navy); font-size:.85rem; margin-right:.35rem; }
+  select { padding:.5rem .7rem; border:1px solid var(--line); border-radius:8px; font-family:inherit; color:var(--navy); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; }
+  .res { border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.2rem; background:#fff; display:flex; flex-direction:column; }
+  .res .topic { font-size:.7rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--teal); }
+  .res h3 { margin:.35rem 0; font-size:1.05rem; }
+  .res p { margin:.2rem 0 .8rem; font-size:.9rem; }
+  .res .age { font-size:.74rem; color:var(--grey); opacity:.75; margin-bottom:.6rem; }
+  .res .go { margin-top:auto; align-self:flex-start; background:var(--orange); color:#fff; padding:.45rem 1rem; border-radius:999px; font-weight:600; font-size:.84rem; }
+  .res .review { font-size:.72rem; color:var(--grey); opacity:.8; margin-top:.6rem; border-top:1px dashed var(--line); padding-top:.5rem; }
+  .empty { color:var(--grey); opacity:.7; padding:1rem 0; }
+  footer { background:var(--navy); color:rgba(255,255,255,0.7); padding:1.5rem; text-align:center; font-size:.82rem; }
+  footer a { color:var(--teal); }
+</style>
+</head>
+<body>
+<nav class="top">
+  <div class="wrap">
+    <img src="/logo.svg" alt="EdTech Group" />
+    <div class="links">
+      <a href="/">← Parent Portal</a>
+    </div>
+  </div>
+</nav>
+<section class="hero">
+  <div class="wrap">
+    <span class="pill">Family Resources · EU-hosted</span>
+    <h1 id="h-title">Family Resources Center</h1>
+    <p id="h-sub">Practical, pedagogically reviewed activities you can do at home — in your language.</p>
+  </div>
+</section>
+<main>
+  <div class="card">
+    <div class="filters">
+      <div><label for="locale">Language</label>
+        <select id="locale" onchange="load()">
+          <option value="en">English</option><option value="nl">Nederlands</option><option value="de">Deutsch</option>
+          <option value="fr">Français</option><option value="es">Español</option><option value="pl">Polski</option><option value="ro">Română</option>
+        </select></div>
+      <div><label for="topic">Topic</label>
+        <select id="topic" onchange="load()">
+          <option value="">All</option><option value="numeracy">Numeracy</option><option value="literacy">Literacy</option>
+          <option value="science">Science</option><option value="language">Language</option>
+        </select></div>
+      <div><label for="age">Age</label>
+        <select id="age" onchange="load()">
+          <option value="">All</option><option value="6-9">6–9</option><option value="10-12">10–12</option>
+          <option value="13-15">13–15</option><option value="16-18">16–18</option>
+        </select></div>
+    </div>
+  </div>
+  <div id="list"><div class="empty">Loading…</div></div>
+</main>
+<footer>LearnEU demo · Family resources reviewed by Learning Sciences · No third-party tracking · EU-hosted.</footer>
+<script>
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function load(){
+  const list = document.getElementById('list');
+  const locale = document.getElementById('locale').value;
+  const topic = document.getElementById('topic').value;
+  const age = document.getElementById('age').value;
+  const qs = new URLSearchParams(); qs.set('locale', locale); if(topic) qs.set('topic', topic); if(age) qs.set('age', age);
+  list.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const r = await fetch('/api/parent/resources?'+qs.toString(), { cache:'no-store' });
+    if(r.status===403){ list.innerHTML='<div class="empty">Please sign in to the Parent Portal to view family resources.</div>'; return; }
+    const j = await r.json();
+    const items = j.resources || [];
+    if(!items.length){ list.innerHTML='<div class="empty">No resources match these filters.</div>'; return; }
+    list.innerHTML = '<div class="grid">'+items.map(x=>`
+      <div class="res">
+        <span class="topic">${escapeHtml(x.topic)}</span>
+        <h3>${escapeHtml(x.title)}</h3>
+        <div class="age">Ages ${escapeHtml(x.ageRange)}</div>
+        <p>${escapeHtml(x.summary)}</p>
+        <a class="go" href="${encodeURI(x.url)}" target="_blank" rel="noopener noreferrer">Open guide ↗</a>
+        ${x.review&&x.review.pedagogical?`<div class="review">Reviewed: ${escapeHtml(x.review.pedagogical)}</div>`:''}
+      </div>`).join('')+'</div>';
+  }catch(e){ list.innerHTML='<div class="empty">(error loading resources)</div>'; }
+}
+// Default the locale to the parent's saved preference when available.
+async function initLocale(){
+  try{ const j = await (await fetch('/api/parent/preferences')).json();
+    if(j && j.preferences && j.preferences.language){ const sel=document.getElementById('locale'); if([...sel.options].some(o=>o.value===j.preferences.language)) sel.value=j.preferences.language; }
+  }catch(e){}
+  load();
+}
+window.addEventListener('load', initLocale);
+</script>
+</body>
+</html>
