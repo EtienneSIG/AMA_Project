@@ -2637,6 +2637,303 @@ async function listExportRequests({ limit } = {}) {
   return r && r.rows ? r.rows : [];
 }
 
+// ===========================================================================
+// Feature 010 — CMS Versioning & Content Approval Workflow
+// ===========================================================================
+
+// --- Content items ---
+async function createContentItem({ title, contentType, defaultLocale, createdBy, tenantId }) {
+  const r = await q(
+    `INSERT INTO content_item (title, content_type, default_locale, created_by, tenant_id)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [title, contentType || 'lesson', defaultLocale || 'nl-NL', createdBy || null, tenantId || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getContentItem({ id }) {
+  const r = await q(`SELECT * FROM content_item WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listContentItems({ lifecycleStatus, limit } = {}) {
+  const r = await q(
+    `SELECT * FROM content_item ${lifecycleStatus ? 'WHERE lifecycle_status = $1' : ''} ORDER BY updated_at DESC LIMIT ${lifecycleStatus ? '$2' : '$1'}`,
+    lifecycleStatus ? [lifecycleStatus, Math.min(Number(limit) || 100, 500)] : [Math.min(Number(limit) || 100, 500)]
+  );
+  return r && r.rows ? r.rows : [];
+}
+async function setContentItemLifecycle({ id, lifecycleStatus, publishedVersionId }) {
+  const r = await q(
+    `UPDATE content_item SET lifecycle_status = COALESCE($2, lifecycle_status),
+       current_published_version_id = COALESCE($3, current_published_version_id), updated_at = now()
+       WHERE id = $1 RETURNING *`,
+    [id, lifecycleStatus || null, publishedVersionId || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Content versions (immutable snapshots) ---
+async function createContentVersion(v) {
+  const r = await q(
+    `INSERT INTO content_version
+       (content_item_id, semantic_version, locale, branch_type, previous_version_id,
+        branch_root_version_id, source_version_id, rollback_of_version_id, change_summary,
+        payload_json, created_by, is_material_change, state)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+    [v.contentItemId, v.semanticVersion, v.locale, v.branchType || 'source', v.previousVersionId || null,
+     v.branchRootVersionId || null, v.sourceVersionId || null, v.rollbackOfVersionId || null, v.changeSummary || null,
+     JSON.stringify(v.payload || {}), v.createdBy || null, v.isMaterialChange !== false, v.state || 'draft']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getContentVersion({ id }) {
+  const r = await q(`SELECT * FROM content_version WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listContentVersions({ contentItemId, locale } = {}) {
+  const r = await q(
+    `SELECT * FROM content_version WHERE content_item_id = $1 ${locale ? 'AND locale = $2' : ''} ORDER BY created_at DESC`,
+    locale ? [contentItemId, locale] : [contentItemId]
+  );
+  return r && r.rows ? r.rows : [];
+}
+async function setContentVersionState({ id, state, publishedAt }) {
+  const r = await q(
+    `UPDATE content_version SET state = $2, published_at = COALESCE($3, published_at) WHERE id = $1 RETURNING *`,
+    [id, state, publishedAt || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function supersedePublishedVersions({ contentItemId, locale, exceptId }) {
+  const r = await q(
+    `UPDATE content_version SET state = 'superseded'
+       WHERE content_item_id = $1 AND locale = $2 AND state = 'published' AND id <> $3 RETURNING id`,
+    [contentItemId, locale, exceptId]
+  );
+  return r && r.rows ? r.rows.length : 0;
+}
+
+// --- Approval policies & workflow ---
+async function upsertApprovalPolicy({ contentType, branchType, steps, allowNonMaterialReuse }) {
+  const r = await q(
+    `INSERT INTO approval_workflow_policy (content_type, branch_type, steps_json, allow_non_material_reuse)
+       VALUES ($1,$2,$3,$4)
+     ON CONFLICT (content_type, branch_type)
+       DO UPDATE SET steps_json = EXCLUDED.steps_json, allow_non_material_reuse = EXCLUDED.allow_non_material_reuse
+     RETURNING *`,
+    [contentType, branchType || 'source', JSON.stringify(steps || []), !!allowNonMaterialReuse]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getApprovalPolicy({ contentType, branchType }) {
+  const r = await q(
+    `SELECT * FROM approval_workflow_policy WHERE content_type = $1 AND branch_type = $2
+       AND (effective_to IS NULL OR effective_to > now()) ORDER BY effective_from DESC LIMIT 1`,
+    [contentType, branchType || 'source']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function createWorkflowInstance({ contentVersionId, policyId, steps, submittedBy }) {
+  const r = await q(
+    `INSERT INTO approval_workflow_instance (content_version_id, policy_id, steps_json, state, current_step_order, submitted_by, submitted_at)
+       VALUES ($1,$2,$3,'submitted',1,$4, now())
+     ON CONFLICT (content_version_id) DO NOTHING RETURNING *`,
+    [contentVersionId, policyId || null, JSON.stringify(steps || []), submittedBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getWorkflowInstance({ id }) {
+  const r = await q(`SELECT * FROM approval_workflow_instance WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getWorkflowByVersion({ contentVersionId }) {
+  const r = await q(`SELECT * FROM approval_workflow_instance WHERE content_version_id = $1`, [contentVersionId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+// Optimistic-lock transition: only succeeds if lock_version matches.
+async function transitionWorkflow({ id, expectedLock, state, currentStepOrder, resolved }) {
+  const r = await q(
+    `UPDATE approval_workflow_instance
+       SET state = $3, current_step_order = COALESCE($4, current_step_order),
+           lock_version = lock_version + 1, resolved_at = CASE WHEN $5 THEN now() ELSE resolved_at END
+       WHERE id = $1 AND lock_version = $2 RETURNING *`,
+    [id, expectedLock, state, currentStepOrder == null ? null : Number(currentStepOrder), !!resolved]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function recordApprovalStep({ workflowInstanceId, stepOrder, requiredRole, reviewer, decision, comment }) {
+  const r = await q(
+    `INSERT INTO approval_step_record (workflow_instance_id, step_order, required_role, reviewer, decision, comment)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [workflowInstanceId, Number(stepOrder), requiredRole, reviewer, decision, comment || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listApprovalSteps({ workflowInstanceId }) {
+  const r = await q(`SELECT * FROM approval_step_record WHERE workflow_instance_id = $1 ORDER BY step_order, decided_at`, [workflowInstanceId]);
+  return r && r.rows ? r.rows : [];
+}
+async function listPendingApprovals({ role } = {}) {
+  const r = await q(
+    `SELECT wi.*, cv.content_item_id, cv.semantic_version, cv.locale, cv.branch_type, ci.title
+       FROM approval_workflow_instance wi
+       JOIN content_version cv ON cv.id = wi.content_version_id
+       JOIN content_item ci ON ci.id = cv.content_item_id
+      WHERE wi.state IN ('submitted','in_review')
+      ORDER BY wi.submitted_at`,
+    []
+  );
+  let rows = r && r.rows ? r.rows : [];
+  if (role) {
+    rows = rows.filter(w => {
+      const steps = Array.isArray(w.steps_json) ? w.steps_json : [];
+      const cur = steps[(w.current_step_order || 1) - 1];
+      return cur === role;
+    });
+  }
+  return rows;
+}
+
+// --- Localization branches ---
+async function upsertLocalizationBranch(b) {
+  const r = await q(
+    `INSERT INTO localization_branch
+       (content_item_id, locale, branch_root_version_id, latest_local_version_id, latest_source_version_id_seen, sync_status)
+       VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (content_item_id, locale)
+       DO UPDATE SET latest_local_version_id = COALESCE(EXCLUDED.latest_local_version_id, localization_branch.latest_local_version_id),
+                     latest_source_version_id_seen = COALESCE(EXCLUDED.latest_source_version_id_seen, localization_branch.latest_source_version_id_seen),
+                     sync_status = EXCLUDED.sync_status, updated_at = now()
+     RETURNING *`,
+    [b.contentItemId, b.locale, b.branchRootVersionId || null, b.latestLocalVersionId || null,
+     b.latestSourceVersionIdSeen || null, b.syncStatus || 'up_to_date']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listLocalizationBranches({ contentItemId } = {}) {
+  const r = await q(
+    `SELECT * FROM localization_branch ${contentItemId ? 'WHERE content_item_id = $1' : ''} ORDER BY updated_at DESC`,
+    contentItemId ? [contentItemId] : []
+  );
+  return r && r.rows ? r.rows : [];
+}
+async function setBranchSyncStatus({ id, syncStatus, mergeChoice }) {
+  const r = await q(
+    `UPDATE localization_branch SET sync_status = COALESCE($2, sync_status), merge_choice = COALESCE($3, merge_choice), updated_at = now()
+       WHERE id = $1 RETURNING *`,
+    [id, syncStatus || null, mergeChoice || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function flagBranchesForSource({ contentItemId, sourceVersionId }) {
+  const r = await q(
+    `UPDATE localization_branch SET sync_status = 'update_available', updated_at = now()
+       WHERE content_item_id = $1 AND (latest_source_version_id_seen IS DISTINCT FROM $2) AND sync_status <> 'merge_in_progress'
+       RETURNING *`,
+    [contentItemId, sourceVersionId]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+// --- Metadata ---
+async function upsertMetadataTag(m) {
+  const r = await q(
+    `INSERT INTO content_metadata_tag
+       (content_version_id, curriculum_standard, subject, grade_level, difficulty, learning_objective, prerequisite_version_ids)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [m.contentVersionId, m.curriculumStandard || null, m.subject || null, m.gradeLevel || null,
+     m.difficulty || null, m.learningObjective || null, m.prerequisiteVersionIds || []]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getMetadataForVersion({ contentVersionId }) {
+  const r = await q(`SELECT * FROM content_metadata_tag WHERE content_version_id = $1 ORDER BY indexed_at DESC LIMIT 1`, [contentVersionId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function searchContentMetadata({ subject, gradeLevel, curriculumStandard, limit } = {}) {
+  const r = await q(
+    `SELECT mt.*, cv.content_item_id, cv.semantic_version, cv.locale, cv.state, ci.title
+       FROM content_metadata_tag mt
+       JOIN content_version cv ON cv.id = mt.content_version_id
+       JOIN content_item ci ON ci.id = cv.content_item_id
+      WHERE ($1::text IS NULL OR mt.subject = $1)
+        AND ($2::text IS NULL OR mt.grade_level = $2)
+        AND ($3::text IS NULL OR mt.curriculum_standard = $3)
+      ORDER BY mt.indexed_at DESC LIMIT $4`,
+    [subject || null, gradeLevel || null, curriculumStandard || null, Math.min(Number(limit) || 50, 200)]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+// --- Deprecation lifecycle ---
+async function createDeprecationRecord(d) {
+  const r = await q(
+    `INSERT INTO deprecation_record (content_item_id, deprecated_by, eol_date, replacement_content_item_id, rationale)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [d.contentItemId, d.deprecatedBy || null, d.eolDate, d.replacementContentItemId || null, d.rationale || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function archiveDeprecationRecord({ id }) {
+  const r = await q(
+    `UPDATE deprecation_record SET status = 'archived', archive_at = now() WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getDeprecationForItem({ contentItemId }) {
+  const r = await q(`SELECT * FROM deprecation_record WHERE content_item_id = $1 ORDER BY deprecated_at DESC LIMIT 1`, [contentItemId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Rollback assignment remap journal (idempotent) ---
+async function journalRemap({ rollbackEventId, contentItemId, fromVersionId, toVersionId, remappedCount, status }) {
+  const r = await q(
+    `INSERT INTO assignment_remap_journal (rollback_event_id, content_item_id, from_version_id, to_version_id, remapped_count, status)
+       VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (rollback_event_id) DO UPDATE SET remapped_count = EXCLUDED.remapped_count, status = EXCLUDED.status
+     RETURNING *`,
+    [rollbackEventId, contentItemId, fromVersionId || null, toVersionId || null, Number(remappedCount) || 0, status || 'completed']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- CMS audit (append-only, Art. 12) ---
+async function logContentAudit(e) {
+  const r = await q(
+    `INSERT INTO content_audit_event (event_type, content_item_id, content_version_id, workflow_instance_id, actor, actor_role, rationale, details_json)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [e.eventType, e.contentItemId || null, e.contentVersionId || null, e.workflowInstanceId || null,
+     e.actor || null, e.actorRole || null, e.rationale || null, JSON.stringify(e.details || {})]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listContentAudit({ contentItemId, limit } = {}) {
+  const r = await q(
+    `SELECT * FROM content_audit_event ${contentItemId ? 'WHERE content_item_id = $1' : ''} ORDER BY event_timestamp DESC LIMIT ${contentItemId ? '$2' : '$1'}`,
+    contentItemId ? [contentItemId, Math.min(Number(limit) || 100, 500)] : [Math.min(Number(limit) || 100, 500)]
+  );
+  return r && r.rows ? r.rows : [];
+}
+// Recursive lineage walk (previous, branched_from, rollback_of) for transparency.
+async function getVersionLineage({ versionId }) {
+  const r = await q(
+    `WITH RECURSIVE lineage AS (
+        SELECT id, content_item_id, semantic_version, locale, branch_type, previous_version_id,
+               branch_root_version_id, source_version_id, rollback_of_version_id, state, 0 AS depth
+          FROM content_version WHERE id = $1
+        UNION ALL
+        SELECT cv.id, cv.content_item_id, cv.semantic_version, cv.locale, cv.branch_type, cv.previous_version_id,
+               cv.branch_root_version_id, cv.source_version_id, cv.rollback_of_version_id, cv.state, l.depth + 1
+          FROM content_version cv
+          JOIN lineage l ON cv.id = l.previous_version_id OR cv.id = l.source_version_id OR cv.id = l.rollback_of_version_id
+         WHERE l.depth < 50
+     )
+     SELECT DISTINCT * FROM lineage ORDER BY depth`,
+    [versionId]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
 
 module.exports = {
   enabled,
@@ -2803,6 +3100,39 @@ module.exports = {
   updateExportRequest,
   getExportRequest,
   listExportRequests,
+  // Feature 010 — CMS Versioning & Approval Workflow
+  createContentItem,
+  getContentItem,
+  listContentItems,
+  setContentItemLifecycle,
+  createContentVersion,
+  getContentVersion,
+  listContentVersions,
+  setContentVersionState,
+  supersedePublishedVersions,
+  upsertApprovalPolicy,
+  getApprovalPolicy,
+  createWorkflowInstance,
+  getWorkflowInstance,
+  getWorkflowByVersion,
+  transitionWorkflow,
+  recordApprovalStep,
+  listApprovalSteps,
+  listPendingApprovals,
+  upsertLocalizationBranch,
+  listLocalizationBranches,
+  setBranchSyncStatus,
+  flagBranchesForSource,
+  upsertMetadataTag,
+  getMetadataForVersion,
+  searchContentMetadata,
+  createDeprecationRecord,
+  archiveDeprecationRecord,
+  getDeprecationForItem,
+  journalRemap,
+  logContentAudit,
+  listContentAudit,
+  getVersionLineage,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

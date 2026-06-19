@@ -765,5 +765,160 @@ app.get('/api/admin/integrations/audit', async (req, res) => {
   catch (e) { res.status(500).json({ error: 'audit_read_failed' }); }
 });
 
+// ===================== Feature 010 — CMS Versioning & Approval governance =====================
+// Governed content lifecycle: authoring, approvals (mandatory pedagogy/compliance/
+// localization gates, Art. 14), immutable snapshots, fail-closed publish/rollback
+// (Art. 15), localization branching, metadata discovery, deprecation/archive, and
+// the Art. 12 immutable audit trail. Admins act as any governance reviewer in the demo.
+const { makeCmsService } = require('./services/cms');
+const cms = makeCmsService(db);
+
+function cmsActor(req) { return (req.user && req.user.email) || 'admin'; }
+// In the demo an authenticated admin holds all governance capabilities.
+function cmsCaps(req) { return require('./auth/roles').capabilitiesFor(req.user || { role: 'admin' }); }
+function cmsGuard(req, res) {
+  if (!cms.enabled) { res.status(503).json({ error: 'cms_unavailable', detail: 'Database is required for content governance.' }); return false; }
+  return true;
+}
+
+// --- Content items & versions ---
+app.post('/api/admin/cms/items', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { title, contentType, defaultLocale } = req.body || {};
+    if (!title) return res.status(400).json({ error: 'title_required' });
+    const item = await cms.createContent({ title, contentType, defaultLocale, actor: cmsActor(req) });
+    res.json({ ok: true, item });
+  } catch (e) { res.status(e.code === 'UNSUPPORTED_LOCALE' ? 400 : 500).json({ error: e.code || 'item_create_failed', detail: e.detail }); }
+});
+app.get('/api/admin/cms/items', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ items: await db.listContentItems({ lifecycleStatus: req.query.status, limit: 200 }) }); }
+  catch (e) { res.status(500).json({ error: 'items_list_failed' }); }
+});
+app.get('/api/admin/cms/items/:itemId/versions', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ versions: await db.listContentVersions({ contentItemId: req.params.itemId }) }); }
+  catch (e) { res.status(500).json({ error: 'versions_list_failed' }); }
+});
+app.post('/api/admin/cms/items/:itemId/versions', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { semanticVersion, locale, branchType, payload, changeSummary, previousVersionId, isMaterialChange } = req.body || {};
+    if (!semanticVersion || !locale) return res.status(400).json({ error: 'semantic_version_and_locale_required' });
+    const version = await cms.createDraft({ contentItemId: req.params.itemId, semanticVersion, locale, branchType, payload, changeSummary, previousVersionId, isMaterialChange, actor: cmsActor(req) });
+    res.json({ ok: true, version });
+  } catch (e) { res.status(['INVALID_SEMANTIC_VERSION', 'UNSUPPORTED_LOCALE'].includes(e.code) ? 400 : 500).json({ error: e.code || 'version_create_failed', detail: e.detail }); }
+});
+
+// --- Metadata tagging (publish-time completeness gate) ---
+app.post('/api/admin/cms/versions/:versionId/metadata', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const m = req.body || {};
+    const tag = await cms.tagMetadata({ contentVersionId: req.params.versionId, meta: {
+      curriculumStandard: m.curriculumStandard, subject: m.subject, gradeLevel: m.gradeLevel,
+      difficulty: m.difficulty, learningObjective: m.learningObjective, prerequisiteVersionIds: m.prerequisiteVersionIds,
+    }, actor: cmsActor(req) });
+    res.json({ ok: true, tag });
+  } catch (e) { res.status(500).json({ error: 'metadata_failed' }); }
+});
+app.get('/api/admin/cms/search', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ results: await db.searchContentMetadata({ subject: req.query.subject, gradeLevel: req.query.gradeLevel, curriculumStandard: req.query.curriculumStandard, limit: 100 }) }); }
+  catch (e) { res.status(500).json({ error: 'search_failed' }); }
+});
+
+// --- Approval workflow ---
+app.post('/api/admin/cms/versions/:versionId/submit', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const r = await cms.submitForReview({ contentVersionId: req.params.versionId, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'submit_failed' }); }
+});
+app.get('/api/admin/cms/approvals/pending', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ pending: await db.listPendingApprovals({ role: req.query.role }) }); }
+  catch (e) { res.status(500).json({ error: 'pending_failed' }); }
+});
+app.post('/api/admin/cms/workflows/:workflowId/decisions', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { decision, comment } = req.body || {};
+    if (!['approved', 'changes_requested', 'rejected'].includes(decision)) return res.status(400).json({ error: 'invalid_decision' });
+    const r = await cms.recordDecision({ workflowInstanceId: req.params.workflowId, decision, comment, actor: cmsActor(req), actorCapabilities: cmsCaps(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'decision_failed' }); }
+});
+
+// --- Publish / rollback (fail-closed) ---
+app.post('/api/admin/cms/versions/:versionId/publish', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const r = await cms.publish({ contentVersionId: req.params.versionId, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'publish_failed' }); }
+});
+app.post('/api/admin/cms/items/:itemId/rollback', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { targetVersionId, rationale } = req.body || {};
+    const r = await cms.rollback({ contentItemId: req.params.itemId, targetVersionId, rationale, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'rollback_failed' }); }
+});
+
+// --- Localization branching ---
+app.post('/api/admin/cms/items/:itemId/localization-branches', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { locale, sourceVersionId, payload, semanticVersion } = req.body || {};
+    const r = await cms.createLocalizationBranch({ contentItemId: req.params.itemId, locale, sourceVersionId, payload, semanticVersion, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(e.code === 'UNSUPPORTED_LOCALE' ? 400 : 500).json({ error: e.code || 'branch_failed', detail: e.detail }); }
+});
+app.get('/api/admin/cms/items/:itemId/localization-branches', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ branches: await db.listLocalizationBranches({ contentItemId: req.params.itemId }) }); }
+  catch (e) { res.status(500).json({ error: 'branches_failed' }); }
+});
+app.post('/api/admin/cms/localization-branches/:branchId/merge-choice', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const r = await cms.recordMergeChoice({ branchId: req.params.branchId, choice: (req.body || {}).choice, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'merge_choice_failed' }); }
+});
+
+// --- Deprecation lifecycle ---
+app.post('/api/admin/cms/items/:itemId/deprecate', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const { eolDate, replacementContentItemId, rationale } = req.body || {};
+    const r = await cms.deprecate({ contentItemId: req.params.itemId, eolDate, replacementContentItemId, rationale, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'deprecate_failed' }); }
+});
+app.post('/api/admin/cms/items/:itemId/archive', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try {
+    const r = await cms.archive({ contentItemId: req.params.itemId, rationale: (req.body || {}).rationale, actor: cmsActor(req) });
+    res.status(r.ok ? 200 : 409).json(r);
+  } catch (e) { res.status(500).json({ error: 'archive_failed' }); }
+});
+
+// --- Lineage + audit transparency (Art. 12/13) ---
+app.get('/api/admin/cms/versions/:versionId/lineage', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json(await cms.lineage({ versionId: req.params.versionId })); }
+  catch (e) { res.status(500).json({ error: 'lineage_failed' }); }
+});
+app.get('/api/admin/cms/audit', async (req, res) => {
+  if (!cmsGuard(req, res)) return;
+  try { res.json({ events: await db.listContentAudit({ contentItemId: req.query.itemId, limit: 200 }) }); }
+  catch (e) { res.status(500).json({ error: 'cms_audit_failed' }); }
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));

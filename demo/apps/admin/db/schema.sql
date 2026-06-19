@@ -1173,3 +1173,194 @@ CREATE TABLE IF NOT EXISTS data_export_request (
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_export_subject ON data_export_request (subject_email, created_at DESC);
+
+-- ===========================================================================
+-- Feature 010 — CMS Versioning & Content Approval Workflow
+-- Immutable version snapshots, configurable approval state machine with
+-- mandatory gates (pedagogy, compliance, localization), branch lineage,
+-- safe rollback, deprecation lifecycle, and Art. 12 immutable audit trail.
+-- EU residency only. No learner-level or sensitive child categories here.
+-- ===========================================================================
+
+-- Canonical content container (lesson/module/assessment), independent of revisions.
+CREATE TABLE IF NOT EXISTS content_item (
+  id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id                   UUID,
+  title                       TEXT        NOT NULL,
+  content_type                TEXT        NOT NULL DEFAULT 'lesson' CHECK (content_type IN ('lesson','assessment','unit')),
+  default_locale              TEXT        NOT NULL DEFAULT 'nl-NL',
+  current_published_version_id UUID,
+  lifecycle_status            TEXT        NOT NULL DEFAULT 'drafting' CHECK (lifecycle_status IN ('drafting','published','deprecated','archived')),
+  created_by                  TEXT,
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Immutable snapshot of content payload + metadata at a specific revision.
+CREATE TABLE IF NOT EXISTS content_version (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_item_id       UUID        NOT NULL REFERENCES content_item(id),
+  semantic_version      TEXT        NOT NULL,                  -- major.minor.patch
+  locale                TEXT        NOT NULL,
+  branch_type           TEXT        NOT NULL DEFAULT 'source' CHECK (branch_type IN ('source','localization')),
+  previous_version_id   UUID,
+  branch_root_version_id UUID,
+  source_version_id     UUID,
+  rollback_of_version_id UUID,                                 -- set when this version was created by a rollback
+  change_summary        TEXT,
+  payload_json          JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  created_by            TEXT,
+  is_material_change    BOOLEAN     NOT NULL DEFAULT true,
+  state                 TEXT        NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','submitted','in_review','changes_requested','rejected','approved','published','superseded')),
+  published_at          TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (content_item_id, locale, semantic_version)
+);
+CREATE INDEX IF NOT EXISTS idx_content_version_item ON content_version (content_item_id, locale, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_content_version_state ON content_version (state);
+
+-- Configurable approval route definitions per content type and branch type.
+CREATE TABLE IF NOT EXISTS approval_workflow_policy (
+  id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_type            TEXT        NOT NULL,
+  branch_type             TEXT        NOT NULL DEFAULT 'source' CHECK (branch_type IN ('source','localization')),
+  steps_json              JSONB       NOT NULL DEFAULT '[]'::jsonb,   -- ordered roles
+  allow_non_material_reuse BOOLEAN    NOT NULL DEFAULT false,
+  effective_from          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  effective_to            TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (content_type, branch_type)
+);
+
+-- Runtime workflow state for a specific content version submission.
+CREATE TABLE IF NOT EXISTS approval_workflow_instance (
+  id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_version_id UUID        NOT NULL UNIQUE REFERENCES content_version(id),
+  policy_id          UUID        REFERENCES approval_workflow_policy(id),
+  state              TEXT        NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','submitted','in_review','changes_requested','rejected','approved','published')),
+  steps_json         JSONB       NOT NULL DEFAULT '[]'::jsonb,   -- snapshot of required role sequence
+  current_step_order INTEGER     NOT NULL DEFAULT 0,
+  lock_version       BIGINT      NOT NULL DEFAULT 0,
+  submitted_by       TEXT,
+  submitted_at       TIMESTAMPTZ,
+  resolved_at        TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Immutable record for each reviewer action at each required gate.
+CREATE TABLE IF NOT EXISTS approval_step_record (
+  id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  workflow_instance_id UUID        NOT NULL REFERENCES approval_workflow_instance(id),
+  step_order           INTEGER     NOT NULL,
+  required_role        TEXT        NOT NULL CHECK (required_role IN ('pedagogy_lead','compliance_lead','localization_lead','curriculum_lead')),
+  reviewer             TEXT        NOT NULL,
+  decision             TEXT        NOT NULL CHECK (decision IN ('approved','changes_requested','rejected')),
+  comment              TEXT,
+  decided_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_approval_step_instance ON approval_step_record (workflow_instance_id, step_order);
+
+-- Branch-level locale lifecycle and source sync advisories.
+CREATE TABLE IF NOT EXISTS localization_branch (
+  id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_item_id             UUID        NOT NULL REFERENCES content_item(id),
+  locale                      TEXT        NOT NULL,
+  branch_root_version_id      UUID,
+  latest_local_version_id     UUID,
+  latest_source_version_id_seen UUID,
+  sync_status                 TEXT        NOT NULL DEFAULT 'up_to_date' CHECK (sync_status IN ('up_to_date','update_available','merge_in_progress','deferred')),
+  merge_choice                TEXT,                            -- merge | adapt | defer
+  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (content_item_id, locale)
+);
+
+-- Structured curriculum and discovery metadata for search and governance.
+CREATE TABLE IF NOT EXISTS content_metadata_tag (
+  id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_version_id    UUID        NOT NULL REFERENCES content_version(id),
+  curriculum_standard   TEXT,
+  subject               TEXT,
+  grade_level           TEXT,
+  difficulty            TEXT,
+  learning_objective    TEXT,
+  prerequisite_version_ids UUID[]   NOT NULL DEFAULT '{}',
+  indexed_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_content_metadata_version ON content_metadata_tag (content_version_id);
+CREATE INDEX IF NOT EXISTS idx_content_metadata_search ON content_metadata_tag (subject, grade_level, curriculum_standard);
+
+-- Governs end-of-life progression and replacement mapping.
+CREATE TABLE IF NOT EXISTS deprecation_record (
+  id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_item_id             UUID        NOT NULL REFERENCES content_item(id),
+  deprecated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deprecated_by               TEXT,
+  eol_date                    DATE        NOT NULL,
+  replacement_content_item_id UUID        REFERENCES content_item(id),
+  archive_at                  TIMESTAMPTZ,
+  status                      TEXT        NOT NULL DEFAULT 'deprecated' CHECK (status IN ('deprecated','archived')),
+  rationale                   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_deprecation_item ON deprecation_record (content_item_id, deprecated_at DESC);
+
+-- Idempotent journal of rollback assignment remap checkpoints.
+CREATE TABLE IF NOT EXISTS assignment_remap_journal (
+  id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  rollback_event_id  UUID        NOT NULL,
+  content_item_id    UUID        NOT NULL,
+  from_version_id    UUID,
+  to_version_id      UUID,
+  remapped_count     INTEGER     NOT NULL DEFAULT 0,
+  status             TEXT        NOT NULL DEFAULT 'completed' CHECK (status IN ('in_progress','completed','failed')),
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (rollback_event_id)
+);
+
+-- Article 12-aligned immutable audit log for lifecycle and approval actions.
+CREATE TABLE IF NOT EXISTS content_audit_event (
+  id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type           TEXT        NOT NULL CHECK (event_type IN ('create','edit','submit','approve','request_changes','reject','publish','rollback','deprecate','archive','merge_choice','branch_create')),
+  content_item_id      UUID,
+  content_version_id   UUID,
+  workflow_instance_id UUID,
+  actor                TEXT,
+  actor_role           TEXT,
+  rationale            TEXT,
+  details_json         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  event_timestamp      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_content_audit_item ON content_audit_event (content_item_id, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_content_audit_type ON content_audit_event (event_type, event_timestamp DESC);
+
+-- Append-only enforcement for the CMS audit trail (Art. 12).
+CREATE OR REPLACE FUNCTION prevent_content_audit_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'content_audit_event is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_content_audit_update ON content_audit_event;
+CREATE TRIGGER trg_prevent_content_audit_update
+BEFORE UPDATE ON content_audit_event FOR EACH ROW
+EXECUTE FUNCTION prevent_content_audit_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_content_audit_delete ON content_audit_event;
+CREATE TRIGGER trg_prevent_content_audit_delete
+BEFORE DELETE ON content_audit_event FOR EACH ROW
+EXECUTE FUNCTION prevent_content_audit_mutation();
+
+-- Approval step records are immutable once written.
+CREATE OR REPLACE FUNCTION prevent_approval_step_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'approval_step_record is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_approval_step_update ON approval_step_record;
+CREATE TRIGGER trg_prevent_approval_step_update
+BEFORE UPDATE ON approval_step_record FOR EACH ROW
+EXECUTE FUNCTION prevent_approval_step_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_approval_step_delete ON approval_step_record;
+CREATE TRIGGER trg_prevent_approval_step_delete
+BEFORE DELETE ON approval_step_record FOR EACH ROW
+EXECUTE FUNCTION prevent_approval_step_mutation();

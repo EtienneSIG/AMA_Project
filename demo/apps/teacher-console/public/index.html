@@ -215,6 +215,7 @@
   <button class="tab-btn" data-tab-btn="assessment" onclick="setTab('assessment')" role="tab">📝 Assessment</button>
   <button class="tab-btn" data-tab-btn="adaptive" onclick="setTab('adaptive')" role="tab">🧭 Adaptive paths</button>
   <button class="tab-btn" data-tab-btn="interop" onclick="setTab('interop')" role="tab">🔌 Integrations</button>
+  <button class="tab-btn" data-tab-btn="content" onclick="setTab('content')" role="tab">📚 Content versions</button>
   <button class="tab-btn" data-tab-btn="audit" onclick="setTab('audit')" role="tab">🛡️ Oversight & audit</button>
 </nav>
 <div data-tab="ask" class="active">
@@ -406,6 +407,58 @@ async function confirmDue(id, decision) {
 }
 function _iesc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 </script>
+<div data-tab="content">
+<section class="card">
+  <div class="explhead">
+    <h2>Content versions &amp; provenance <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">which version learners see · approval rationale · deprecation warnings (Art. 13)</span></h2>
+    <button class="btn btn-sm secondary" onclick="loadContentTab()">Refresh</button>
+  </div>
+  <p class="sub" style="font-size:.8rem;opacity:.85;margin:.3rem 0 .6rem;">Every published change is versioned and approved by a pedagogy and a compliance lead before learners see it. Deprecated content is flagged so you can move classes to its replacement.</p>
+  <div id="cmsTeacherList" style="display:flex;flex-direction:column;gap:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  <div id="cmsTeacherProvenance" style="margin-top:.8rem;"></div>
+</section>
+</div>
+
+<script>
+// Feature 010 — Teacher content-version transparency surface.
+async function loadContentTab() {
+  const el = document.getElementById('cmsTeacherList');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/teacher/content', { cache:'no-store' })).json();
+    const items = j.items || [];
+    if (!items.length) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No published content yet.</div>'; return; }
+    el.innerHTML = items.map(it =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#fff;'+(it.deprecated?'border-color:#e0a800;':'')+'">'
+      + '<span><strong>'+_iesc(it.title)+'</strong> '
+      + (it.publishedVersion ? '<span class="sub" style="font-size:.78rem;">v'+_iesc(it.publishedVersion)+' · '+_iesc(it.locale)+'</span>' : '<span class="sub" style="font-size:.78rem;">unpublished</span>')
+      + (it.deprecated ? ' <span style="color:#c47f00;font-size:.78rem;font-weight:600;">⚠ deprecated'+(it.eolDate?(' (EOL '+_iesc(String(it.eolDate).slice(0,10))+')'):'')+'</span>' : '')
+      + '</span>'
+      + '<button class="btn btn-sm secondary" onclick="loadProvenance(\''+it.contentItemId+'\')">History</button>'
+      + '</div>'
+    ).join('');
+  } catch (e) { el.innerHTML = '<div class="sub" style="font-size:.85rem;">Content unavailable.</div>'; }
+}
+async function loadProvenance(itemId) {
+  const el = document.getElementById('cmsTeacherProvenance');
+  if (!el) return;
+  el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Loading history…</div>';
+  try {
+    const j = await (await fetch('/api/teacher/content/'+itemId+'/provenance', { cache:'no-store' })).json();
+    const vs = j.versions || [];
+    const au = j.audit || [];
+    el.innerHTML = '<section class="card" style="margin-top:.3rem;"><h3 style="margin:.2rem 0 .4rem;font-size:.95rem;">'+_iesc(j.item ? j.item.title : '')+' — version history</h3>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:.82rem;"><thead><tr style="text-align:left;"><th>Version</th><th>Locale</th><th>Branch</th><th>State</th><th>Change</th></tr></thead><tbody>'
+      + vs.map(v => '<tr><td>'+_iesc(v.semanticVersion)+'</td><td>'+_iesc(v.locale)+'</td><td>'+_iesc(v.branchType)+'</td><td>'+_iesc(v.state)+'</td><td>'+_iesc(v.changeSummary||'')+'</td></tr>').join('')
+      + '</tbody></table>'
+      + '<h4 style="margin:.7rem 0 .3rem;font-size:.85rem;">Approval &amp; lifecycle trail</h4>'
+      + '<ul style="margin:0;padding-left:1.1rem;font-size:.8rem;">'
+      + au.map(a => '<li><strong>'+_iesc(a.eventType)+'</strong>'+(a.actorRole?(' · '+_iesc(a.actorRole)):'')+(a.rationale?(' — '+_iesc(a.rationale)):'')+'</li>').join('')
+      + '</ul>'
+      + '<p class="sub" style="font-size:.74rem;opacity:.75;margin-top:.5rem;">'+_iesc(j.transparency||'')+'</p></section>';
+  } catch (e) { el.innerHTML = '<div class="sub" style="font-size:.85rem;">History unavailable.</div>'; }
+}
+</script>
 <div data-tab="assessment">
 <section style="max-width:1320px;margin:0 auto 2rem;padding:0 1.5rem;">
   <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--orange);">
@@ -572,6 +625,7 @@ function setTab(name) {
   if (name === 'assessment' && typeof loadAssessmentTab === 'function') loadAssessmentTab();
   if (name === 'adaptive' && typeof loadAdaptiveTab === 'function') loadAdaptiveTab();
   if (name === 'interop' && typeof loadInteropTab === 'function') loadInteropTab();
+  if (name === 'content' && typeof loadContentTab === 'function') loadContentTab();
 }
 
 async function refreshStatus() {

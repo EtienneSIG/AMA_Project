@@ -101,6 +101,7 @@
   <button data-tab="safety" onclick="setTab('safety')">Safety &amp; Quality</button>
   <button data-tab="data" onclick="setTab('data')">Reference data</button>
   <button data-tab="integrations" onclick="setTab('integrations')">Integrations</button>
+  <button data-tab="governance" onclick="setTab('governance')">Content Governance</button>
 </div><main>
   <div class="grid" id="cards" data-group="overview">
     <div class="card"><em>Loading…</em></div>
@@ -297,6 +298,36 @@
     <div id="integrationAudit" style="margin-top:.5rem;">Loading…</div>
   </div>
 
+  <!-- ===================== Feature 010 — Content Governance ===================== -->
+  <div class="panel" data-group="governance" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Content items &amp; versions <span style="font-weight:400;color:var(--grey);font-size:.85rem;">immutable snapshots · approval gates (Art. 14) · fail-closed publish (Art. 15)</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <input id="cmsTitle" placeholder="New lesson title" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+        <button class="btn" onclick="cmsCreateItem()">+ Content item</button>
+        <button class="btn secondary" onclick="loadCmsItems()">Refresh</button>
+      </div>
+    </div>
+    <div id="cmsOutcome" style="margin-top:.5rem;font-size:.84rem;color:var(--grey);"></div>
+    <div id="cmsItems" style="margin-top:.5rem;">Loading…</div>
+  </div>
+
+  <div class="panel" data-group="governance" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Approval queue <span style="font-weight:400;color:var(--grey);font-size:.85rem;">pedagogy → compliance (localization first for branches)</span></h2>
+      <button class="btn secondary" onclick="loadCmsApprovals()">Refresh</button>
+    </div>
+    <div id="cmsApprovals" style="margin-top:.5rem;">Loading…</div>
+  </div>
+
+  <div class="panel" data-group="governance" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>CMS audit trail <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/cms/audit · immutable (Art. 12)</span></h2>
+      <button class="btn secondary" onclick="loadCmsAudit()">Refresh</button>
+    </div>
+    <div id="cmsAudit" style="margin-top:.5rem;">Loading…</div>
+  </div>
+
 </main><footer>
   © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
 </footer>
@@ -321,6 +352,7 @@ function setTab(g) {
   document.querySelectorAll('[data-group]').forEach(el => { el.style.display = (el.dataset.group === g ? '' : 'none'); });
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === g));
   try { history.replaceState(null, '', '#' + g); } catch (_) {}
+  if (g === 'governance') { loadCmsItems(); loadCmsApprovals(); loadCmsAudit(); }
 }
 
 async function loadCards() {
@@ -672,7 +704,7 @@ async function loadDeployments() {
   loadIntegrations();
   loadIntegrationAudit();
   const initial = (location.hash || '').replace(/^#/, '');
-  const valid = new Set(['overview','users','activity','safety','data','integrations']);
+  const valid = new Set(['overview','users','activity','safety','data','integrations','governance']);
   setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();
@@ -1023,6 +1055,139 @@ async function loadIntegrationAudit() {
     if (!rows.length) { el.innerHTML = '<em>No external API events yet.</em>'; return; }
     el.innerHTML = '<table class="adm"><thead><tr><th>When</th><th>Connector</th><th>Event</th><th>Outcome</th><th>Actor</th></tr></thead><tbody>' +
       rows.map(e => '<tr><td>'+escapeHtml(new Date(e.created_at).toLocaleString())+'</td><td>'+escapeHtml(e.connector_type)+'</td><td>'+escapeHtml(e.event_type)+'</td><td>'+_statusBadge(e.outcome)+'</td><td>'+escapeHtml(e.actor||'system')+'</td></tr>').join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+/* ===================== Feature 010 — Content Governance ===================== */
+async function cmsApi(method, url, body) {
+  const r = await fetch(url, { method, cache:'no-store', headers:{'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, body: j };
+}
+function cmsOut(msg, kind){ const el=document.getElementById('cmsOutcome'); if(el){ el.innerHTML = (kind==='err'?'<span class="badge err">':'<span class="badge ok">')+escapeHtml(msg)+'</span>'; } }
+
+async function cmsCreateItem() {
+  const title = (document.getElementById('cmsTitle').value || '').trim();
+  if (!title) { cmsOut('Title required','err'); return; }
+  const r = await cmsApi('POST', '/api/admin/cms/items', { title, contentType:'lesson', defaultLocale:'nl-NL' });
+  if (r.ok) { document.getElementById('cmsTitle').value=''; cmsOut('Content item created'); loadCmsItems(); }
+  else cmsOut(r.body.error || 'create failed', 'err');
+}
+
+async function loadCmsItems() {
+  const el = document.getElementById('cmsItems');
+  if (!el) return;
+  try {
+    const j = (await cmsApi('GET', '/api/admin/cms/items')).body;
+    const items = j.items || [];
+    if (!items.length) { el.innerHTML = '<em>No content items yet. Create one to begin a governed version lifecycle.</em>'; return; }
+    el.innerHTML = items.map(it =>
+      '<div class="card" style="margin-bottom:.5rem;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;">'
+      + '<strong>'+escapeHtml(it.title)+'</strong> '+_statusBadge(it.lifecycle_status)
+      + '<span style="font-size:.8rem;color:var(--grey);">'+escapeHtml(it.content_type)+' · '+escapeHtml(it.default_locale)+'</span>'
+      + '</div>'
+      + '<div style="margin-top:.4rem;display:flex;gap:.4rem;flex-wrap:wrap;">'
+      + '<button class="btn secondary" onclick="cmsDraft(\''+it.id+'\')">+ Draft version</button>'
+      + '<button class="btn secondary" onclick="cmsShowVersions(\''+it.id+'\')">Versions</button>'
+      + '<button class="btn secondary" onclick="cmsDeprecate(\''+it.id+'\')">Deprecate</button>'
+      + '</div>'
+      + '<div id="cmsVers-'+it.id+'" style="margin-top:.4rem;"></div>'
+      + '</div>'
+    ).join('');
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function cmsDraft(itemId) {
+  const sv = prompt('Semantic version (e.g. 1.0.0):', '1.0.0'); if (!sv) return;
+  const r = await cmsApi('POST', '/api/admin/cms/items/'+itemId+'/versions', { semanticVersion: sv, locale:'nl-NL', branchType:'source', payload:{ body:'Draft content '+sv }, changeSummary:'Initial draft' });
+  if (!r.ok) { cmsOut(r.body.error || 'draft failed', 'err'); return; }
+  const versionId = r.body.version && r.body.version.id;
+  // Tag mandatory metadata so the version can later pass the publish completeness gate.
+  await cmsApi('POST', '/api/admin/cms/versions/'+versionId+'/metadata', { curriculumStandard:'NL-CORE', subject:'Mathematics', gradeLevel:'5', learningObjective:'Fractions fluency' });
+  cmsOut('Draft '+sv+' created + metadata tagged'); cmsShowVersions(itemId);
+}
+
+async function cmsShowVersions(itemId) {
+  const el = document.getElementById('cmsVers-'+itemId);
+  if (!el) return;
+  const j = (await cmsApi('GET', '/api/admin/cms/items/'+itemId+'/versions')).body;
+  const vs = j.versions || [];
+  if (!vs.length) { el.innerHTML = '<em>No versions.</em>'; return; }
+  el.innerHTML = '<table class="adm"><thead><tr><th>Version</th><th>Locale</th><th>Branch</th><th>State</th><th>Actions</th></tr></thead><tbody>' +
+    vs.map(v => '<tr><td>'+escapeHtml(v.semantic_version)+'</td><td>'+escapeHtml(v.locale)+'</td><td>'+escapeHtml(v.branch_type)+'</td><td>'+_statusBadge(v.state)+'</td><td>'+
+      (v.state==='draft'||v.state==='changes_requested'||v.state==='rejected' ? '<button class="btn secondary" onclick="cmsSubmit(\''+v.id+'\',\''+itemId+'\')">Submit</button>' : '') +
+      (v.state==='approved' ? '<button class="btn" onclick="cmsPublish(\''+v.id+'\',\''+itemId+'\')">Publish</button>' : '') +
+      (v.state==='published'||v.state==='superseded' ? '<button class="btn secondary" onclick="cmsRollback(\''+itemId+'\',\''+v.id+'\')">Rollback to</button>' : '') +
+      '</td></tr>').join('') + '</tbody></table>';
+}
+
+async function cmsSubmit(versionId, itemId) {
+  const r = await cmsApi('POST', '/api/admin/cms/versions/'+versionId+'/submit');
+  if (r.ok && r.body.ok) { cmsOut('Submitted for approval'); loadCmsApprovals(); cmsShowVersions(itemId); }
+  else cmsOut((r.body && r.body.error) || 'submit failed', 'err');
+}
+
+async function cmsPublish(versionId, itemId) {
+  const r = await cmsApi('POST', '/api/admin/cms/versions/'+versionId+'/publish');
+  if (r.ok && r.body.ok) { cmsOut('Published'); loadCmsItems(); loadCmsAudit(); }
+  else cmsOut((r.body && (r.body.error + (r.body.missing? ' ['+r.body.missing.join(',')+']':''))) || 'publish blocked', 'err');
+}
+
+async function cmsRollback(itemId, targetVersionId) {
+  const rationale = prompt('Rollback rationale (required, audited):'); if (!rationale) return;
+  const r = await cmsApi('POST', '/api/admin/cms/items/'+itemId+'/rollback', { targetVersionId, rationale });
+  if (r.ok && r.body.ok) { cmsOut('Rolled back — new promoted version created'); loadCmsItems(); loadCmsAudit(); }
+  else cmsOut((r.body && r.body.error) || 'rollback failed', 'err');
+}
+
+async function cmsDeprecate(itemId) {
+  const eol = prompt('EOL date (YYYY-MM-DD):'); if (!eol) return;
+  const rationale = prompt('Deprecation rationale (required, audited):'); if (!rationale) return;
+  const r = await cmsApi('POST', '/api/admin/cms/items/'+itemId+'/deprecate', { eolDate: eol, rationale });
+  if (r.ok && r.body.ok) { cmsOut('Deprecated'); loadCmsItems(); loadCmsAudit(); }
+  else cmsOut((r.body && r.body.error) || 'deprecate failed', 'err');
+}
+
+async function loadCmsApprovals() {
+  const el = document.getElementById('cmsApprovals');
+  if (!el) return;
+  try {
+    const j = (await cmsApi('GET', '/api/admin/cms/approvals/pending')).body;
+    const rows = j.pending || [];
+    if (!rows.length) { el.innerHTML = '<em>No pending approvals.</em>'; return; }
+    el.innerHTML = rows.map(w => {
+      const steps = Array.isArray(w.steps_json) ? w.steps_json : [];
+      const cur = steps[(w.current_step_order||1)-1] || '—';
+      return '<div class="card" style="margin-bottom:.5rem;"><div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;">'
+        + '<span><strong>'+escapeHtml(w.title||'(item)')+'</strong> v'+escapeHtml(w.semantic_version)+' · '+escapeHtml(w.locale)+' <span class="badge warn">'+escapeHtml(cur)+'</span></span>'
+        + '<span style="display:flex;gap:.35rem;flex-wrap:wrap;">'
+        + '<button class="btn" onclick="cmsDecide(\''+w.id+'\',\'approved\')">Approve</button>'
+        + '<button class="btn secondary" onclick="cmsDecide(\''+w.id+'\',\'changes_requested\')">Changes</button>'
+        + '<button class="btn secondary" onclick="cmsDecide(\''+w.id+'\',\'rejected\')">Reject</button>'
+        + '</span></div></div>';
+    }).join('');
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function cmsDecide(workflowId, decision) {
+  let comment = '';
+  if (decision !== 'approved') { comment = prompt('Comment (required for '+decision+'):') || ''; if (!comment.trim()) return; }
+  const r = await cmsApi('POST', '/api/admin/cms/workflows/'+workflowId+'/decisions', { decision, comment });
+  if (r.ok && r.body.ok) { cmsOut(decision+' recorded'+(r.body.allGatesPassed?' — all gates passed, ready to publish':'')); loadCmsApprovals(); loadCmsItems(); loadCmsAudit(); }
+  else cmsOut((r.body && (r.body.error + (r.body.requiredRole? ' (needs '+r.body.requiredRole+')':''))) || 'decision failed', 'err');
+}
+
+async function loadCmsAudit() {
+  const el = document.getElementById('cmsAudit');
+  if (!el) return;
+  try {
+    const j = (await cmsApi('GET', '/api/admin/cms/audit')).body;
+    const rows = (j.events || []).slice(0, 40);
+    if (!rows.length) { el.innerHTML = '<em>No governance events yet.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>When</th><th>Event</th><th>Role</th><th>Rationale</th></tr></thead><tbody>' +
+      rows.map(e => '<tr><td>'+escapeHtml(new Date(e.event_timestamp).toLocaleString())+'</td><td>'+escapeHtml(e.event_type)+'</td><td>'+escapeHtml(e.actor_role||'—')+'</td><td>'+escapeHtml(e.rationale||'')+'</td></tr>').join('') +
       '</tbody></table>';
   } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
 }

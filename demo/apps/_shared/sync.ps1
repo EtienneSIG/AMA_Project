@@ -21,10 +21,22 @@ foreach ($a in $apps) {
         }
         # Feature 009 — Interoperability router (required by the shared server.js).
         Copy-Item -Force -Path (Join-Path $here 'server-interop.js') -Destination (Join-Path $appDir 'server-interop.js')
+        # Feature 010 — CMS transparency router (required by the shared server.js).
+        Copy-Item -Force -Path (Join-Path $here 'server-cms.js') -Destination (Join-Path $appDir 'server-cms.js')
     }
     # Feature 009 — integration adapters + security provider. Copied to ALL apps because the
     # bespoke admin/server.js also requires these modules (connector onboarding console).
     foreach ($mod in 'integrations','security') {
+        $modSrc = Join-Path $here $mod
+        if (Test-Path $modSrc) {
+            $modDest = Join-Path $appDir $mod
+            if (-not (Test-Path $modDest)) { New-Item -ItemType Directory -Force -Path $modDest | Out-Null }
+            Get-ChildItem $modSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $modDest $_.Name) }
+        }
+    }
+    # Feature 010 — CMS service engine, shared validation, and governance role constants.
+    # Copied to ALL apps because the bespoke admin/server.js requires services/cms + auth/roles.
+    foreach ($mod in 'services/cms','validation','auth') {
         $modSrc = Join-Path $here $mod
         if (Test-Path $modSrc) {
             $modDest = Join-Path $appDir $mod

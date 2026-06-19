@@ -173,6 +173,14 @@ try {
   console.warn('[interop] routes not mounted (connectors offline):', e && e.message);
 }
 
+// Feature 010 — CMS transparency routes (teacher version/approval provenance).
+// Guarded require: missing module => app still boots without governance views.
+try {
+  require('./server-cms')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[cms] transparency routes not mounted:', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
