@@ -156,6 +156,15 @@ if (APP_ROLE === 'student') {
   });
 }
 
+// Feature 007 — Adaptive Learning routes (learner + teacher surfaces).
+// Guarded require: if the module is missing the app still boots in non-adaptive
+// mode (availability safeguard / graceful degradation per spec 007).
+try {
+  require('./server-adaptive')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[adaptive] routes not mounted (non-adaptive fallback):', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {

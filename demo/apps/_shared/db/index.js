@@ -2226,6 +2226,196 @@ async function upsertTemplateCacheEntry({ cacheKey, templateFamily, templateVers
   return r && r.rows[0] ? r.rows[0] : null;
 }
 
+// ---------------------------------------------------------------------------
+// Feature 007 — Adaptive Learning helpers
+// All adaptive_decision / adaptive_teacher_override / adaptive_audit rows are
+// append-only (enforced by DB triggers). These helpers only INSERT/SELECT them.
+// ---------------------------------------------------------------------------
+
+// Current mastery level (0..1) for a learner+skill from skill_mastery, or null.
+async function masteryForSkill({ email, skillId }) {
+  const r = await q(
+    `SELECT level, attempts, correct, last_seen FROM skill_mastery WHERE email = $1 AND skill_id = $2`,
+    [email, skillId]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Skills linked to an activity/item (usually 1).
+async function skillsForItem({ itemId }) {
+  const r = await q(`SELECT skill_id FROM item_skills WHERE item_id = $1`, [itemId]);
+  return r ? r.rows.map(x => x.skill_id) : [];
+}
+
+async function recordAdaptiveDecision(d) {
+  const r = await q(
+    `INSERT INTO adaptive_decision
+       (learner_email, skill_id, prior_item_id, recommended_activity_id, reason,
+        mastery_level, threshold_band, model_version, explanation_learner, explanation_teacher, data_reliable)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     RETURNING *`,
+    [d.learnerEmail, d.skillId || null, d.priorItemId || null, d.recommendedActivityId || null,
+     d.reason, d.masteryLevel == null ? null : Number(d.masteryLevel), d.thresholdBand || 'unknown',
+     d.modelVersion || 'adaptive-v1', (d.explanationLearner || '').slice(0, 600),
+     (d.explanationTeacher || '').slice(0, 800), d.dataReliable !== false]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getAdaptiveDecision({ id }) {
+  const r = await q(`SELECT * FROM adaptive_decision WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listAdaptiveDecisionsForLearner({ email, limit = 50 }) {
+  const r = await q(
+    `SELECT * FROM adaptive_decision WHERE learner_email = $1 ORDER BY created_at DESC LIMIT $2`,
+    [email, limit]
+  );
+  return r ? r.rows : [];
+}
+
+async function markDecisionOverridden({ id }) {
+  await q(`UPDATE adaptive_decision SET teacher_overridden = true WHERE id = $1`, [id]);
+}
+
+async function startCatchUpSequence({ email, skillId, activityIds, checkpointActivityId }) {
+  const r = await q(
+    `INSERT INTO adaptive_catch_up_sequence (learner_email, skill_id, activity_ids, checkpoint_activity_id)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [email, skillId, Array.isArray(activityIds) ? activityIds : [], checkpointActivityId || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getActiveCatchUpSequence({ email, skillId }) {
+  const r = await q(
+    `SELECT * FROM adaptive_catch_up_sequence
+      WHERE learner_email = $1 AND skill_id = $2 AND status = 'active'
+      ORDER BY started_at DESC LIMIT 1`,
+    [email, skillId]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function advanceCatchUpSequence({ id, currentIndex, status, finalMastery }) {
+  const r = await q(
+    `UPDATE adaptive_catch_up_sequence
+        SET current_index = COALESCE($2, current_index),
+            status = COALESCE($3, status),
+            final_mastery = COALESCE($4, final_mastery),
+            completed_at = CASE WHEN $3 IN ('completed','overridden') THEN now() ELSE completed_at END,
+            updated_at = now()
+      WHERE id = $1 RETURNING *`,
+    [id, currentIndex == null ? null : Number(currentIndex), status || null,
+     finalMastery == null ? null : Number(finalMastery)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function recordStretchActivity({ email, skillId, activityId, teacherAssigned }) {
+  const r = await q(
+    `INSERT INTO adaptive_stretch_activity (learner_email, skill_id, activity_id, teacher_assigned)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [email, skillId, activityId || null, Boolean(teacherAssigned)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function updateStretchFeedback({ id, teacherEmail, feedback, completed }) {
+  const r = await q(
+    `UPDATE adaptive_stretch_activity
+        SET qualitative_feedback = COALESCE($3, qualitative_feedback),
+            feedback_teacher_email = COALESCE($2, feedback_teacher_email),
+            completed_at = CASE WHEN $4 THEN now() ELSE completed_at END,
+            updated_at = now()
+      WHERE id = $1 RETURNING *`,
+    [id, teacherEmail || null, feedback == null ? null : String(feedback).slice(0, 1000), Boolean(completed)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listStretchForLearner({ email, limit = 25 }) {
+  const r = await q(
+    `SELECT * FROM adaptive_stretch_activity WHERE learner_email = $1 ORDER BY trigger_at DESC LIMIT $2`,
+    [email, limit]
+  );
+  return r ? r.rows : [];
+}
+
+async function recordAdaptiveOverride(o) {
+  const r = await q(
+    `INSERT INTO adaptive_teacher_override
+       (decision_id, learner_email, teacher_email, skill_id, recommended_activity_id, override_activity_id, reasoning)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [o.decisionId, o.learnerEmail, o.teacherEmail, o.skillId || null,
+     o.recommendedActivityId || null, o.overrideActivityId || null,
+     o.reasoning == null ? null : String(o.reasoning).slice(0, 1000)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listAdaptiveOverridesForLearner({ email, limit = 50 }) {
+  const r = await q(
+    `SELECT * FROM adaptive_teacher_override WHERE learner_email = $1 ORDER BY created_at DESC LIMIT $2`,
+    [email, limit]
+  );
+  return r ? r.rows : [];
+}
+
+// High-intervention signal (Art. 14): count of overrides for a learner+skill.
+async function countOverridesForTopic({ email, skillId }) {
+  const r = await q(
+    `SELECT COUNT(*)::int AS n FROM adaptive_teacher_override WHERE learner_email = $1 AND skill_id = $2`,
+    [email, skillId]
+  );
+  return r && r.rows[0] ? r.rows[0].n : 0;
+}
+
+async function logAdaptiveAudit({ eventType, learnerEmail, teacherEmail, data, latencyMs }) {
+  const r = await q(
+    `INSERT INTO adaptive_audit (event_type, learner_email, teacher_email, data, latency_ms)
+     VALUES ($1,$2,$3,$4::jsonb,$5) RETURNING id, created_at`,
+    [eventType, learnerEmail || 'unknown', teacherEmail || null,
+     JSON.stringify(data || {}), latencyMs == null ? null : Number(latencyMs)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listAdaptiveAudit({ learnerEmail, limit = 100 }) {
+  const r = await q(
+    `SELECT * FROM adaptive_audit WHERE learner_email = $1 ORDER BY created_at DESC LIMIT $2`,
+    [learnerEmail, limit]
+  );
+  return r ? r.rows : [];
+}
+
+async function saveAdaptivePathState({ email, currentActivityId, sequenceId, checkpointProgress, priorHints, priorFeedback, device }) {
+  const r = await q(
+    `INSERT INTO adaptive_path_state
+       (learner_email, current_activity_id, sequence_id, checkpoint_progress, prior_hints, prior_feedback, last_device, updated_at)
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7, now())
+     ON CONFLICT (learner_email) DO UPDATE SET
+       current_activity_id = EXCLUDED.current_activity_id,
+       sequence_id = EXCLUDED.sequence_id,
+       checkpoint_progress = EXCLUDED.checkpoint_progress,
+       prior_hints = EXCLUDED.prior_hints,
+       prior_feedback = EXCLUDED.prior_feedback,
+       last_device = EXCLUDED.last_device,
+       updated_at = now()
+     RETURNING *`,
+    [email, currentActivityId || null, sequenceId == null ? null : Number(sequenceId),
+     (checkpointProgress || '').slice(0, 120), JSON.stringify(Array.isArray(priorHints) ? priorHints : []),
+     (priorFeedback || '').slice(0, 600), (device || '').slice(0, 80)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getAdaptivePathState({ email }) {
+  const r = await q(`SELECT * FROM adaptive_path_state WHERE learner_email = $1`, [email]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
 module.exports = {
   enabled,
   init,
@@ -2338,6 +2528,26 @@ module.exports = {
   logAskFeedback,
   getQualityKpis,
   getQualityFeedback,
+  // Feature 007 — Adaptive Learning
+  masteryForSkill,
+  skillsForItem,
+  recordAdaptiveDecision,
+  getAdaptiveDecision,
+  listAdaptiveDecisionsForLearner,
+  markDecisionOverridden,
+  startCatchUpSequence,
+  getActiveCatchUpSequence,
+  advanceCatchUpSequence,
+  recordStretchActivity,
+  updateStretchFeedback,
+  listStretchForLearner,
+  recordAdaptiveOverride,
+  listAdaptiveOverridesForLearner,
+  countOverridesForTopic,
+  logAdaptiveAudit,
+  listAdaptiveAudit,
+  saveAdaptivePathState,
+  getAdaptivePathState,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

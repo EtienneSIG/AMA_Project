@@ -5,6 +5,7 @@
 <title>LearnEU — Learner Web · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="/csrf.js"></script>
+<script src="/adaptive.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -388,6 +389,7 @@
         <div class="ai-question" id="aiQuestion" style="font-size:1.05rem;color:var(--navy);font-weight:600;margin:.2rem 0 .45rem;line-height:1.4;min-height:2.2rem;">…</div>
         <div class="ai-meta" style="font-size:.72rem;color:var(--grey);">Item <code id="aiItemId">—</code> · diff <code id="aiItemDiff">—</code> · pred <code id="aiItemPred">—</code></div>
       </div>
+      <div id="adaptiveWhy" style="display:none;margin-top:.55rem;"></div>
       <div style="background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:.85rem 1rem;margin-top:.6rem;">
         <span class="ai-step" style="display:inline-block;background:var(--teal);color:#fff;font-size:.65rem;font-weight:700;padding:.12rem .5rem;border-radius:999px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.4rem;">2 · Your answer</span>
         <input type="text" class="ai-answer" id="aiAnswer" placeholder="e.g. 3/4   or   1.25" autocomplete="off" />
@@ -596,6 +598,13 @@ window.adaptive = (function() {
         body: JSON.stringify({ itemId: currentItem.id, difficulty: currentItem.difficulty, predicted: currentItem.predicted, correct, latencyMs })
       });
     } catch (e) { /* swallow */ }
+    // Feature 007 — adaptive next-best-activity with transparent "why this" label.
+    try {
+      if (window.LearnEUAdaptive) {
+        const rec = await window.LearnEUAdaptive.next({ itemId: currentItem.id, correct, latencyMs, device: 'web' });
+        window.LearnEUAdaptive.renderLearnerLabel(document.getElementById('adaptiveWhy'), rec);
+      }
+    } catch (e) { /* adaptive is best-effort; never blocks practice */ }
     loadMastery();
     loadGamificationDashboard();
     next();
@@ -606,6 +615,23 @@ window.adaptive = (function() {
   } else {
     loadModel();
   }
+  // Feature 007 US5 — cross-device resume: surface where the learner left off.
+  (async function resumeOnLoad() {
+    try {
+      if (!window.LearnEUAdaptive) return;
+      const state = await window.LearnEUAdaptive.getState();
+      const el = document.getElementById('adaptiveWhy');
+      if (state && state.current_activity_id && el) {
+        el.style.display = 'block';
+        el.innerHTML = '<div style="border:1px solid #BFDBFE;border-left:4px solid #1D4ED8;border-radius:8px;padding:.55rem .7rem;background:#EFF6FF;">'
+          + '<div style="font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;color:#1D4ED8;font-weight:700;">Welcome back \ud83d\udc4b</div>'
+          + '<div style="font-size:.9rem;color:#0F172A;margin-top:.2rem;">Resuming your path: <code>' + window.LearnEUAdaptive.esc(state.current_activity_id) + '</code>'
+          + (state.checkpoint_progress ? ' \u00b7 ' + window.LearnEUAdaptive.esc(state.checkpoint_progress) : '') + '</div></div>';
+        // Record the resume (logs a cross-device event if the device changed).
+        window.LearnEUAdaptive.saveState({ currentActivityId: state.current_activity_id, sequenceId: state.sequence_id || null, checkpointProgress: state.checkpoint_progress || null, device: 'web' });
+      }
+    } catch (_) { /* resume is best-effort */ }
+  })();
   return { next, answer };
 })();
 </script>

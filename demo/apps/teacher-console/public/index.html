@@ -5,6 +5,7 @@
 <title>LearnEU — Teacher Console · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="/csrf.js"></script>
+<script src="/adaptive.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -212,6 +213,7 @@
   <button class="tab-btn" data-tab-btn="inbox" onclick="setTab('inbox')" role="tab">📥 Learner inbox <span class="badge-count" id="inboxBadge">0</span></button>
   <button class="tab-btn" data-tab-btn="class" onclick="setTab('class')" role="tab">🧑‍🏫 Class dashboard</button>
   <button class="tab-btn" data-tab-btn="assessment" onclick="setTab('assessment')" role="tab">📝 Assessment</button>
+  <button class="tab-btn" data-tab-btn="adaptive" onclick="setTab('adaptive')" role="tab">🧭 Adaptive paths</button>
   <button class="tab-btn" data-tab-btn="audit" onclick="setTab('audit')" role="tab">🛡️ Oversight & audit</button>
 </nav>
 <div data-tab="ask" class="active">
@@ -331,6 +333,34 @@
     <div id="overridesList" style="display:flex;flex-direction:column;gap:.45rem;">
       <div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>
     </div>
+  </div>
+</section>
+</div>
+<div data-tab="adaptive">
+<section style="max-width:1320px;margin:0 auto 2rem;padding:0 1.5rem;">
+  <div class="card" style="margin-bottom:1rem;border-left:4px solid #7C3AED;">
+    <h2>Adaptive learning paths <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">high-risk AI · EU AI Act Annex III §3 · teacher-in-the-loop</span></h2>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.85;font-size:.88rem;">Every recommendation below is advisory. You see the full reasoning and can override any path with one click — your override is logged immutably (Article 14).</p>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;">
+      <input id="adaptiveLearnerEmail" value="student@learneu.demo" style="padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;min-width:260px;" placeholder="learner email" />
+      <button class="btn btn-sm" onclick="loadAdaptiveTab()">Load learner path</button>
+    </div>
+    <div id="adaptiveAlert" style="display:none;margin-top:.7rem;"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>Recommendation history <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">latest first · full reasoning shown</span></h2></div>
+    <div id="adaptiveDecisions" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Load a learner to see their adaptive path.</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>Override history <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">immutable · Article 14 evidence</span></h2></div>
+    <div id="adaptiveOverrides" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">No overrides yet.</div></div>
+  </div>
+
+  <div class="card">
+    <div class="explhead"><h2>Stretch outcomes <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">qualitative feedback only</span></h2></div>
+    <div id="adaptiveStretch" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">No stretch activities yet.</div></div>
   </div>
 </section>
 </div>
@@ -498,6 +528,7 @@ function setTab(name) {
   document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
   try { history.replaceState(null, '', '#' + name); } catch (_) {}
   if (name === 'assessment' && typeof loadAssessmentTab === 'function') loadAssessmentTab();
+  if (name === 'adaptive' && typeof loadAdaptiveTab === 'function') loadAdaptiveTab();
 }
 
 async function refreshStatus() {
@@ -1274,6 +1305,90 @@ async function loadRemediation() {
     list.innerHTML = rows.map(x => '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.55rem;">'
       + '<strong>' + escapeHtml(x.title) + '</strong> <span class="sub" style="font-size:.76rem;color:var(--grey);">class ' + escapeHtml(x.class_id) + ' · ' + escapeHtml(x.status) + '</span></div>').join('');
   } catch (e) { list.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+
+// ===== Feature 007 — Adaptive learning paths (teacher oversight) =====
+function _adReasonBadge(reason) {
+  const m = { catch_up: ['Catch-up', '#9A3412', '#FEF3C7'], peer_practice: ['Peer practice', '#1D4ED8', '#DBEAFE'],
+    challenge: ['Challenge', '#15803D', '#DCFCE7'], stretch: ['Stretch', '#7C3AED', '#EDE9FE'],
+    non_adaptive: ['Non-adaptive (teacher decides)', '#475569', '#F1F5F9'] };
+  const [t, fg, bg] = m[reason] || [reason || '—', '#475569', '#F1F5F9'];
+  return '<span style="display:inline-block;font-size:.68rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;color:' + fg + ';background:' + bg + ';">' + t + '</span>';
+}
+async function loadAdaptiveTab() {
+  const email = (document.getElementById('adaptiveLearnerEmail') || {}).value || 'student@learneu.demo';
+  const decEl = document.getElementById('adaptiveDecisions');
+  const ovEl = document.getElementById('adaptiveOverrides');
+  const stEl = document.getElementById('adaptiveStretch');
+  const alertEl = document.getElementById('adaptiveAlert');
+  if (decEl) decEl.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>';
+  let d;
+  try { d = await window.LearnEUAdaptive.teacherLearner(email); }
+  catch (e) { if (decEl) decEl.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; return; }
+  if (!d || d.error) { if (decEl) decEl.innerHTML = '<span style="color:#b00020;">' + escapeHtml((d && d.error) || 'No access to this learner.') + '</span>'; return; }
+
+  // High-intervention banner
+  if (alertEl) {
+    if (d.highIntervention && d.highIntervention.length) {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = '<div style="border:1px solid #FCA5A5;background:#FEF2F2;border-radius:8px;padding:.6rem .75rem;color:#991B1B;font-size:.88rem;">'
+        + '⚠️ High-intervention signal: ' + d.highIntervention.length + ' topic(s) with repeated overrides/struggles. Consider a 1:1 check-in.</div>';
+    } else { alertEl.style.display = 'none'; alertEl.innerHTML = ''; }
+  }
+
+  // Decisions
+  const decisions = d.decisions || [];
+  if (decEl) {
+    decEl.innerHTML = decisions.length ? decisions.map(x =>
+      '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.6rem .7rem;">'
+      + '<div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;align-items:center;">'
+      + '<div>' + _adReasonBadge(x.reason) + ' <code style="font-size:.74rem;">' + escapeHtml(x.skill_id || '—') + '</code>'
+      + (x.teacher_overridden ? ' <span style="font-size:.7rem;color:#7C3AED;font-weight:700;">· OVERRIDDEN</span>' : '') + '</div>'
+      + '<div style="font-size:.72rem;color:var(--grey);">mastery ' + (x.mastery_level != null ? Math.round(x.mastery_level * 100) + '%' : '—') + ' · ' + escapeHtml(x.threshold_band || '') + '</div>'
+      + '</div>'
+      + '<div style="font-size:.84rem;color:#0F172A;margin-top:.35rem;">' + escapeHtml(x.explanation_teacher || '') + '</div>'
+      + '<div style="margin-top:.45rem;">'
+      + (x.teacher_overridden ? '' : '<button class="btn btn-sm secondary" onclick="overrideAdaptive(' + x.id + ')">Override this path</button>')
+      + '</div></div>'
+    ).join('') : '<div class="sub" style="font-size:.85rem;opacity:.7;">No adaptive recommendations recorded yet for this learner.</div>';
+  }
+
+  // Overrides
+  const overrides = d.overrides || [];
+  if (ovEl) {
+    ovEl.innerHTML = overrides.length ? overrides.map(x =>
+      '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .65rem;">'
+      + '<div style="font-size:.8rem;color:#0F172A;"><strong>' + escapeHtml(x.teacher_email || '') + '</strong> overrode '
+      + '<code style="font-size:.72rem;">' + escapeHtml(x.override_activity_id || 'pause') + '</code></div>'
+      + '<div style="font-size:.78rem;color:var(--grey);margin-top:.2rem;">' + escapeHtml(x.reasoning || '') + '</div></div>'
+    ).join('') : '<div class="sub" style="font-size:.85rem;opacity:.7;">No overrides yet.</div>';
+  }
+
+  // Stretch
+  const stretch = d.stretch || [];
+  if (stEl) {
+    stEl.innerHTML = stretch.length ? stretch.map(x =>
+      '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .65rem;">'
+      + '<div style="font-size:.8rem;color:#0F172A;"><code style="font-size:.72rem;">' + escapeHtml(x.activity_id || '') + '</code></div>'
+      + (x.qualitative_feedback ? '<div style="font-size:.78rem;color:var(--grey);margin-top:.2rem;">' + escapeHtml(x.qualitative_feedback) + '</div>' : '')
+      + '<button class="btn btn-sm secondary" style="margin-top:.35rem;" onclick="stretchFeedback(' + x.id + ')">Add feedback</button></div>'
+    ).join('') : '<div class="sub" style="font-size:.85rem;opacity:.7;">No stretch activities yet.</div>';
+  }
+}
+async function overrideAdaptive(decisionId) {
+  const reasoning = prompt('Reason for overriding this recommendation (logged immutably, Article 14):', '');
+  if (reasoning === null) return;
+  const activity = prompt('Optional: activity id to assign instead (leave blank to pause the path):', '');
+  const r = await window.LearnEUAdaptive.teacherOverride(decisionId, { reasoning: reasoning, overrideActivityId: (activity || '').trim() || null });
+  if (!r.ok) { alert('Override failed: ' + ((r.data && r.data.error) || r.status)); return; }
+  loadAdaptiveTab();
+}
+async function stretchFeedback(id) {
+  const fb = prompt('Qualitative feedback for this stretch activity (no grade):', '');
+  if (fb === null) return;
+  const r = await window.LearnEUAdaptive.teacherStretchFeedback(id, { feedback: fb, completed: true });
+  if (!r.ok) { alert('Save failed: ' + ((r.data && r.data.error) || r.status)); return; }
+  loadAdaptiveTab();
 }
 
 </script>

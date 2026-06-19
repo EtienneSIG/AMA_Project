@@ -866,3 +866,138 @@ CREATE TABLE IF NOT EXISTS template_cache_entries (
 CREATE INDEX IF NOT EXISTS idx_template_cache_family ON template_cache_entries (template_family, review_status);
 
 -- Teacher overrides (Feature 5a ΓÇö EU AI Act Article 14 audit trail).
+
+-- ===========================================================================
+-- Feature 007 — Adaptive Learning (Next-Best-Activity, Catch-Up & Stretch)
+-- HIGH-RISK (EU AI Act Annex III §3). Every adaptive decision is a transparent,
+-- teacher-overridable RECOMMENDATION — never an autonomous action.
+-- Decision/override/audit tables are APPEND-ONLY (Art. 12 record-keeping).
+-- adaptive_path_state is device-scoped, mutable (cross-device resume only).
+-- ===========================================================================
+
+-- Every adaptive recommendation, with the deterministic reasoning that produced it.
+CREATE TABLE IF NOT EXISTS adaptive_decision (
+  id                       BIGSERIAL    PRIMARY KEY,
+  learner_email            TEXT         NOT NULL,
+  skill_id                 TEXT,                              -- skill the decision is anchored to
+  prior_item_id            TEXT,                              -- activity the learner just completed
+  recommended_activity_id  TEXT,                              -- next-best activity id (null in non-adaptive fallback)
+  reason                   TEXT         NOT NULL CHECK (reason IN ('catch_up','peer_practice','challenge','stretch','non_adaptive')),
+  mastery_level            REAL,                              -- 0..1 used to derive the band
+  threshold_band           TEXT         NOT NULL CHECK (threshold_band IN ('0-50','50-80','80-plus','unknown')),
+  model_version            TEXT         NOT NULL DEFAULT 'adaptive-v1',
+  explanation_learner      TEXT,                              -- plain-language "why this activity" (Art. 13)
+  explanation_teacher      TEXT,                              -- full reasoning visible to teacher
+  data_reliable            BOOLEAN      NOT NULL DEFAULT true, -- false => mastery evidence unavailable/flagged
+  teacher_overridden       BOOLEAN      NOT NULL DEFAULT false,
+  created_at               TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_adaptive_decision_learner ON adaptive_decision (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_adaptive_decision_skill   ON adaptive_decision (skill_id, created_at DESC);
+
+-- Scaffolded catch-up sequence assigned when mastery is below 50%.
+CREATE TABLE IF NOT EXISTS adaptive_catch_up_sequence (
+  id                       BIGSERIAL    PRIMARY KEY,
+  learner_email            TEXT         NOT NULL,
+  skill_id                 TEXT         NOT NULL,
+  activity_ids             TEXT[]       NOT NULL,             -- ordered scaffolded steps
+  checkpoint_activity_id   TEXT,                              -- gate before advancement
+  current_index            INTEGER      NOT NULL DEFAULT 0,
+  status                   TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed','re_catch_up','overridden')),
+  started_at               TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  completed_at             TIMESTAMPTZ,
+  final_mastery            REAL,
+  updated_at               TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_adaptive_catchup_learner ON adaptive_catch_up_sequence (learner_email, skill_id, started_at DESC);
+
+-- Stretch opportunity surfaced after sustained high mastery (3+ consecutive 85%+).
+CREATE TABLE IF NOT EXISTS adaptive_stretch_activity (
+  id                       BIGSERIAL    PRIMARY KEY,
+  learner_email            TEXT         NOT NULL,
+  skill_id                 TEXT         NOT NULL,
+  activity_id              TEXT,
+  trigger_at               TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  completed_at             TIMESTAMPTZ,
+  teacher_assigned         BOOLEAN      NOT NULL DEFAULT false,
+  qualitative_feedback     TEXT,                              -- teacher notes (formative, not a grade)
+  feedback_teacher_email   TEXT,
+  updated_at               TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_adaptive_stretch_learner ON adaptive_stretch_activity (learner_email, skill_id, trigger_at DESC);
+
+-- Teacher override of an adaptive recommendation (Art. 14 human oversight). APPEND-ONLY.
+CREATE TABLE IF NOT EXISTS adaptive_teacher_override (
+  id                       BIGSERIAL    PRIMARY KEY,
+  decision_id              BIGINT       NOT NULL,             -- references adaptive_decision.id
+  learner_email            TEXT         NOT NULL,
+  teacher_email            TEXT         NOT NULL,
+  skill_id                 TEXT,
+  recommended_activity_id  TEXT,
+  override_activity_id     TEXT,                              -- teacher's chosen alternative (null = manual intervention)
+  reasoning                TEXT,                              -- optional teacher rationale
+  created_at               TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_adaptive_override_learner ON adaptive_teacher_override (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_adaptive_override_decision ON adaptive_teacher_override (decision_id);
+
+-- Immutable adaptive audit trail (Art. 12). One row per material event. APPEND-ONLY.
+CREATE TABLE IF NOT EXISTS adaptive_audit (
+  id            BIGSERIAL    PRIMARY KEY,
+  event_type    TEXT         NOT NULL CHECK (event_type IN (
+                  'decision_made','override_applied','checkpoint_passed','checkpoint_failed',
+                  'path_changed','anomaly_flagged','stretch_triggered','stretch_completed',
+                  'catch_up_started','high_intervention','resume','non_adaptive_fallback')),
+  learner_email TEXT         NOT NULL,
+  teacher_email TEXT,
+  data          JSONB        NOT NULL DEFAULT '{}'::jsonb,    -- full decision/override snapshot
+  latency_ms    INTEGER,                                      -- telemetry (Art. 15 robustness)
+  logged_by_system BOOLEAN   NOT NULL DEFAULT true,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_adaptive_audit_learner ON adaptive_audit (learner_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_adaptive_audit_event   ON adaptive_audit (event_type, created_at DESC);
+
+-- Cross-device adaptive path state (resume). Mutable, device-session scoped (NOT an audit record).
+CREATE TABLE IF NOT EXISTS adaptive_path_state (
+  learner_email        TEXT         NOT NULL,
+  current_activity_id  TEXT,
+  sequence_id          BIGINT,                                -- active catch-up sequence id, if any
+  checkpoint_progress  TEXT,                                  -- e.g. "2 of 4 catch-up activities"
+  prior_hints          JSONB        NOT NULL DEFAULT '[]'::jsonb,
+  prior_feedback       TEXT,
+  last_device          TEXT,
+  updated_at           TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (learner_email)
+);
+
+-- Append-only guardrails (mirror teacher_approvals immutability posture).
+CREATE OR REPLACE FUNCTION prevent_adaptive_audit_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'adaptive_audit is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_adaptive_audit_update ON adaptive_audit;
+CREATE TRIGGER trg_prevent_adaptive_audit_update
+BEFORE UPDATE ON adaptive_audit FOR EACH ROW
+EXECUTE FUNCTION prevent_adaptive_audit_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_adaptive_audit_delete ON adaptive_audit;
+CREATE TRIGGER trg_prevent_adaptive_audit_delete
+BEFORE DELETE ON adaptive_audit FOR EACH ROW
+EXECUTE FUNCTION prevent_adaptive_audit_mutation();
+
+CREATE OR REPLACE FUNCTION prevent_adaptive_override_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'adaptive_teacher_override is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_adaptive_override_update ON adaptive_teacher_override;
+CREATE TRIGGER trg_prevent_adaptive_override_update
+BEFORE UPDATE ON adaptive_teacher_override FOR EACH ROW
+EXECUTE FUNCTION prevent_adaptive_override_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_adaptive_override_delete ON adaptive_teacher_override;
+CREATE TRIGGER trg_prevent_adaptive_override_delete
+BEFORE DELETE ON adaptive_teacher_override FOR EACH ROW
+EXECUTE FUNCTION prevent_adaptive_override_mutation();

@@ -11,6 +11,14 @@ foreach ($a in $apps) {
     # are bespoke — do not overwrite them from _shared/server.js.
     if ($a -ne 'admin' -and $a -ne 'director-portal') {
         Copy-Item -Force -Path (Join-Path $here 'server.js')  -Destination (Join-Path $appDir 'server.js')
+        # Feature 007 — Adaptive Learning router + engine modules (required by the shared server.js).
+        Copy-Item -Force -Path (Join-Path $here 'server-adaptive.js') -Destination (Join-Path $appDir 'server-adaptive.js')
+        $adaptiveSrc = Join-Path $here 'adaptive'
+        if (Test-Path $adaptiveSrc) {
+            $adaptiveDest = Join-Path $appDir 'adaptive'
+            if (-not (Test-Path $adaptiveDest)) { New-Item -ItemType Directory -Force -Path $adaptiveDest | Out-Null }
+            Get-ChildItem $adaptiveSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $adaptiveDest $_.Name) }
+        }
     }
     $publicDir = Join-Path $appDir 'public'
     if (-not (Test-Path $publicDir)) { New-Item -ItemType Directory -Force -Path $publicDir | Out-Null }
