@@ -19,6 +19,18 @@ foreach ($a in $apps) {
             if (-not (Test-Path $adaptiveDest)) { New-Item -ItemType Directory -Force -Path $adaptiveDest | Out-Null }
             Get-ChildItem $adaptiveSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $adaptiveDest $_.Name) }
         }
+        # Feature 009 — Interoperability router (required by the shared server.js).
+        Copy-Item -Force -Path (Join-Path $here 'server-interop.js') -Destination (Join-Path $appDir 'server-interop.js')
+    }
+    # Feature 009 — integration adapters + security provider. Copied to ALL apps because the
+    # bespoke admin/server.js also requires these modules (connector onboarding console).
+    foreach ($mod in 'integrations','security') {
+        $modSrc = Join-Path $here $mod
+        if (Test-Path $modSrc) {
+            $modDest = Join-Path $appDir $mod
+            if (-not (Test-Path $modDest)) { New-Item -ItemType Directory -Force -Path $modDest | Out-Null }
+            Get-ChildItem $modSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $modDest $_.Name) }
+        }
     }
     $publicDir = Join-Path $appDir 'public'
     if (-not (Test-Path $publicDir)) { New-Item -ItemType Directory -Force -Path $publicDir | Out-Null }

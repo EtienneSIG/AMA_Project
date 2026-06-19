@@ -271,6 +271,7 @@
   <button class="tab-btn"        data-tab-btn="practice"    onclick="setTab('practice')"    role="tab" aria-selected="false"><span class="ico">🧠</span> Test your knowledge</button>
   <button class="tab-btn"        data-tab-btn="ask-teacher" onclick="setTab('ask-teacher')" role="tab" aria-selected="false"><span class="ico">💬</span> Ask your teacher</button>
   <button class="tab-btn"        data-tab-btn="progress"    onclick="setTab('progress')"    role="tab" aria-selected="false"><span class="ico">📈</span> My progress</button>
+  <button class="tab-btn"        data-tab-btn="activities"  onclick="setTab('activities')"  role="tab" aria-selected="false"><span class="ico">🧩</span> Activities</button>
 </nav>
 <div data-tab="quest" class="active">
 <div class="progress-wrap">
@@ -483,6 +484,82 @@
   </div>
 </div>
 </div><!-- /tab progress -->
+
+<div data-tab="activities">
+<div class="progress-wrap">
+  <div class="card">
+    <div class="explhead">
+      <h2>Learning activities <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">SCORM packages · completion saved in EU Postgres</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadScormPackages()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .8rem;opacity:.8;font-size:.88rem;">These activities come from external SCORM packages. Your completion status and score are recorded so your teacher can see your progress.</p>
+    <div id="scormList" style="display:flex;flex-direction:column;gap:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+    <div id="scormPlayer" style="display:none;margin-top:.8rem;padding:.85rem;border:1px solid var(--line);border-radius:10px;background:#F8FAFC;">
+      <h3 id="scormTitle" style="margin:0 0 .4rem;font-size:1rem;"></h3>
+      <p id="scormTransparency" class="sub" style="font-size:.8rem;opacity:.85;margin:0 0 .6rem;"></p>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <button class="btn" onclick="scormComplete('passed')">Mark completed (pass)</button>
+        <button class="btn secondary" onclick="scormComplete('incomplete')">Save &amp; exit</button>
+      </div>
+      <div id="scormResult" class="sub" style="font-size:.82rem;margin-top:.5rem;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="explhead">
+      <h2>Assignment due dates <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">aligned to the school calendar</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadDueDates()">Refresh</button>
+    </div>
+    <div id="dueDatesList" style="display:flex;flex-direction:column;gap:.45rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+</div>
+</div><!-- /tab activities -->
+
+<script>
+// Feature 009 — Interoperability learner surface (SCORM + due dates).
+let _scormCurrent = null;
+async function loadScormPackages() {
+  const el = document.getElementById('scormList'); if (!el) return;
+  try {
+    const j = await (await fetch('/api/learner/scorm/packages', { cache:'no-store' })).json();
+    const rows = j.packages || [];
+    if (!rows.length) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No activities assigned yet.</div>'; return; }
+    el.innerHTML = rows.map(p => '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#fff;"><span><strong>'+_esc(p.title)+'</strong> <span class="sub" style="font-size:.75rem;">SCORM '+_esc(p.scormVersion)+'</span></span><button class="btn btn-sm" onclick="scormLaunch(\''+_esc(p.packageId)+'\')">Launch</button></div>').join('');
+  } catch (e) { el.innerHTML = '<div class="sub" style="font-size:.85rem;">Could not load activities.</div>'; }
+}
+async function scormLaunch(packageId) {
+  const player = document.getElementById('scormPlayer');
+  try {
+    const r = await fetch('/api/learner/scorm/'+encodeURIComponent(packageId)+'/launch', { method:'POST' });
+    const j = await r.json();
+    if (!j.ok) { document.getElementById('scormResult').textContent = j.message || 'Activity unavailable.'; player.style.display='block'; document.getElementById('scormTitle').textContent='Activity'; return; }
+    _scormCurrent = { packageId: j.packageId, mastery: j.masteryScore };
+    document.getElementById('scormTitle').textContent = j.title;
+    document.getElementById('scormTransparency').textContent = j.transparency || '';
+    document.getElementById('scormResult').textContent = '';
+    player.style.display = 'block';
+  } catch (e) { document.getElementById('scormResult').textContent = 'Activity temporarily unavailable.'; }
+}
+async function scormComplete(status) {
+  if (!_scormCurrent) return;
+  const score = status === 'passed' ? Math.max(_scormCurrent.mastery || 80, 85) : 40;
+  try {
+    const r = await fetch('/api/learner/scorm/'+encodeURIComponent(_scormCurrent.packageId)+'/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ lessonStatus: status, scoreRaw: score, sessionTime:'00:05:00' }) });
+    const j = await r.json();
+    document.getElementById('scormResult').innerHTML = j.ok ? ('Saved: <strong>'+_esc(j.lessonStatus)+'</strong> · score '+(j.scoreRaw==null?'—':j.scoreRaw)) : 'Could not save.';
+  } catch (e) { document.getElementById('scormResult').textContent = 'Could not save your progress.'; }
+}
+async function loadDueDates() {
+  const el = document.getElementById('dueDatesList'); if (!el) return;
+  try {
+    const j = await (await fetch('/api/learner/due-dates', { cache:'no-store' })).json();
+    const rows = j.dueDates || [];
+    if (!rows.length) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No adjusted due dates.</div>'; return; }
+    el.innerHTML = rows.map(d => '<div style="padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:#fff;"><strong>'+_esc(d.assignmentId)+'</strong> · due <strong>'+_esc((d.adjustedDue||d.originalDue||'').slice(0,10))+'</strong>'+(d.note?' <span class="sub" style="font-size:.75rem;">'+_esc(d.note)+'</span>':'')+'</div>').join('');
+  } catch (e) { el.innerHTML = '<div class="sub" style="font-size:.85rem;">Could not load due dates.</div>'; }
+}
+function _esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+document.addEventListener('DOMContentLoaded', () => { try { loadScormPackages(); loadDueDates(); } catch(_){} });
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 <script>

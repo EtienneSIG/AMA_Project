@@ -1001,3 +1001,175 @@ DROP TRIGGER IF EXISTS trg_prevent_adaptive_override_delete ON adaptive_teacher_
 CREATE TRIGGER trg_prevent_adaptive_override_delete
 BEFORE DELETE ON adaptive_teacher_override FOR EACH ROW
 EXECUTE FUNCTION prevent_adaptive_override_mutation();
+
+-- ===========================================================================
+-- Feature 009 — Interoperability (SCORM, xAPI, SIS, SSO, calendar, GDPR export)
+-- EU residency only. Secrets are NEVER stored here — only Key Vault references.
+-- Every external API interaction is logged immutably (AI Act Art. 12).
+-- ===========================================================================
+
+-- Connector configuration. secret_ref is a Key Vault reference, never a plaintext secret.
+CREATE TABLE IF NOT EXISTS integration_config (
+  id            BIGSERIAL    PRIMARY KEY,
+  connector_type TEXT        NOT NULL CHECK (connector_type IN ('scorm','xapi','sis','sso','calendar','export')),
+  name          TEXT         NOT NULL,
+  endpoint      TEXT,                                         -- must be an EU host (validated at onboarding)
+  region        TEXT         NOT NULL DEFAULT 'westeurope',
+  secret_ref    TEXT,                                         -- e.g. @KeyVault(name=kv-learneu;secret=sis-token)
+  claim_map     JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  status        TEXT         NOT NULL DEFAULT 'configured' CHECK (status IN ('configured','healthy','degraded','disabled')),
+  enabled       BOOLEAN      NOT NULL DEFAULT false,
+  created_by    TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (connector_type, name)
+);
+
+-- Immutable external API audit (Art. 12). APPEND-ONLY. No raw payloads or secrets — hash + redacted summary only.
+CREATE TABLE IF NOT EXISTS external_api_audit (
+  id             BIGSERIAL   PRIMARY KEY,
+  correlation_id TEXT        NOT NULL,
+  connector_type TEXT        NOT NULL,
+  event_type     TEXT        NOT NULL,
+  direction      TEXT        NOT NULL DEFAULT 'outbound' CHECK (direction IN ('outbound','inbound')),
+  endpoint       TEXT,
+  outcome        TEXT        NOT NULL CHECK (outcome IN ('success','failure','retry','blocked','dead_letter')),
+  status_code    INTEGER,
+  payload_hash   TEXT,                                        -- sha256 of payload (no raw payload stored)
+  redacted_summary TEXT,
+  actor          TEXT,                                        -- user or 'system'
+  latency_ms     INTEGER,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ext_audit_corr ON external_api_audit (correlation_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ext_audit_conn ON external_api_audit (connector_type, created_at DESC);
+
+CREATE OR REPLACE FUNCTION prevent_external_api_audit_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'external_api_audit is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_ext_audit_update ON external_api_audit;
+CREATE TRIGGER trg_prevent_ext_audit_update
+BEFORE UPDATE ON external_api_audit FOR EACH ROW
+EXECUTE FUNCTION prevent_external_api_audit_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_ext_audit_delete ON external_api_audit;
+CREATE TRIGGER trg_prevent_ext_audit_delete
+BEFORE DELETE ON external_api_audit FOR EACH ROW
+EXECUTE FUNCTION prevent_external_api_audit_mutation();
+
+-- SCORM packages (1.2 / 2004) and learner attempts.
+CREATE TABLE IF NOT EXISTS scorm_package (
+  package_id    TEXT         PRIMARY KEY,
+  title         TEXT         NOT NULL,
+  scorm_version TEXT         NOT NULL DEFAULT '1.2' CHECK (scorm_version IN ('1.2','2004')),
+  launch_href   TEXT,
+  manifest      JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  blob_ref      TEXT,                                         -- EU Blob reference (assets)
+  status        TEXT         NOT NULL DEFAULT 'parsed' CHECK (status IN ('uploaded','parsed','parse_failed','enabled','disabled')),
+  uploaded_by   TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS scorm_attempt (
+  id            BIGSERIAL    PRIMARY KEY,
+  package_id    TEXT         NOT NULL,
+  learner_email TEXT         NOT NULL,
+  lesson_status TEXT         NOT NULL DEFAULT 'incomplete',
+  score_raw     REAL,
+  session_time  TEXT,                                         -- SCORM CMITime
+  suspend_data  TEXT,
+  committed_at  TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_scorm_attempt_learner ON scorm_attempt (learner_email, package_id, created_at DESC);
+
+-- xAPI statement envelopes with delivery lifecycle (queue -> delivered / dead_letter).
+CREATE TABLE IF NOT EXISTS xapi_statement (
+  statement_id  UUID         PRIMARY KEY,
+  actor_hash    TEXT         NOT NULL,                        -- pseudonymous actor (no raw email to LRS)
+  verb          TEXT         NOT NULL,
+  object_id     TEXT         NOT NULL,
+  result        JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  status        TEXT         NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','delivered','dead_letter')),
+  attempts      INTEGER      NOT NULL DEFAULT 0,
+  last_error    TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_xapi_status ON xapi_statement (status, created_at);
+
+-- SIS sync jobs and identity conflicts.
+CREATE TABLE IF NOT EXISTS sis_sync_job (
+  job_id        TEXT         PRIMARY KEY,
+  mode          TEXT         NOT NULL DEFAULT 'delta' CHECK (mode IN ('full','delta')),
+  status        TEXT         NOT NULL DEFAULT 'running' CHECK (status IN ('running','completed','failed')),
+  learners_seen INTEGER      NOT NULL DEFAULT 0,
+  upserts       INTEGER      NOT NULL DEFAULT 0,
+  conflicts     INTEGER      NOT NULL DEFAULT 0,
+  checksum      TEXT,
+  started_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  finished_at   TIMESTAMPTZ
+);
+CREATE TABLE IF NOT EXISTS sis_conflict (
+  id            BIGSERIAL    PRIMARY KEY,
+  job_id        TEXT         NOT NULL,
+  learner_ref   TEXT         NOT NULL,
+  conflict_type TEXT         NOT NULL,
+  details       JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  status        TEXT         NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+  resolution    TEXT,
+  resolved_by   TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- SSO federated identity links.
+CREATE TABLE IF NOT EXISTS sso_identity_link (
+  id            BIGSERIAL    PRIMARY KEY,
+  provider      TEXT         NOT NULL,
+  subject       TEXT         NOT NULL,
+  learner_email TEXT         NOT NULL,
+  claim_map     JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  status        TEXT         NOT NULL DEFAULT 'linked' CHECK (status IN ('linked','revoked')),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (provider, subject)
+);
+
+-- Normalized school calendar events and assignment due-date adjustments.
+CREATE TABLE IF NOT EXISTS calendar_event (
+  id            BIGSERIAL    PRIMARY KEY,
+  provider      TEXT         NOT NULL DEFAULT 'school',
+  event_date    DATE         NOT NULL,
+  kind          TEXT         NOT NULL DEFAULT 'closure' CHECK (kind IN ('closure','open')),
+  label         TEXT,
+  source_checksum TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (provider, event_date)
+);
+CREATE TABLE IF NOT EXISTS due_date_adjustment (
+  id            BIGSERIAL    PRIMARY KEY,
+  assignment_id TEXT         NOT NULL,
+  original_due  DATE         NOT NULL,
+  adjusted_due  DATE,
+  reason        TEXT,
+  status        TEXT         NOT NULL DEFAULT 'auto' CHECK (status IN ('auto','pending_confirm','confirmed','rejected')),
+  teacher_email TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_due_adj_assignment ON due_date_adjustment (assignment_id, created_at DESC);
+
+-- GDPR Art. 15 data export requests.
+CREATE TABLE IF NOT EXISTS data_export_request (
+  request_id    TEXT         PRIMARY KEY,
+  subject_email TEXT         NOT NULL,
+  requested_by  TEXT         NOT NULL,
+  status        TEXT         NOT NULL DEFAULT 'requested' CHECK (status IN ('requested','packaged','delivered','expired','failed')),
+  package_ref   TEXT,
+  manifest      JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  encrypted     BOOLEAN      NOT NULL DEFAULT true,
+  link_expires_at TIMESTAMPTZ,
+  sla_due_at    TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_export_subject ON data_export_request (subject_email, created_at DESC);

@@ -100,8 +100,8 @@
   <button data-tab="activity" onclick="setTab('activity')">Activity</button>
   <button data-tab="safety" onclick="setTab('safety')">Safety &amp; Quality</button>
   <button data-tab="data" onclick="setTab('data')">Reference data</button>
-</div>
-<main>
+  <button data-tab="integrations" onclick="setTab('integrations')">Integrations</button>
+</div><main>
   <div class="grid" id="cards" data-group="overview">
     <div class="card"><em>Loading…</em></div>
     <div class="card"><em>Loading…</em></div>
@@ -243,8 +243,61 @@
     <div id="gamificationKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.6rem;margin-top:.6rem;">Loading…</div>
   </div>
 
-</main>
-<footer>
+  <!-- Feature 009 — Interoperability connectors -->
+  <div class="panel" data-group="integrations" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Integration connectors <span style="font-weight:400;color:var(--grey);font-size:.85rem;">SCORM · xAPI · SIS · SSO · Calendar · EU-resident only</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="loadIntegrations()">Refresh</button>
+        <button class="btn secondary" onclick="probeIntegrations()">Run health probe</button>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--grey);margin:.3rem 0 .6rem;">Secrets are stored as Key Vault references only — never plaintext. Non-EU endpoints are rejected at onboarding (fail closed). Every external call is written to an immutable audit trail (AI Act Art. 12).</p>
+    <div id="integrationsList">Loading…</div>
+    <div style="margin-top:.8rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.45rem;align-items:end;">
+      <label style="font-size:.78rem;color:var(--grey);">Connector type<select id="connType" class="btn secondary" style="width:100%;text-align:left;"><option value="scorm">scorm</option><option value="xapi">xapi</option><option value="sis">sis</option><option value="sso">sso</option><option value="calendar">calendar</option></select></label>
+      <label style="font-size:.78rem;color:var(--grey);">Name<input id="connName" placeholder="prod-lrs" style="width:100%;padding:.45rem;border:1px solid var(--line);border-radius:6px;"></label>
+      <label style="font-size:.78rem;color:var(--grey);">Endpoint (EU)<input id="connEndpoint" placeholder="https://lrs.example.eu" style="width:100%;padding:.45rem;border:1px solid var(--line);border-radius:6px;"></label>
+      <label style="font-size:.78rem;color:var(--grey);">Secret ref<input id="connSecret" placeholder="@KeyVault(name=kv-learneu;secret=lrs)" style="width:100%;padding:.45rem;border:1px solid var(--line);border-radius:6px;"></label>
+      <button class="btn" onclick="saveIntegration()">Save connector</button>
+    </div>
+    <div id="integrationsOutcome" style="margin-top:.5rem;font-size:.84rem;color:var(--grey);"></div>
+  </div>
+
+  <div class="panel" data-group="integrations" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>SIS roster sync &amp; conflicts <span style="font-weight:400;color:var(--grey);font-size:.85rem;">idempotent · identity collisions queued for review</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="runSisSync()">Run demo delta sync</button>
+        <button class="btn secondary" onclick="loadSisConflicts()">Refresh conflicts</button>
+      </div>
+    </div>
+    <div id="sisOutcome" style="margin-top:.5rem;font-size:.84rem;color:var(--grey);"></div>
+    <div id="sisConflicts" style="margin-top:.5rem;"></div>
+  </div>
+
+  <div class="panel" data-group="integrations" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>GDPR Art. 15 data export <span style="font-weight:400;color:var(--grey);font-size:.85rem;">encrypted package · 7-day secure link</span></h2>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;">
+        <input id="exportSubject" placeholder="student@learneu.demo" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+        <button class="btn" onclick="requestExport()">Generate export</button>
+        <button class="btn secondary" onclick="loadExports()">Refresh</button>
+      </div>
+    </div>
+    <div id="exportOutcome" style="margin-top:.5rem;font-size:.84rem;color:var(--grey);"></div>
+    <div id="exportsList" style="margin-top:.5rem;"></div>
+  </div>
+
+  <div class="panel" data-group="integrations" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>External API audit trail <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/admin/integrations/audit · immutable (Art. 12)</span></h2>
+      <button class="btn secondary" onclick="loadIntegrationAudit()">Refresh</button>
+    </div>
+    <div id="integrationAudit" style="margin-top:.5rem;">Loading…</div>
+  </div>
+
+</main><footer>
   © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
 </footer>
 <div class="toast" id="toast"></div>
@@ -616,8 +669,10 @@ async function loadDeployments() {
   loadGamificationKpis();
   loadPostgresOps();
   loadFabricOps();
+  loadIntegrations();
+  loadIntegrationAudit();
   const initial = (location.hash || '').replace(/^#/, '');
-  const valid = new Set(['overview','users','activity','safety','data']);
+  const valid = new Set(['overview','users','activity','safety','data','integrations']);
   setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();
@@ -848,6 +903,128 @@ async function loadGamificationKpis() {
   } catch (e) {
     k.innerHTML = '<span class="badge err">' + escapeHtml(String(e)) + '</span>';
   }
+}
+
+// ---- Feature 009 — Interoperability console ---------------------------------
+function _statusBadge(s){const cls=(s==='healthy'||s==='ready'||s==='completed')?'ok':((s==='degraded'||s==='queued_large'||s==='pending')?'warn':(s==='disabled'?'':'err'));return '<span class="badge '+cls+'">'+escapeHtml(s||'—')+'</span>';}
+
+async function loadIntegrations() {
+  const el = document.getElementById('integrationsList');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/admin/integrations', { cache:'no-store' })).json();
+    const rows = j.connectors || [];
+    if (!rows.length) { el.innerHTML = '<em>No connectors configured yet.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Type</th><th>Name</th><th>Endpoint</th><th>Secret</th><th>Enabled</th><th>Status</th></tr></thead><tbody>' +
+      rows.map(r => '<tr><td>'+escapeHtml(r.connectorType)+'</td><td>'+escapeHtml(r.name)+'</td><td>'+escapeHtml(r.endpoint||'—')+'</td><td>'+(r.secretRef?'<span class="badge ok">ref set</span>':'—')+'</td><td>'+(r.enabled?'yes':'no')+'</td><td>'+_statusBadge(r.status)+'</td></tr>').join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function saveIntegration() {
+  const out = document.getElementById('integrationsOutcome');
+  const body = {
+    connectorType: document.getElementById('connType').value,
+    name: document.getElementById('connName').value.trim(),
+    endpoint: document.getElementById('connEndpoint').value.trim(),
+    secretRef: document.getElementById('connSecret').value.trim(),
+    enabled: true
+  };
+  if (!body.name) { out.textContent = 'Name is required.'; return; }
+  try {
+    const r = await fetch('/api/admin/integrations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) { out.innerHTML = '<span class="badge err">'+escapeHtml(j.error||'failed')+(j.detail?': '+escapeHtml(j.detail):'')+'</span>'; return; }
+    out.innerHTML = '<span class="badge ok">Connector saved</span>';
+    loadIntegrations();
+  } catch (e) { out.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function probeIntegrations() {
+  const out = document.getElementById('integrationsOutcome');
+  try {
+    const j = await (await fetch('/api/admin/integrations/health', { cache:'no-store' })).json();
+    const probes = j.probes || [];
+    out.innerHTML = probes.length ? probes.map(p => escapeHtml(p.name)+': '+_statusBadge(p.status)).join(' · ') : '<em>No connectors to probe.</em>';
+    loadIntegrations();
+  } catch (e) { out.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function runSisSync() {
+  const out = document.getElementById('sisOutcome');
+  // Demo roster: one clean upsert + one identity collision to populate the review queue.
+  const roster = [
+    { email:'student@learneu.demo', externalId:'SIS-1001', name:'Student Demo', classId:'6A' },
+    { email:'student@learneu.demo', externalId:'SIS-9999', name:'Collision', classId:'6B' },
+    { email:'newpupil@learneu.demo', externalId:'SIS-1002', name:'New Pupil', classId:'6A' }
+  ];
+  try {
+    const r = await fetch('/api/admin/sis/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode:'delta', roster }) });
+    const j = await r.json();
+    if (!r.ok) { out.innerHTML = '<span class="badge err">'+escapeHtml(j.error||'failed')+'</span>'; return; }
+    out.innerHTML = '<span class="badge ok">Sync '+escapeHtml(j.jobId)+'</span> upserts='+j.upserts+' · conflicts='+j.conflicts;
+    loadSisConflicts(); loadIntegrationAudit();
+  } catch (e) { out.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadSisConflicts() {
+  const el = document.getElementById('sisConflicts');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/admin/sis/conflicts?status=open', { cache:'no-store' })).json();
+    const rows = j.conflicts || [];
+    if (!rows.length) { el.innerHTML = '<em>No open conflicts.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Learner</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>' +
+      rows.map(c => '<tr><td>'+escapeHtml(c.learner_ref)+'</td><td>'+escapeHtml(c.conflict_type)+'</td><td><span class="badge warn">'+escapeHtml(c.status)+'</span></td><td><button class="btn secondary" onclick="resolveConflict('+c.id+')">Resolve</button></td></tr>').join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function resolveConflict(id) {
+  try {
+    await fetch('/api/admin/sis/conflicts/'+id+'/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ resolution:'manual_keep_existing' }) });
+    toast('Conflict resolved'); loadSisConflicts();
+  } catch (e) { toast('Failed'); }
+}
+
+async function requestExport() {
+  const out = document.getElementById('exportOutcome');
+  const subject = document.getElementById('exportSubject').value.trim();
+  if (!subject) { out.textContent = 'Subject email required.'; return; }
+  try {
+    const r = await fetch('/api/admin/exports', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subjectEmail: subject }) });
+    const j = await r.json();
+    if (!r.ok) { out.innerHTML = '<span class="badge err">'+escapeHtml(j.error||'failed')+'</span>'; return; }
+    const files = (j.manifest && j.manifest.files || []).map(f => f.name).join(', ');
+    out.innerHTML = '<span class="badge ok">'+escapeHtml(j.status)+'</span> '+escapeHtml(j.requestId)+' · files: '+escapeHtml(files)+' · link expires '+escapeHtml((j.link&&j.link.expiresAt||'').slice(0,10));
+    loadExports();
+  } catch (e) { out.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadExports() {
+  const el = document.getElementById('exportsList');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/admin/exports', { cache:'no-store' })).json();
+    const rows = j.exports || [];
+    if (!rows.length) { el.innerHTML = '<em>No export requests.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Request</th><th>Subject (hashed)</th><th>Status</th><th>SLA due</th><th>Link expires</th></tr></thead><tbody>' +
+      rows.map(r => '<tr><td>'+escapeHtml(r.requestId)+'</td><td>'+escapeHtml(r.subject)+'…</td><td>'+_statusBadge(r.status)+'</td><td>'+escapeHtml((r.slaDueAt||'').slice(0,10))+'</td><td>'+escapeHtml((r.linkExpiresAt||'').slice(0,10))+'</td></tr>').join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
+async function loadIntegrationAudit() {
+  const el = document.getElementById('integrationAudit');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/admin/integrations/audit', { cache:'no-store' })).json();
+    const rows = (j.events || []).slice(0, 40);
+    if (!rows.length) { el.innerHTML = '<em>No external API events yet.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>When</th><th>Connector</th><th>Event</th><th>Outcome</th><th>Actor</th></tr></thead><tbody>' +
+      rows.map(e => '<tr><td>'+escapeHtml(new Date(e.created_at).toLocaleString())+'</td><td>'+escapeHtml(e.connector_type)+'</td><td>'+escapeHtml(e.event_type)+'</td><td>'+_statusBadge(e.outcome)+'</td><td>'+escapeHtml(e.actor||'system')+'</td></tr>').join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
 }
 </script>
 </body>

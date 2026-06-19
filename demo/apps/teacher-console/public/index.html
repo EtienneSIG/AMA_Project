@@ -214,6 +214,7 @@
   <button class="tab-btn" data-tab-btn="class" onclick="setTab('class')" role="tab">🧑‍🏫 Class dashboard</button>
   <button class="tab-btn" data-tab-btn="assessment" onclick="setTab('assessment')" role="tab">📝 Assessment</button>
   <button class="tab-btn" data-tab-btn="adaptive" onclick="setTab('adaptive')" role="tab">🧭 Adaptive paths</button>
+  <button class="tab-btn" data-tab-btn="interop" onclick="setTab('interop')" role="tab">🔌 Integrations</button>
   <button class="tab-btn" data-tab-btn="audit" onclick="setTab('audit')" role="tab">🛡️ Oversight & audit</button>
 </nav>
 <div data-tab="ask" class="active">
@@ -364,6 +365,47 @@
   </div>
 </section>
 </div>
+
+<div data-tab="interop">
+<section class="card">
+  <div class="explhead">
+    <h2>Integrations &amp; due dates <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">LRS insights · school-calendar due-date oversight</span></h2>
+    <button class="btn btn-sm secondary" onclick="loadInteropTab()">Refresh</button>
+  </div>
+  <h3 style="margin:.8rem 0 .3rem;font-size:.95rem;">LRS delivery insights</h3>
+  <p class="sub" style="font-size:.8rem;opacity:.85;margin:0 0 .5rem;">Aggregate completion signals from the connected Learning Record Store. Learner identities are pseudonymised before any data leaves the platform (GDPR data minimisation).</p>
+  <div id="xapiInsights" style="display:flex;gap:.6rem;flex-wrap:wrap;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  <h3 style="margin:1rem 0 .3rem;font-size:.95rem;">Due-date adjustments awaiting your confirmation</h3>
+  <p class="sub" style="font-size:.8rem;opacity:.85;margin:0 0 .5rem;">When a school closure spans a long period, the system asks a teacher to confirm the new due date rather than changing it automatically (teacher-in-the-loop).</p>
+  <div id="dueDatePending" style="display:flex;flex-direction:column;gap:.45rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">No pending adjustments.</div></div>
+</section>
+</div>
+
+<script>
+// Feature 009 — Teacher interoperability surface.
+async function loadInteropTab() {
+  try {
+    const j = await (await fetch('/api/teacher/xapi/insights', { cache:'no-store' })).json();
+    const d = j.delivery || {};
+    const card = (label, val, cls) => '<div style="padding:.6rem .85rem;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:130px;"><div class="sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">'+label+'</div><div style="font-size:1.3rem;font-weight:700;'+(cls||'')+'">'+(val||0)+'</div></div>';
+    document.getElementById('xapiInsights').innerHTML = card('Delivered', d.delivered) + card('Pending', d.pending) + card('Dead-letter', d.dead_letter, 'color:#c0392b;');
+  } catch (e) { document.getElementById('xapiInsights').innerHTML = '<div class="sub" style="font-size:.85rem;">Insights unavailable.</div>'; }
+  try {
+    const j = await (await fetch('/api/teacher/due-dates/pending', { cache:'no-store' })).json();
+    const rows = j.pending || [];
+    const el = document.getElementById('dueDatePending');
+    if (!rows.length) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No pending adjustments.</div>'; return; }
+    el.innerHTML = rows.map(a => '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;background:#fff;"><span><strong>'+_iesc(a.assignmentId)+'</strong> · '+_iesc((a.originalDue||'').slice(0,10))+' → <strong>'+_iesc((a.adjustedDue||'').slice(0,10))+'</strong><br><span class="sub" style="font-size:.75rem;">'+_iesc(a.reason)+'</span></span><span style="display:flex;gap:.35rem;"><button class="btn btn-sm" onclick="confirmDue('+a.id+',\'confirm\')">Confirm</button><button class="btn btn-sm secondary" onclick="confirmDue('+a.id+',\'reject\')">Reject</button></span></div>').join('');
+  } catch (e) { /* ignore */ }
+}
+async function confirmDue(id, decision) {
+  try {
+    await fetch('/api/teacher/due-dates/'+id+'/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision }) });
+    loadInteropTab();
+  } catch (e) { /* ignore */ }
+}
+function _iesc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script>
 <div data-tab="assessment">
 <section style="max-width:1320px;margin:0 auto 2rem;padding:0 1.5rem;">
   <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--orange);">
@@ -529,6 +571,7 @@ function setTab(name) {
   try { history.replaceState(null, '', '#' + name); } catch (_) {}
   if (name === 'assessment' && typeof loadAssessmentTab === 'function') loadAssessmentTab();
   if (name === 'adaptive' && typeof loadAdaptiveTab === 'function') loadAdaptiveTab();
+  if (name === 'interop' && typeof loadInteropTab === 'function') loadInteropTab();
 }
 
 async function refreshStatus() {

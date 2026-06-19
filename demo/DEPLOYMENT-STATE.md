@@ -47,3 +47,13 @@ _None — all stages green._
 - VNet: `vnet-learneu-demo` · subnet `snet-apps` (regional VNet integration for App Service)
 - ASP: `asp-learneu-demo` (B1 Linux Node 22)
 - Apps: `app-{learner-web,parent-portal,teacher-console}-learneu-demo`
+
+---
+
+## Feature 009 — Interoperability rollout
+
+- **Deployed apps**: `app-admin-learneu-demo`, `app-learner-web-learneu-demo`, `app-teacher-console-learneu-demo` (West Europe). Parent-portal/director unchanged.
+- **Verification**: `demo/scripts/verify-interop.ps1` — 11/11 green (EU guard, secret-reference enforcement, SCORM launch/commit, xAPI insights+drain, SIS sync+conflict queue, GDPR export, immutable audit trail).
+- **New surfaces**: admin → Integrations tab (connectors, SIS sync, GDPR export, audit); learner-web → Activities tab (SCORM + due dates); teacher-console → Integrations tab (LRS insights + due-date confirmation).
+- **Rollback**: routers are mounted via guarded `try/catch require` in `_shared/server.js` (`server-interop.js`) and additive routes in bespoke `admin/server.js`; removing the module/redeploying the prior zip reverts cleanly. Schema additions are `CREATE IF NOT EXISTS` + append-only audit (no destructive migration). No existing routes modified.
+

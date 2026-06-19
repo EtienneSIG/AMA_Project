@@ -165,6 +165,14 @@ try {
   console.warn('[adaptive] routes not mounted (non-adaptive fallback):', e && e.message);
 }
 
+// Feature 009 — Interoperability routes (learner SCORM/due-dates + teacher xAPI/calendar).
+// Guarded require: missing module => app still boots; connectors degrade gracefully.
+try {
+  require('./server-interop')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[interop] routes not mounted (connectors offline):', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {

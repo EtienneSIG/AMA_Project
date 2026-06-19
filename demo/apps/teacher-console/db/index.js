@@ -2416,6 +2416,228 @@ async function getAdaptivePathState({ email }) {
   return r && r.rows[0] ? r.rows[0] : null;
 }
 
+// ===========================================================================
+// Feature 009 — Interoperability helpers (SCORM, xAPI, SIS, SSO, calendar, export)
+// ===========================================================================
+
+// --- Connector config (secrets are references only, never plaintext) ---
+async function upsertIntegrationConfig({ connectorType, name, endpoint, region, secretRef, claimMap, enabled, createdBy }) {
+  const r = await q(
+    `INSERT INTO integration_config (connector_type, name, endpoint, region, secret_ref, claim_map, enabled, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (connector_type, name) DO UPDATE SET
+       endpoint = EXCLUDED.endpoint, region = EXCLUDED.region, secret_ref = EXCLUDED.secret_ref,
+       claim_map = EXCLUDED.claim_map, enabled = EXCLUDED.enabled, updated_at = now()
+     RETURNING *`,
+    [connectorType, name, endpoint || null, region || 'westeurope', secretRef || null,
+     JSON.stringify(claimMap || {}), Boolean(enabled), createdBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listIntegrationConfigs() {
+  const r = await q(`SELECT * FROM integration_config ORDER BY connector_type, name`);
+  return r && r.rows ? r.rows : [];
+}
+async function setIntegrationStatus({ id, status }) {
+  const r = await q(`UPDATE integration_config SET status = $2, updated_at = now() WHERE id = $1 RETURNING *`, [id, status]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Immutable external API audit (Art. 12) ---
+async function logExternalApiAudit({ correlationId, connectorType, eventType, direction, endpoint, outcome, statusCode, payloadHash, redactedSummary, actor, latencyMs }) {
+  const r = await q(
+    `INSERT INTO external_api_audit (correlation_id, connector_type, event_type, direction, endpoint, outcome, status_code, payload_hash, redacted_summary, actor, latency_ms)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+    [correlationId, connectorType, eventType, direction || 'outbound', endpoint || null, outcome,
+     statusCode == null ? null : Number(statusCode), payloadHash || null, (redactedSummary || '').slice(0, 500),
+     actor || 'system', latencyMs == null ? null : Number(latencyMs)]
+  );
+  return r && r.rows[0] ? r.rows[0].id : null;
+}
+async function listExternalApiAudit({ connectorType, correlationId, limit } = {}) {
+  const clauses = []; const params = []; let i = 1;
+  if (connectorType) { clauses.push(`connector_type = $${i++}`); params.push(connectorType); }
+  if (correlationId) { clauses.push(`correlation_id = $${i++}`); params.push(correlationId); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  params.push(Math.min(Number(limit) || 100, 500));
+  const r = await q(`SELECT * FROM external_api_audit ${where} ORDER BY created_at DESC LIMIT $${i}`, params);
+  return r && r.rows ? r.rows : [];
+}
+
+// --- SCORM ---
+async function upsertScormPackage({ packageId, title, scormVersion, launchHref, manifest, blobRef, status, uploadedBy }) {
+  const r = await q(
+    `INSERT INTO scorm_package (package_id, title, scorm_version, launch_href, manifest, blob_ref, status, uploaded_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (package_id) DO UPDATE SET
+       title = EXCLUDED.title, scorm_version = EXCLUDED.scorm_version, launch_href = EXCLUDED.launch_href,
+       manifest = EXCLUDED.manifest, blob_ref = EXCLUDED.blob_ref, status = EXCLUDED.status
+     RETURNING *`,
+    [packageId, title, scormVersion || '1.2', launchHref || null, JSON.stringify(manifest || {}), blobRef || null, status || 'parsed', uploadedBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getScormPackage({ packageId }) {
+  const r = await q(`SELECT * FROM scorm_package WHERE package_id = $1`, [packageId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listScormPackages() {
+  const r = await q(`SELECT * FROM scorm_package ORDER BY created_at DESC`);
+  return r && r.rows ? r.rows : [];
+}
+async function recordScormAttempt({ packageId, learnerEmail, lessonStatus, scoreRaw, sessionTime, suspendData, committed }) {
+  const r = await q(
+    `INSERT INTO scorm_attempt (package_id, learner_email, lesson_status, score_raw, session_time, suspend_data, committed_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [packageId, learnerEmail, lessonStatus || 'incomplete', scoreRaw == null ? null : Number(scoreRaw),
+     sessionTime || null, suspendData || null, committed ? new Date() : null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listScormAttempts({ learnerEmail, limit } = {}) {
+  const r = await q(`SELECT * FROM scorm_attempt WHERE learner_email = $1 ORDER BY created_at DESC LIMIT $2`, [learnerEmail, Math.min(Number(limit) || 50, 200)]);
+  return r && r.rows ? r.rows : [];
+}
+
+// --- xAPI ---
+async function enqueueXapiStatement({ statementId, actorHash, verb, objectId, result }) {
+  const r = await q(
+    `INSERT INTO xapi_statement (statement_id, actor_hash, verb, object_id, result)
+       VALUES ($1,$2,$3,$4,$5) ON CONFLICT (statement_id) DO NOTHING RETURNING *`,
+    [statementId, actorHash, verb, objectId, JSON.stringify(result || {})]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listPendingXapi({ limit } = {}) {
+  const r = await q(`SELECT * FROM xapi_statement WHERE status = 'pending' ORDER BY created_at LIMIT $1`, [Math.min(Number(limit) || 50, 200)]);
+  return r && r.rows ? r.rows : [];
+}
+async function updateXapiStatus({ statementId, status, attempts, lastError }) {
+  const r = await q(
+    `UPDATE xapi_statement SET status = $2, attempts = COALESCE($3, attempts), last_error = $4, updated_at = now()
+       WHERE statement_id = $1 RETURNING *`,
+    [statementId, status, attempts == null ? null : Number(attempts), lastError || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function xapiDeliveryStats() {
+  const r = await q(`SELECT status, COUNT(*)::int AS n FROM xapi_statement GROUP BY status`);
+  const out = { pending: 0, delivered: 0, dead_letter: 0 };
+  for (const row of (r && r.rows ? r.rows : [])) out[row.status] = row.n;
+  return out;
+}
+
+// --- SIS ---
+async function createSisSyncJob({ jobId, mode }) {
+  const r = await q(`INSERT INTO sis_sync_job (job_id, mode) VALUES ($1,$2) RETURNING *`, [jobId, mode || 'delta']);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function finishSisSyncJob({ jobId, status, learnersSeen, upserts, conflicts, checksum }) {
+  const r = await q(
+    `UPDATE sis_sync_job SET status = $2, learners_seen = $3, upserts = $4, conflicts = $5, checksum = $6, finished_at = now()
+       WHERE job_id = $1 RETURNING *`,
+    [jobId, status, Number(learnersSeen) || 0, Number(upserts) || 0, Number(conflicts) || 0, checksum || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getSisSyncJob({ jobId }) {
+  const r = await q(`SELECT * FROM sis_sync_job WHERE job_id = $1`, [jobId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function createSisConflict({ jobId, learnerRef, conflictType, details }) {
+  const r = await q(
+    `INSERT INTO sis_conflict (job_id, learner_ref, conflict_type, details) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [jobId, learnerRef, conflictType, JSON.stringify(details || {})]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listSisConflicts({ status } = {}) {
+  const r = await q(`SELECT * FROM sis_conflict ${status ? 'WHERE status = $1' : ''} ORDER BY created_at DESC`, status ? [status] : []);
+  return r && r.rows ? r.rows : [];
+}
+async function resolveSisConflict({ id, resolution, resolvedBy }) {
+  const r = await q(`UPDATE sis_conflict SET status = 'resolved', resolution = $2, resolved_by = $3 WHERE id = $1 RETURNING *`, [id, resolution || null, resolvedBy || null]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- SSO ---
+async function upsertSsoLink({ provider, subject, learnerEmail, claimMap }) {
+  const r = await q(
+    `INSERT INTO sso_identity_link (provider, subject, learner_email, claim_map) VALUES ($1,$2,$3,$4)
+     ON CONFLICT (provider, subject) DO UPDATE SET learner_email = EXCLUDED.learner_email, claim_map = EXCLUDED.claim_map, status = 'linked'
+     RETURNING *`,
+    [provider, subject, learnerEmail, JSON.stringify(claimMap || {})]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function revokeSsoLink({ id }) {
+  const r = await q(`UPDATE sso_identity_link SET status = 'revoked' WHERE id = $1 RETURNING *`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listSsoLinks() {
+  const r = await q(`SELECT * FROM sso_identity_link ORDER BY created_at DESC`);
+  return r && r.rows ? r.rows : [];
+}
+
+// --- Calendar & due-date ---
+async function upsertCalendarEvent({ provider, eventDate, kind, label, sourceChecksum }) {
+  const r = await q(
+    `INSERT INTO calendar_event (provider, event_date, kind, label, source_checksum) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (provider, event_date) DO UPDATE SET kind = EXCLUDED.kind, label = EXCLUDED.label, source_checksum = EXCLUDED.source_checksum
+     RETURNING *`,
+    [provider || 'school', eventDate, kind || 'closure', label || null, sourceChecksum || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listCalendarClosures() {
+  const r = await q(`SELECT * FROM calendar_event WHERE kind = 'closure' ORDER BY event_date`);
+  return r && r.rows ? r.rows : [];
+}
+async function recordDueDateAdjustment({ assignmentId, originalDue, adjustedDue, reason, status, teacherEmail }) {
+  const r = await q(
+    `INSERT INTO due_date_adjustment (assignment_id, original_due, adjusted_due, reason, status, teacher_email)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [assignmentId, originalDue, adjustedDue || null, reason || null, status || 'auto', teacherEmail || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function confirmDueDateAdjustment({ id, status, teacherEmail }) {
+  const r = await q(`UPDATE due_date_adjustment SET status = $2, teacher_email = $3 WHERE id = $1 RETURNING *`, [id, status || 'confirmed', teacherEmail || null]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listDueDateAdjustments({ status, limit } = {}) {
+  const r = await q(`SELECT * FROM due_date_adjustment ${status ? 'WHERE status = $1' : ''} ORDER BY created_at DESC LIMIT ${status ? '$2' : '$1'}`,
+    status ? [status, Math.min(Number(limit) || 50, 200)] : [Math.min(Number(limit) || 50, 200)]);
+  return r && r.rows ? r.rows : [];
+}
+
+// --- GDPR export ---
+async function createExportRequest({ requestId, subjectEmail, requestedBy, slaDueAt }) {
+  const r = await q(
+    `INSERT INTO data_export_request (request_id, subject_email, requested_by, sla_due_at) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [requestId, subjectEmail, requestedBy, slaDueAt || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function updateExportRequest({ requestId, status, packageRef, manifest, linkExpiresAt }) {
+  const r = await q(
+    `UPDATE data_export_request SET status = COALESCE($2, status), package_ref = COALESCE($3, package_ref),
+       manifest = COALESCE($4, manifest), link_expires_at = COALESCE($5, link_expires_at), updated_at = now()
+       WHERE request_id = $1 RETURNING *`,
+    [requestId, status || null, packageRef || null, manifest ? JSON.stringify(manifest) : null, linkExpiresAt || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function getExportRequest({ requestId }) {
+  const r = await q(`SELECT * FROM data_export_request WHERE request_id = $1`, [requestId]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+async function listExportRequests({ limit } = {}) {
+  const r = await q(`SELECT * FROM data_export_request ORDER BY created_at DESC LIMIT $1`, [Math.min(Number(limit) || 50, 200)]);
+  return r && r.rows ? r.rows : [];
+}
+
+
 module.exports = {
   enabled,
   init,
@@ -2548,6 +2770,39 @@ module.exports = {
   listAdaptiveAudit,
   saveAdaptivePathState,
   getAdaptivePathState,
+  // Feature 009 — Interoperability
+  upsertIntegrationConfig,
+  listIntegrationConfigs,
+  setIntegrationStatus,
+  logExternalApiAudit,
+  listExternalApiAudit,
+  upsertScormPackage,
+  getScormPackage,
+  listScormPackages,
+  recordScormAttempt,
+  listScormAttempts,
+  enqueueXapiStatement,
+  listPendingXapi,
+  updateXapiStatus,
+  xapiDeliveryStats,
+  createSisSyncJob,
+  finishSisSyncJob,
+  getSisSyncJob,
+  createSisConflict,
+  listSisConflicts,
+  resolveSisConflict,
+  upsertSsoLink,
+  revokeSsoLink,
+  listSsoLinks,
+  upsertCalendarEvent,
+  listCalendarClosures,
+  recordDueDateAdjustment,
+  confirmDueDateAdjustment,
+  listDueDateAdjustments,
+  createExportRequest,
+  updateExportRequest,
+  getExportRequest,
+  listExportRequests,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

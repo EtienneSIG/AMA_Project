@@ -575,5 +575,195 @@ app.get('/api/admin/gamification/kpis', async (_req, res) => {
   res.json({ enabled: true, kpis: r && r.rows[0] ? r.rows[0] : null });
 });
 
+// ===================== Feature 009 — Interoperability admin console =====================
+// Connector configuration, health, SCORM onboarding, SIS sync, SSO onboarding,
+// calendar sync, and GDPR export orchestration. All flows enforce EU-only endpoints,
+// Key Vault secret references (no plaintext), and immutable external API audit logging.
+const euEndpoint = require('./integrations/eu-endpoint');
+const secretProvider = require('./security/secret-provider');
+const scormAdapter = require('./integrations/scorm-adapter');
+const ssoFederation = require('./integrations/sso-federation');
+const calendarAdapter = require('./integrations/calendar-adapter');
+const sisAdapter = require('./integrations/sis-adapter');
+const gdprExport = require('./integrations/gdpr-export');
+const { payloadHash, summarise } = require('./integrations/audit-redaction');
+
+const cidGen = () => (typeof db.newCorrelationId === 'function' ? db.newCorrelationId() : 'cid-' + crypto.randomBytes(6).toString('hex'));
+
+// --- Connector configuration CRUD ---
+app.get('/api/admin/integrations', async (_req, res) => {
+  try {
+    const rows = await db.listIntegrationConfigs();
+    // Never return secrets — only the reference and whether it validates.
+    res.json({ connectors: (rows || []).map(r => ({
+      id: r.id, connectorType: r.connector_type, name: r.name, endpoint: r.endpoint,
+      region: r.region, secretRef: r.secret_ref ? '«reference set»' : null,
+      enabled: r.enabled, status: r.status
+    })) });
+  } catch (e) { res.status(500).json({ error: 'integrations_list_failed' }); }
+});
+
+app.post('/api/admin/integrations', async (req, res) => {
+  const { connectorType, name, endpoint, secretRef, claimMap, enabled } = req.body || {};
+  if (!connectorType || !name) return res.status(400).json({ error: 'connectorType and name required' });
+  // EU residency: reject non-EU endpoints (fail closed).
+  if (endpoint) { const eu = euEndpoint.isEuEndpoint(endpoint); if (!eu.ok) return res.status(422).json({ error: 'non_eu_endpoint', detail: eu.reason }); }
+  // Secrets must be Key Vault references, never plaintext.
+  try { secretProvider.assertReferenceOnly(secretRef, 'secretRef'); }
+  catch (e) { return res.status(422).json({ error: 'plaintext_secret_rejected', detail: e.message }); }
+  try {
+    const row = await db.upsertIntegrationConfig({ connectorType, name, endpoint, region: 'westeurope', secretRef, claimMap, enabled: Boolean(enabled), createdBy: req.user && req.user.email });
+    res.json({ ok: true, id: row && row.id, status: row && row.status });
+  } catch (e) { res.status(500).json({ error: 'integration_save_failed' }); }
+});
+
+// --- Connector health probe ---
+app.get('/api/admin/integrations/health', async (_req, res) => {
+  try {
+    const rows = await db.listIntegrationConfigs();
+    const out = [];
+    for (const r of (rows || [])) {
+      const euOk = r.endpoint ? euEndpoint.isEuEndpoint(r.endpoint).ok : true;
+      const secretOk = r.secret_ref ? secretProvider.isSecretReference(r.secret_ref) : true;
+      const status = (euOk && secretOk && r.enabled) ? 'healthy' : (r.enabled ? 'degraded' : 'disabled');
+      if (r.id) await db.setIntegrationStatus({ id: r.id, status }).catch(() => {});
+      out.push({ connectorType: r.connector_type, name: r.name, status, euResident: euOk, secretReferenceValid: secretOk });
+    }
+    res.json({ probes: out });
+  } catch (e) { res.status(500).json({ error: 'integrations_health_failed' }); }
+});
+
+// --- SCORM onboarding ---
+app.post('/api/admin/scorm/packages', async (req, res) => {
+  const cid = cidGen();
+  try {
+    const parsed = scormAdapter.parseManifest(req.body && req.body.manifest);
+    if (!parsed.ok) {
+      await db.logExternalApiAudit({ correlationId: cid, connectorType: 'scorm', eventType: 'scorm_parse_failed', outcome: 'failure', statusCode: 422, redactedSummary: parsed.reason, actor: req.user && req.user.email }).catch(() => {});
+      return res.status(422).json({ error: 'manifest_unparseable', detail: parsed.reason });
+    }
+    const pkg = await db.upsertScormPackage({ packageId: parsed.packageId, title: parsed.title, scormVersion: parsed.scormVersion, launchHref: parsed.launchHref, manifest: parsed.manifest, status: 'parsed', uploadedBy: req.user && req.user.email });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'scorm', eventType: 'scorm_package_uploaded', outcome: 'success', statusCode: 201, payloadHash: payloadHash(parsed.packageId), redactedSummary: `uploaded ${parsed.title}`, actor: req.user && req.user.email }).catch(() => {});
+    res.json({ ok: true, packageId: pkg && pkg.package_id, title: parsed.title, scormVersion: parsed.scormVersion });
+  } catch (e) { res.status(500).json({ error: 'scorm_onboard_failed' }); }
+});
+app.get('/api/admin/scorm/packages', async (_req, res) => {
+  try { const pkgs = await db.listScormPackages(); res.json({ packages: (pkgs || []).map(p => ({ packageId: p.package_id, title: p.title, scormVersion: p.scorm_version, status: p.status })) }); }
+  catch (e) { res.status(500).json({ error: 'scorm_list_failed' }); }
+});
+
+// --- SIS roster sync ---
+app.post('/api/admin/sis/sync', async (req, res) => {
+  const cid = cidGen();
+  const jobId = 'sis-' + crypto.randomBytes(6).toString('hex');
+  const mode = (req.body && req.body.mode) === 'full' ? 'full' : 'delta';
+  const roster = (req.body && Array.isArray(req.body.roster)) ? req.body.roster : [];
+  try {
+    await db.createSisSyncJob({ jobId, mode });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'sis', eventType: 'sis_sync_started', outcome: 'success', statusCode: 202, redactedSummary: `mode=${mode} rows=${roster.length}`, actor: req.user && req.user.email }).catch(() => {});
+    const plan = sisAdapter.planSync(roster, {});
+    const checksum = sisAdapter.rosterChecksum(roster);
+    for (const c of plan.conflicts) {
+      await db.createSisConflict({ jobId, learnerRef: c.learnerRef, conflictType: c.conflictType, details: c.details }).catch(() => {});
+    }
+    await db.finishSisSyncJob({ jobId, status: 'completed', learnersSeen: roster.length, upserts: plan.upserts.length, conflicts: plan.conflicts.length, checksum });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'sis', eventType: 'sis_sync_completed', outcome: 'success', statusCode: 200, payloadHash: payloadHash(checksum), redactedSummary: `upserts=${plan.upserts.length} conflicts=${plan.conflicts.length}`, actor: req.user && req.user.email }).catch(() => {});
+    if (plan.conflicts.length) await db.logExternalApiAudit({ correlationId: cid, connectorType: 'sis', eventType: 'sis_conflict_opened', outcome: 'review', statusCode: 409, redactedSummary: `${plan.conflicts.length} conflicts queued`, actor: 'system' }).catch(() => {});
+    res.json({ ok: true, jobId, upserts: plan.upserts.length, conflicts: plan.conflicts.length, checksum });
+  } catch (e) { res.status(500).json({ error: 'sis_sync_failed' }); }
+});
+app.get('/api/admin/sis/sync/:jobId', async (req, res) => {
+  try { const job = await db.getSisSyncJob({ jobId: req.params.jobId }); if (!job) return res.status(404).json({ error: 'job_not_found' }); res.json({ job }); }
+  catch (e) { res.status(500).json({ error: 'sis_status_failed' }); }
+});
+app.get('/api/admin/sis/conflicts', async (req, res) => {
+  try { const rows = await db.listSisConflicts({ status: req.query.status }); res.json({ conflicts: rows }); }
+  catch (e) { res.status(500).json({ error: 'sis_conflicts_failed' }); }
+});
+app.post('/api/admin/sis/conflicts/:id/resolve', async (req, res) => {
+  try {
+    const row = await db.resolveSisConflict({ id: req.params.id, resolution: req.body && req.body.resolution, resolvedBy: req.user && req.user.email });
+    if (!row) return res.status(404).json({ error: 'conflict_not_found' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'sis_resolve_failed' }); }
+});
+
+// --- SSO federation onboarding ---
+app.post('/api/admin/sso/connectors', async (req, res) => {
+  const cid = cidGen();
+  const { provider, issuer, jwksUri, claimMap, secretRef } = req.body || {};
+  const v = ssoFederation.validateMetadata({ issuer, jwksUri, claimMap });
+  if (!v.ok) return res.status(422).json({ error: 'invalid_idp_metadata', detail: v.reason });
+  try { secretProvider.assertReferenceOnly(secretRef, 'secretRef'); }
+  catch (e) { return res.status(422).json({ error: 'plaintext_secret_rejected', detail: e.message }); }
+  try {
+    await db.upsertIntegrationConfig({ connectorType: 'sso', name: provider || issuer, endpoint: issuer, region: 'westeurope', secretRef, claimMap, enabled: true, createdBy: req.user && req.user.email });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'sso', eventType: 'sso_link_created', outcome: 'success', statusCode: 201, redactedSummary: `provider=${provider || issuer}`, actor: req.user && req.user.email }).catch(() => {});
+    res.json({ ok: true, provider: provider || issuer });
+  } catch (e) { res.status(500).json({ error: 'sso_onboard_failed' }); }
+});
+app.get('/api/admin/sso/links', async (_req, res) => {
+  try { const rows = await db.listSsoLinks(); res.json({ links: rows.map(r => ({ id: r.id, provider: r.provider, learnerEmail: r.learner_email, status: r.status })) }); }
+  catch (e) { res.status(500).json({ error: 'sso_links_failed' }); }
+});
+
+// --- Calendar sync ---
+app.post('/api/admin/calendar/sync', async (req, res) => {
+  const cid = cidGen();
+  const events = (req.body && Array.isArray(req.body.events)) ? req.body.events : [];
+  try {
+    const checksum = payloadHash(events.map(e => `${e.date}|${e.kind || 'closure'}`).sort().join('\n'));
+    let ingested = 0;
+    for (const e of events) {
+      if (!e.date) continue;
+      await db.upsertCalendarEvent({ provider: e.provider || 'school', eventDate: e.date, kind: e.kind || 'closure', label: e.label, sourceChecksum: checksum }).catch(() => {});
+      ingested++;
+    }
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'calendar', eventType: 'calendar_sync_ingested', outcome: 'success', statusCode: 200, payloadHash: payloadHash(checksum), redactedSummary: `ingested=${ingested}`, actor: req.user && req.user.email }).catch(() => {});
+    res.json({ ok: true, ingested, checksum });
+  } catch (e) { res.status(500).json({ error: 'calendar_sync_failed' }); }
+});
+
+// --- GDPR Art. 15 data export ---
+app.post('/api/admin/exports', async (req, res) => {
+  const cid = cidGen();
+  const subjectEmail = (req.body && req.body.subjectEmail || '').toLowerCase();
+  if (!subjectEmail) return res.status(400).json({ error: 'subjectEmail required' });
+  const requestId = 'exp-' + crypto.randomBytes(8).toString('hex');
+  try {
+    await db.createExportRequest({ requestId, subjectEmail, requestedBy: req.user && req.user.email, slaDueAt: gdprExport.slaDueAt() });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'gdpr', eventType: 'gdpr_export_requested', outcome: 'success', statusCode: 202, redactedSummary: `subject=${payloadHash(subjectEmail).slice(0, 12)}`, actor: req.user && req.user.email }).catch(() => {});
+    // Collect + package (synchronous for the demo; large exports would defer via fallback).
+    const sections = await gdprExport.collectSubjectData(db, subjectEmail);
+    const manifest = gdprExport.buildManifest(subjectEmail, sections);
+    const totalRecords = Object.values(manifest.recordCounts).reduce((a, b) => a + b, 0);
+    const link = gdprExport.secureLink(requestId);
+    manifest.encryption = gdprExport.encryptionEnvelope();
+    const status = totalRecords > 5000 ? 'queued_large' : 'ready';
+    await db.updateExportRequest({ requestId, status, packageRef: 'demo://export/' + requestId, manifest, linkExpiresAt: link.expiresAt });
+    await db.logExternalApiAudit({ correlationId: cid, connectorType: 'gdpr', eventType: 'gdpr_export_packaged', outcome: 'success', statusCode: 200, redactedSummary: summarise({ files: manifest.files.length, records: totalRecords, status }), actor: 'system' }).catch(() => {});
+    res.json({ ok: true, requestId, status, manifest: { files: manifest.files, recordCounts: manifest.recordCounts, format: manifest.format }, link });
+  } catch (e) { res.status(500).json({ error: 'export_failed' }); }
+});
+app.get('/api/admin/exports', async (_req, res) => {
+  try { const rows = await db.listExportRequests({ limit: 100 }); res.json({ exports: rows.map(r => ({ requestId: r.request_id, subject: payloadHash(r.subject_email).slice(0, 12), status: r.status, slaDueAt: r.sla_due_at, linkExpiresAt: r.link_expires_at })) }); }
+  catch (e) { res.status(500).json({ error: 'exports_list_failed' }); }
+});
+app.get('/api/admin/exports/:requestId', async (req, res) => {
+  try {
+    const r = await db.getExportRequest({ requestId: req.params.requestId });
+    if (!r) return res.status(404).json({ error: 'export_not_found' });
+    const expired = r.link_expires_at && new Date(r.link_expires_at) < new Date();
+    if (expired) await db.logExternalApiAudit({ connectorType: 'gdpr', eventType: 'gdpr_export_expired', outcome: 'expired', statusCode: 410, redactedSummary: req.params.requestId, actor: 'system' }).catch(() => {});
+    res.json({ requestId: r.request_id, status: expired ? 'expired' : r.status, manifest: r.manifest, slaDueAt: r.sla_due_at, linkExpiresAt: r.link_expires_at, linkExpired: Boolean(expired) });
+  } catch (e) { res.status(500).json({ error: 'export_status_failed' }); }
+});
+
+// --- External API audit trail (read-only, immutable) ---
+app.get('/api/admin/integrations/audit', async (req, res) => {
+  try { const rows = await db.listExternalApiAudit({ connectorType: req.query.connectorType, limit: 200 }); res.json({ events: rows }); }
+  catch (e) { res.status(500).json({ error: 'audit_read_failed' }); }
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));
