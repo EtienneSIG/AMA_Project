@@ -1364,3 +1364,225 @@ DROP TRIGGER IF EXISTS trg_prevent_approval_step_delete ON approval_step_record;
 CREATE TRIGGER trg_prevent_approval_step_delete
 BEFORE DELETE ON approval_step_record FOR EACH ROW
 EXECUTE FUNCTION prevent_approval_step_mutation();
+
+-- ===========================================================================
+-- Feature 011 — Multi-School Hierarchy, Approval Chains & Hierarchical Reporting
+-- Effective-dated hierarchy graph (country/district/school/class), scope-aware
+-- RBAC grants, district approval chains + school adoption autonomy, reporting
+-- aggregation snapshots with suppression, peer benchmarking, and an immutable
+-- Art. 12 audit trail. All storage EU-resident; no learner-level exposure above
+-- school level (cohort minimum disclosure >= 10 enforced in helpers).
+-- ===========================================================================
+
+-- Canonical organisation unit in the hierarchy graph.
+CREATE TABLE IF NOT EXISTS hierarchy_node (
+  id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  node_type     TEXT         NOT NULL CHECK (node_type IN ('country','region','district','school','class')),
+  display_name  TEXT         NOT NULL,
+  country_code  TEXT,
+  status        TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','merged')),
+  external_ref  TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_node_type ON hierarchy_node (node_type, status);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_node_country ON hierarchy_node (country_code, node_type);
+
+-- Effective-dated parent/child relationship (no cycles in the active set).
+CREATE TABLE IF NOT EXISTS hierarchy_edge (
+  id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_node_id  UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  child_node_id   UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  effective_from  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  effective_to    TIMESTAMPTZ,
+  change_reason   TEXT,
+  created_by      TEXT,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  CHECK (parent_node_id <> child_node_id),
+  CHECK (effective_to IS NULL OR effective_to > effective_from)
+);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_edge_parent ON hierarchy_edge (parent_node_id, effective_to);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_edge_child ON hierarchy_edge (child_node_id, effective_to);
+
+-- Maps a user (by email) + role to an authorised hierarchy scope node.
+CREATE TABLE IF NOT EXISTS role_scope_grant (
+  id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email      TEXT         NOT NULL,
+  role            TEXT         NOT NULL CHECK (role IN ('teacher','school_director','district_pedagogist','district_curriculum_lead','district_director','country_manager','compliance_reviewer')),
+  scope_level     TEXT         NOT NULL CHECK (scope_level IN ('school','district','region','country')),
+  scope_node_id   UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  effective_from  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  effective_to    TIMESTAMPTZ,
+  status          TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked','expired')),
+  granted_by      TEXT,
+  revoked_by      TEXT,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+-- One active grant per (user, role, scope node).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_role_scope_active
+  ON role_scope_grant (user_email, role, scope_node_id)
+  WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_role_scope_user ON role_scope_grant (user_email, status);
+
+-- District-level approval lifecycle for curriculum content.
+CREATE TABLE IF NOT EXISTS district_approval_workflow (
+  id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_ref       TEXT         NOT NULL,
+  content_title     TEXT,
+  district_node_id  UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  state             TEXT         NOT NULL DEFAULT 'submitted' CHECK (state IN ('draft','submitted','in_review','changes_requested','rejected','approved','available_to_schools')),
+  current_gate_order INT         NOT NULL DEFAULT 1,
+  lock_version      BIGINT       NOT NULL DEFAULT 1,
+  submitted_by      TEXT,
+  submitted_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  resolved_at       TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_district_wf_state ON district_approval_workflow (state, district_node_id);
+
+-- Immutable record of each approval decision in the chain.
+CREATE TABLE IF NOT EXISTS district_approval_step (
+  id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  workflow_id   UUID         NOT NULL REFERENCES district_approval_workflow(id) ON DELETE CASCADE,
+  gate_order    INT          NOT NULL,
+  required_role TEXT         NOT NULL,
+  decision      TEXT         NOT NULL CHECK (decision IN ('approved','changes_requested','rejected')),
+  decision_note TEXT,
+  decided_by    TEXT,
+  decided_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_district_step_wf ON district_approval_step (workflow_id, gate_order);
+
+-- School-level adoption autonomy after district approval.
+CREATE TABLE IF NOT EXISTS school_adoption_decision (
+  id                 UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  workflow_id        UUID         NOT NULL REFERENCES district_approval_workflow(id) ON DELETE CASCADE,
+  school_node_id     UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  decision           TEXT         NOT NULL CHECK (decision IN ('adopt','adapt','decline')),
+  decision_note      TEXT,
+  variant_content_ref TEXT,
+  decided_by         TEXT,
+  decided_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_school_adoption_wf ON school_adoption_decision (workflow_id, school_node_id);
+
+-- Pre-aggregated metrics by school and period for rollups.
+CREATE TABLE IF NOT EXISTS reporting_snapshot (
+  id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  period_start      DATE         NOT NULL,
+  period_end        DATE         NOT NULL,
+  school_node_id    UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  subject_code      TEXT         NOT NULL DEFAULT 'ALL',
+  cohort_size       INT          NOT NULL DEFAULT 0 CHECK (cohort_size >= 0),
+  enrollment_count  INT          NOT NULL DEFAULT 0,
+  completion_rate   NUMERIC      NOT NULL DEFAULT 0 CHECK (completion_rate >= 0 AND completion_rate <= 100),
+  mastery_rate      NUMERIC      NOT NULL DEFAULT 0 CHECK (mastery_rate >= 0 AND mastery_rate <= 100),
+  aggregation_version TEXT       NOT NULL DEFAULT 'v1',
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (school_node_id, subject_code, period_start, period_end)
+);
+CREATE INDEX IF NOT EXISTS idx_reporting_snapshot_period ON reporting_snapshot (period_start, period_end, subject_code);
+
+-- Generated hierarchical report and its scope context.
+CREATE TABLE IF NOT EXISTS hierarchical_report_request (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  requested_by        TEXT         NOT NULL,
+  scope_level         TEXT         NOT NULL CHECK (scope_level IN ('district','region','national')),
+  scope_node_id       UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  dimension           TEXT         NOT NULL DEFAULT 'school' CHECK (dimension IN ('school','subject','cohort')),
+  period_start        DATE         NOT NULL,
+  period_end          DATE         NOT NULL,
+  status              TEXT         NOT NULL CHECK (status IN ('generated','suppressed','blocked_for_review')),
+  suppression_applied BOOLEAN      NOT NULL DEFAULT false,
+  reid_risk_flag      BOOLEAN      NOT NULL DEFAULT false,
+  lineage_id          UUID         NOT NULL DEFAULT gen_random_uuid(),
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  generated_at        TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_report_request_scope ON hierarchical_report_request (scope_node_id, created_at DESC);
+
+-- Peer comparison outcome + collaboration request lifecycle.
+CREATE TABLE IF NOT EXISTS peer_benchmark_record (
+  id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_node_id    UUID         NOT NULL REFERENCES hierarchy_node(id) ON DELETE CASCADE,
+  district_node_id  UUID         REFERENCES hierarchy_node(id) ON DELETE SET NULL,
+  metric_code       TEXT         NOT NULL,
+  school_value      NUMERIC,
+  district_average  NUMERIC,
+  national_average  NUMERIC,
+  gap_percent       NUMERIC,
+  recommendation_text TEXT,
+  request_status    TEXT         NOT NULL DEFAULT 'not_started' CHECK (request_status IN ('not_started','requested','accepted','declined')),
+  requested_by      TEXT,
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_peer_benchmark_school ON peer_benchmark_record (school_node_id, metric_code);
+
+-- Immutable Art. 12-aligned audit log for hierarchy governance actions.
+CREATE TABLE IF NOT EXISTS hierarchy_audit_event (
+  id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type      TEXT         NOT NULL,
+  actor_user      TEXT,
+  actor_role      TEXT,
+  scope_level     TEXT,
+  scope_node_id   UUID,
+  subject_ref_type TEXT,
+  subject_ref_id  UUID,
+  rationale       TEXT,
+  details_json    JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  event_timestamp TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_audit_type ON hierarchy_audit_event (event_type, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_audit_scope ON hierarchy_audit_event (scope_node_id, event_timestamp DESC);
+
+-- Hierarchy audit + approval steps are append-only (Art. 12 integrity).
+CREATE OR REPLACE FUNCTION prevent_hierarchy_audit_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'hierarchy_audit_event is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_hierarchy_audit_update ON hierarchy_audit_event;
+CREATE TRIGGER trg_prevent_hierarchy_audit_update
+BEFORE UPDATE ON hierarchy_audit_event FOR EACH ROW
+EXECUTE FUNCTION prevent_hierarchy_audit_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_hierarchy_audit_delete ON hierarchy_audit_event;
+CREATE TRIGGER trg_prevent_hierarchy_audit_delete
+BEFORE DELETE ON hierarchy_audit_event FOR EACH ROW
+EXECUTE FUNCTION prevent_hierarchy_audit_mutation();
+
+CREATE OR REPLACE FUNCTION prevent_district_step_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'district_approval_step is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_district_step_update ON district_approval_step;
+CREATE TRIGGER trg_prevent_district_step_update
+BEFORE UPDATE ON district_approval_step FOR EACH ROW
+EXECUTE FUNCTION prevent_district_step_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_district_step_delete ON district_approval_step;
+CREATE TRIGGER trg_prevent_district_step_delete
+BEFORE DELETE ON district_approval_step FOR EACH ROW
+EXECUTE FUNCTION prevent_district_step_mutation();
+
+-- Pending district approvals awaiting the current gate role.
+CREATE OR REPLACE VIEW v_pending_district_approvals AS
+SELECT w.id AS workflow_id, w.content_ref, w.content_title, w.district_node_id,
+       n.display_name AS district_name, w.state, w.current_gate_order,
+       w.lock_version, w.submitted_by, w.submitted_at
+FROM district_approval_workflow w
+JOIN hierarchy_node n ON n.id = w.district_node_id
+WHERE w.state IN ('submitted','in_review');
+
+-- Adopt/adapt/decline rates by district workflow.
+CREATE OR REPLACE VIEW v_school_adoption_metrics AS
+SELECT d.workflow_id,
+       COUNT(*)::int AS total_decisions,
+       SUM(CASE WHEN d.decision = 'adopt'   THEN 1 ELSE 0 END)::int AS adopt_count,
+       SUM(CASE WHEN d.decision = 'adapt'   THEN 1 ELSE 0 END)::int AS adapt_count,
+       SUM(CASE WHEN d.decision = 'decline' THEN 1 ELSE 0 END)::int AS decline_count
+FROM school_adoption_decision d
+GROUP BY d.workflow_id;

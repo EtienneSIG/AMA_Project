@@ -27,11 +27,11 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 **Purpose**: Align feature scaffolding, validation harness, and compliance pointers before core implementation.
 
-- [ ] T001 Update plan pointer to feature 011 in `.github/copilot-instructions.md` (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002 Create hierarchy feature migration scaffold in `demo/apps/_shared/db/migrations/011_multi_school_hierarchy.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T003 [P] Add hierarchy seed fixture placeholders for country/district/school/class in `demo/data/curricula.manifest.json` (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T004 [P] Add feature acceptance test entrypoint for hierarchy suite in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T005 [P] Add contract validation command notes for hierarchy API in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T001 Update plan pointer to feature 011 in `.github/copilot-instructions.md` (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T002 Create hierarchy feature migration scaffold in `demo/apps/_shared/db/migrations/011_multi_school_hierarchy.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T003 [P] Add hierarchy seed fixture placeholders for country/district/school/class in `demo/data/curricula.manifest.json` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T004 [P] Add feature acceptance test entrypoint for hierarchy suite in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T005 [P] Add contract validation command notes for hierarchy API in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 ---
 
@@ -41,15 +41,15 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 **CRITICAL**: No user story phase begins until this phase is complete.
 
-- [ ] T006 Implement hierarchy entities (`HierarchyNode`, `HierarchyEdge`) and constraints in `demo/apps/_shared/db/schema.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T007 Implement `RoleScopeGrant` schema and active-grant uniqueness/effective-date checks in `demo/apps/_shared/db/schema.sql` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T008 Implement approval/audit/reporting/benchmark core tables from `data-model.md` in `demo/apps/_shared/db/schema.sql` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T009 [P] Implement derived views (`v_scope_resolved_nodes`, rollups, adoption metrics, audit governance view) in `demo/apps/_shared/db/schema.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T010 Implement shared hierarchy and scope resolution helpers in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T011 Implement deny-by-default scope middleware and role transition cache invalidation hooks in `demo/apps/_shared/auth.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T012 [P] Implement append-only hierarchy audit writer utility in `demo/apps/_shared/db/index.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T013 Implement shared `/api/hierarchy/rbac/scope-check` route with audit pass/deny logging in `demo/apps/_shared/server.js` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T014 Add foundational scope enforcement validation scenarios (in-scope, out-of-scope, stale-grant) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T006 Implement hierarchy entities (`HierarchyNode`, `HierarchyEdge`) and constraints in `demo/apps/_shared/db/schema.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T007 Implement `RoleScopeGrant` schema and active-grant uniqueness/effective-date checks in `demo/apps/_shared/db/schema.sql` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T008 Implement approval/audit/reporting/benchmark core tables from `data-model.md` in `demo/apps/_shared/db/schema.sql` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T009 [P] Implement derived views (`v_scope_resolved_nodes`, rollups, adoption metrics, audit governance view) in `demo/apps/_shared/db/schema.sql` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T010 Implement shared hierarchy and scope resolution helpers in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T011 Implement deny-by-default scope middleware and role transition cache invalidation hooks in `demo/apps/_shared/auth.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T012 [P] Implement append-only hierarchy audit writer utility in `demo/apps/_shared/db/index.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T013 Implement shared `/api/hierarchy/rbac/scope-check` route with audit pass/deny logging in `demo/apps/_shared/server.js` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T014 Add foundational scope enforcement validation scenarios (in-scope, out-of-scope, stale-grant) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: Foundation complete when hierarchy graph, grant model, scope check endpoint, and audit primitives pass acceptance script.
 
@@ -63,17 +63,17 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Add contract conformance test for `GET /reporting/hierarchical` district mode in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T016 [P] [US1] Add district dashboard integration test with low-performance alert assertions in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T015 [P] [US1] Add contract conformance test for `GET /reporting/hierarchical` district mode in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T016 [P] [US1] Add district dashboard integration test with low-performance alert assertions in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Implement district school-aggregate query (enrollment, completion, mastery, alert baseline) in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T018 [US1] Implement district dashboard API endpoint and school drill-down route in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T019 [US1] Implement district dashboard cards/table rendering and alert visualization in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T020 [US1] Implement class-level trend panel for selected school with no learner-level fields in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T021 [US1] Add district dashboard access/report generation audit events in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T022 [US1] Execute US1 independent checkpoint script and record evidence in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T017 [P] [US1] Implement district school-aggregate query (enrollment, completion, mastery, alert baseline) in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T018 [US1] Implement district dashboard API endpoint and school drill-down route in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T019 [US1] Implement district dashboard cards/table rendering and alert visualization in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T020 [US1] Implement class-level trend panel for selected school with no learner-level fields in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T021 [US1] Add district dashboard access/report generation audit events in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T022 [US1] Execute US1 independent checkpoint script and record evidence in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 ---
 
@@ -85,17 +85,17 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] Add approval-chain state-machine test (including stale lock and unauthorized gate actor) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T024 [P] [US2] Add school adoption decision test for adopt/adapt/decline and variant linkage in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T023 [P] [US2] Add approval-chain state-machine test (including stale lock and unauthorized gate actor) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T024 [P] [US2] Add school adoption decision test for adopt/adapt/decline and variant linkage in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ### Implementation for User Story 2
 
-- [ ] T025 [P] [US2] Implement district approval workflow persistence and gate transition logic in `demo/apps/admin/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T026 [US2] Implement `POST /district-approvals` and `POST /district-approvals/{workflowId}/decisions` handlers in `demo/apps/admin/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T027 [US2] Implement `POST /district-approvals/{workflowId}/school-decisions` with adopt/adapt/decline validation in `demo/apps/admin/server.js` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T028 [US2] Implement district adoption metrics rollup and opt-out threshold flagging in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T029 [US2] Implement approval workflow and school adoption UX states in `demo/apps/admin/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T030 [US2] Implement approval-chain audit completeness checks (submit, decide, publish, adoption) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T025 [P] [US2] Implement district approval workflow persistence and gate transition logic in `demo/apps/admin/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T026 [US2] Implement `POST /district-approvals` and `POST /district-approvals/{workflowId}/decisions` handlers in `demo/apps/admin/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T027 [US2] Implement `POST /district-approvals/{workflowId}/school-decisions` with adopt/adapt/decline validation in `demo/apps/admin/server.js` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T028 [US2] Implement district adoption metrics rollup and opt-out threshold flagging in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T029 [US2] Implement approval workflow and school adoption UX states in `demo/apps/admin/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T030 [US2] Implement approval-chain audit completeness checks (submit, decide, publish, adoption) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 ---
 
@@ -107,17 +107,17 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] Add rollup reconciliation test (`school -> district -> region -> national`) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T032 [P] [US3] Add export guard test for suppressed/blocked report states in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T031 [P] [US3] Add rollup reconciliation test (`school -> district -> region -> national`) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T032 [P] [US3] Add export guard test for suppressed/blocked report states in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [P] [US3] Implement hierarchical report generation service with dimension/time filtering in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T034 [US3] Implement suppression and re-identification anti-leakage pipeline before report finalization in `demo/apps/_shared/db/index.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T035 [US3] Implement `GET /reporting/hierarchical` and status handling (`generated/suppressed/blocked_for_review`) in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T036 [US3] Implement `POST /reporting/hierarchical/export` PDF orchestration with scope parity enforcement in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T037 [US3] Implement hierarchical trend visualization and suppression messaging in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T038 [US3] Add report-generation/suppression/block audit events with lineage IDs in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T033 [P] [US3] Implement hierarchical report generation service with dimension/time filtering in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T034 [US3] Implement suppression and re-identification anti-leakage pipeline before report finalization in `demo/apps/_shared/db/index.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T035 [US3] Implement `GET /reporting/hierarchical` and status handling (`generated/suppressed/blocked_for_review`) in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T036 [US3] Implement `POST /reporting/hierarchical/export` PDF orchestration with scope parity enforcement in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T037 [US3] Implement hierarchical trend visualization and suppression messaging in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T038 [US3] Add report-generation/suppression/block audit events with lineage IDs in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 ---
 
@@ -129,16 +129,16 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 ### Tests for User Story 4
 
-- [ ] T039 [P] [US4] Add role matrix access test (school_director, district_director, country_manager) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T040 [P] [US4] Add explicit scope enforcement validation for API/export/UI parity and learner-level denial in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T039 [P] [US4] Add role matrix access test (school_director, district_director, country_manager) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T040 [P] [US4] Add explicit scope enforcement validation for API/export/UI parity and learner-level denial in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 
 ### Implementation for User Story 4
 
-- [ ] T041 [P] [US4] Implement role transition transaction (revoke old grant, grant new scope, audit transition) in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T042 [US4] Enforce hierarchy-level RBAC guards on director/admin hierarchy endpoints in `demo/apps/director-portal/server.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T043 [US4] Enforce hierarchy-level RBAC guards on approval governance endpoints in `demo/apps/admin/server.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T044 [US4] Implement suppression fallback rendering for blocked learner-level requests in `demo/apps/director-portal/public/index.html` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T045 [US4] Add denial rationale and scope context to RBAC audit events in `demo/apps/_shared/db/index.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T041 [P] [US4] Implement role transition transaction (revoke old grant, grant new scope, audit transition) in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T042 [US4] Enforce hierarchy-level RBAC guards on director/admin hierarchy endpoints in `demo/apps/director-portal/server.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T043 [US4] Enforce hierarchy-level RBAC guards on approval governance endpoints in `demo/apps/admin/server.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T044 [US4] Implement suppression fallback rendering for blocked learner-level requests in `demo/apps/director-portal/public/index.html` (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T045 [US4] Add denial rationale and scope context to RBAC audit events in `demo/apps/_shared/db/index.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 ---
 
@@ -150,16 +150,16 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 ### Tests for User Story 5
 
-- [ ] T046 [P] [US5] Add peer comparison API test including same-country boundary constraints in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T047 [P] [US5] Add collaboration request lifecycle test (`not_started -> requested -> accepted/declined`) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T046 [P] [US5] Add peer comparison API test including same-country boundary constraints in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T047 [P] [US5] Add collaboration request lifecycle test (`not_started -> requested -> accepted/declined`) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 ### Implementation for User Story 5
 
-- [ ] T048 [P] [US5] Implement `GET /benchmarking/peer-comparisons` aggregation and recommendation rules in `demo/apps/director-portal/server.js` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T049 [US5] Implement `POST /benchmarking/collaboration-requests` persistence and notification trigger in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T050 [US5] Implement benchmarking comparison panel and peer collaboration form UX in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T051 [US5] Implement benchmark request/collaboration audit event logging in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T052 [US5] Implement anti-leakage check to prevent cross-country peer joins in `demo/apps/_shared/db/index.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [x] T048 [P] [US5] Implement `GET /benchmarking/peer-comparisons` aggregation and recommendation rules in `demo/apps/director-portal/server.js` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T049 [US5] Implement `POST /benchmarking/collaboration-requests` persistence and notification trigger in `demo/apps/director-portal/server.js` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T050 [US5] Implement benchmarking comparison panel and peer collaboration form UX in `demo/apps/director-portal/public/index.html` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T051 [US5] Implement benchmark request/collaboration audit event logging in `demo/apps/director-portal/server.js` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T052 [US5] Implement anti-leakage check to prevent cross-country peer joins in `demo/apps/_shared/db/index.js` (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 
 ---
 
@@ -167,12 +167,12 @@ This feature touches several existing, widely-mirrored files. Extend additively;
 
 **Purpose**: Performance hardening, compliance evidence, and release readiness.
 
-- [ ] T053 [P] Optimize district dashboard and hierarchical query performance to meet SC-001 p95 targets in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T054 [P] Add acceptance scenarios for edge cases (school merge, role promotion, non-viable suppression report) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T055 Validate full quickstart runbook and capture pass/fail evidence in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T056 Produce Annex IV and compliance traceability fragment for hierarchy governance feature in `specs/011-multi-school-hierarchy/research.md` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T057 Run pedagogical fit review for dashboard alerts and peer recommendations in `specs/011-multi-school-hierarchy/spec.md` (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T058 Record final readiness handoff notes for deployment/demo in `demo/feature/EXECUTION-PLAN.md` (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T053 [P] Optimize district dashboard and hierarchical query performance to meet SC-001 p95 targets in `demo/apps/_shared/db/index.js` (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T054 [P] Add acceptance scenarios for edge cases (school merge, role promotion, non-viable suppression report) in `demo/scripts/acceptance_tests.ps1` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T055 Validate full quickstart runbook and capture pass/fail evidence in `specs/011-multi-school-hierarchy/quickstart.md` (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T056 Produce Annex IV and compliance traceability fragment for hierarchy governance feature in `specs/011-multi-school-hierarchy/research.md` (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T057 Run pedagogical fit review for dashboard alerts and peer recommendations in `specs/011-multi-school-hierarchy/spec.md` (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T058 Record final readiness handoff notes for deployment/demo in `demo/feature/EXECUTION-PLAN.md` (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 ---
 

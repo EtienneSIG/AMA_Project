@@ -181,6 +181,15 @@ try {
   console.warn('[cms] transparency routes not mounted:', e && e.message);
 }
 
+// Feature 011 — Multi-school hierarchy governance routes (scope RBAC, approvals,
+// hierarchical reporting, benchmarking). Guarded require: missing module => app
+// still boots without hierarchy governance.
+try {
+  require('./server-hierarchy')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[hierarchy] routes not mounted:', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {

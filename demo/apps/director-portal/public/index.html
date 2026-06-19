@@ -79,8 +79,89 @@
       <div class="empty">Loading approved reports…</div>
     </div>
   </section>
+
+  <section class="card" style="margin-top:1.5rem;" id="hierCard">
+    <h2>Multi-school hierarchy</h2>
+    <div class="muted">District → region → national aggregates. Cohort minimum disclosure (≥10) and re-identification screening are applied before any figures render. No learner-level data is shown.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem;align-items:end;">
+      <label style="font-size:.8rem;color:var(--navy);font-weight:600;">District node
+        <select id="hierDistrict" style="display:block;margin-top:.25rem;padding:.45rem;border:1px solid var(--line);border-radius:8px;min-width:240px;"></select>
+      </label>
+      <label style="font-size:.8rem;color:var(--navy);font-weight:600;">From
+        <input id="hierFrom" type="date" value="2026-01-01" style="display:block;margin-top:.25rem;padding:.4rem;border:1px solid var(--line);border-radius:8px;" />
+      </label>
+      <label style="font-size:.8rem;color:var(--navy);font-weight:600;">To
+        <input id="hierTo" type="date" value="2026-12-31" style="display:block;margin-top:.25rem;padding:.4rem;border:1px solid var(--line);border-radius:8px;" />
+      </label>
+      <button type="button" id="hierLoad" class="open" style="border:0;border-radius:10px;padding:.55rem .9rem;background:var(--navy);color:#fff;font-weight:600;cursor:pointer;">District dashboard</button>
+      <button type="button" id="hierReport" class="open" style="border:0;border-radius:10px;padding:.55rem .9rem;background:var(--teal);color:#fff;font-weight:600;cursor:pointer;">Hierarchical report</button>
+    </div>
+    <div id="hierOut" style="margin-top:1.1rem;"></div>
+  </section>
 </main>
 <footer>© LearnEU · West Europe · Aggregated reporting by default</footer>
+<script>
+  // --- Feature 011 hierarchy panel -------------------------------------
+  async function hierApi(path, opts) {
+    const r = await fetch('/api/hierarchy' + path, Object.assign({ cache: 'no-store' }, opts || {}));
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) };
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  async function hierLoadDistricts() {
+    const sel = document.getElementById('hierDistrict');
+    if (!sel) return;
+    const res = await hierApi('/nodes?nodeType=district');
+    const nodes = (res.body && res.body.nodes) || [];
+    sel.innerHTML = nodes.length
+      ? nodes.map(n => '<option value="' + esc(n.id) + '">' + esc(n.display_name) + '</option>').join('')
+      : '<option value="">(no districts seeded)</option>';
+  }
+
+  function renderRollup(title, r) {
+    const out = document.getElementById('hierOut');
+    if (r.status === 'suppressed' || (r.body && r.body.status === 'suppressed')) {
+      out.innerHTML = '<div class="empty"><strong>' + title + ':</strong> Report suppressed — cohort below minimum disclosure threshold (GDPR Art. 8).</div>';
+      return;
+    }
+    const data = r.body || r;
+    if (data.status === 'blocked_for_review') {
+      out.innerHTML = '<div class="empty"><strong>' + title + ':</strong> Blocked for review — re-identification risk detected.</div>';
+      return;
+    }
+    const t = data.totals;
+    if (!t) { out.innerHTML = '<div class="empty">No data for the selected period.</div>'; return; }
+    let html = '<div class="report"><div class="name">' + title + '</div><div class="meta">Schools: ' + t.schoolCount + ' · Cohort: ' + t.cohortSize + ' · Completion: ' + t.completionRate + '% · Mastery: ' + t.masteryRate + '% · Alerts: ' + t.alertSchoolCount + '</div></div>';
+    if (Array.isArray(data.schools) && data.schools.length) {
+      html += '<div class="report-list" style="margin-top:.8rem;">' + data.schools.map(s =>
+        '<div class="report" style="border-left:4px solid ' + (s.alert ? 'var(--orange)' : 'var(--teal)') + ';"><div class="name">' + esc(s.schoolName || s.schoolNodeId) + (s.alert ? ' ⚠' : '') + '</div><div class="meta">Cohort ' + s.cohortSize + ' · Completion ' + s.completionRate + '% · Mastery ' + s.masteryRate + '%</div></div>'
+      ).join('') + '</div>';
+    }
+    if (data.suppressedSchoolCount) html += '<div class="muted" style="margin-top:.6rem;">' + data.suppressedSchoolCount + ' school(s) suppressed (cohort < 10).</div>';
+    out.innerHTML = html;
+  }
+
+  function hierBoot() {
+    const load = document.getElementById('hierLoad');
+    const report = document.getElementById('hierReport');
+    if (!load) return;
+    hierLoadDistricts();
+    load.addEventListener('click', async () => {
+      const id = document.getElementById('hierDistrict').value;
+      if (!id) return;
+      const f = document.getElementById('hierFrom').value, t = document.getElementById('hierTo').value;
+      const r = await hierApi('/district/dashboard?districtNodeId=' + encodeURIComponent(id) + '&periodStart=' + f + '&periodEnd=' + t);
+      renderRollup('District dashboard', r);
+    });
+    report.addEventListener('click', async () => {
+      const id = document.getElementById('hierDistrict').value;
+      if (!id) return;
+      const f = document.getElementById('hierFrom').value, t = document.getElementById('hierTo').value;
+      const r = await hierApi('/reporting/hierarchical?scopeLevel=district&scopeNodeId=' + encodeURIComponent(id) + '&periodStart=' + f + '&periodEnd=' + t);
+      renderRollup('Hierarchical report (district)', r);
+    });
+  }
+</script>
 <script>
   function chip(text) {
     const el = document.createElement('span');
@@ -190,6 +271,7 @@
   }
 
   boot();
+  hierBoot();
 </script>
 </body>
 </html>

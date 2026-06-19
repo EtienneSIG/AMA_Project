@@ -102,6 +102,7 @@
   <button data-tab="data" onclick="setTab('data')">Reference data</button>
   <button data-tab="integrations" onclick="setTab('integrations')">Integrations</button>
   <button data-tab="governance" onclick="setTab('governance')">Content Governance</button>
+  <button data-tab="hierarchy" onclick="setTab('hierarchy')">Hierarchy</button>
 </div><main>
   <div class="grid" id="cards" data-group="overview">
     <div class="card"><em>Loading…</em></div>
@@ -328,6 +329,40 @@
     <div id="cmsAudit" style="margin-top:.5rem;">Loading…</div>
   </div>
 
+  <!-- ===================== Feature 011 — Multi-school hierarchy ===================== -->
+  <div class="panel" data-group="hierarchy" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Hierarchy graph &amp; scope grants <span style="font-weight:400;color:var(--grey);font-size:.85rem;">country→district→school · deny-by-default RBAC</span></h2>
+      <button class="btn secondary" onclick="hierLoadNodes()">Refresh nodes</button>
+    </div>
+    <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.6rem;">
+      <select id="hierNodeType" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+        <option value="country">country</option><option value="region">region</option>
+        <option value="district" selected>district</option><option value="school">school</option>
+      </select>
+      <input id="hierNodeName" placeholder="Node display name" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+      <input id="hierNodeCountry" placeholder="Country code (e.g. FR)" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;width:140px;">
+      <button class="btn" onclick="hierCreateNode()">+ Node</button>
+    </div>
+    <div id="hierNodes" style="margin-top:.6rem;">Loading…</div>
+  </div>
+
+  <div class="panel" data-group="hierarchy" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>District approval queue <span style="font-weight:400;color:var(--grey);font-size:.85rem;">pedagogist → curriculum lead → country manager (Art. 14)</span></h2>
+      <button class="btn secondary" onclick="hierLoadApprovals()">Refresh</button>
+    </div>
+    <div id="hierApprovals" style="margin-top:.6rem;">Loading…</div>
+  </div>
+
+  <div class="panel" data-group="hierarchy" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Hierarchy audit trail <span style="font-weight:400;color:var(--grey);font-size:.85rem;">/api/hierarchy/audit · immutable (Art. 12)</span></h2>
+      <button class="btn secondary" onclick="hierLoadAudit()">Refresh</button>
+    </div>
+    <div id="hierAudit" style="margin-top:.6rem;">Loading…</div>
+  </div>
+
 </main><footer>
   © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
 </footer>
@@ -353,6 +388,7 @@ function setTab(g) {
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === g));
   try { history.replaceState(null, '', '#' + g); } catch (_) {}
   if (g === 'governance') { loadCmsItems(); loadCmsApprovals(); loadCmsAudit(); }
+  if (g === 'hierarchy') { hierLoadNodes(); hierLoadApprovals(); hierLoadAudit(); }
 }
 
 async function loadCards() {
@@ -682,6 +718,66 @@ async function loadDeployments() {
   } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
 }
 
+// ===================== Feature 011 — Hierarchy =====================
+async function hierApi(path, opts) {
+  const r = await fetch('/api/hierarchy' + path, Object.assign({ cache:'no-store' }, opts || {}));
+  return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) };
+}
+async function hierLoadNodes() {
+  const el = document.getElementById('hierNodes');
+  if (!el) return;
+  try {
+    const r = await hierApi('/nodes');
+    const nodes = (r.body && r.body.nodes) || [];
+    if (!nodes.length) { el.innerHTML = '<em>No hierarchy nodes yet. Create a district/school to begin.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Type</th><th>Name</th><th>Country</th><th>Status</th></tr></thead><tbody>' +
+      nodes.map(n => `<tr><td><span class="badge">${escapeHtml(n.node_type)}</span></td><td>${escapeHtml(n.display_name)}</td><td>${escapeHtml(n.country_code||'-')}</td><td>${escapeHtml(n.status)}</td></tr>`).join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+async function hierCreateNode() {
+  const nodeType = document.getElementById('hierNodeType').value;
+  const displayName = document.getElementById('hierNodeName').value.trim();
+  const countryCode = document.getElementById('hierNodeCountry').value.trim() || null;
+  if (!displayName) { toast('Name required', 'err'); return; }
+  const r = await hierApi('/nodes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nodeType, displayName, countryCode }) });
+  if (r.ok) { toast('Node created'); document.getElementById('hierNodeName').value=''; hierLoadNodes(); }
+  else toast('Create failed', 'err');
+}
+async function hierLoadApprovals() {
+  const el = document.getElementById('hierApprovals');
+  if (!el) return;
+  try {
+    const r = await hierApi('/district-approvals/pending');
+    const rows = (r.body && r.body.pending) || [];
+    if (!rows.length) { el.innerHTML = '<em>No pending district approvals.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Content</th><th>District</th><th>State</th><th>Gate</th><th>Decision</th></tr></thead><tbody>' +
+      rows.map(w => `<tr><td>${escapeHtml(w.content_title||w.content_ref)}</td><td>${escapeHtml(w.district_name||'')}</td><td><span class="badge">${escapeHtml(w.state)}</span></td><td>${w.current_gate_order}</td>
+        <td><button class="btn" onclick="hierDecide('${w.workflow_id}','approved')">Approve</button>
+            <button class="btn secondary" onclick="hierDecide('${w.workflow_id}','changes_requested')">Changes</button></td></tr>`).join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+async function hierDecide(workflowId, decision) {
+  let comment = null;
+  if (decision !== 'approved') { comment = prompt('Rationale (required for changes/reject):') || ''; if (!comment.trim()) { toast('Rationale required', 'err'); return; } }
+  const r = await hierApi('/district-approvals/' + workflowId + '/decisions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ decision, comment }) });
+  if (r.ok) { toast(r.body.published ? 'Available to schools' : 'Decision recorded'); hierLoadApprovals(); hierLoadAudit(); }
+  else toast(r.body.error || 'Decision failed', 'err');
+}
+async function hierLoadAudit() {
+  const el = document.getElementById('hierAudit');
+  if (!el) return;
+  try {
+    const r = await hierApi('/audit?limit=60');
+    const rows = (r.body && r.body.events) || [];
+    if (!rows.length) { el.innerHTML = '<em>No hierarchy audit events yet.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Time</th><th>Event</th><th>Actor</th><th>Scope</th><th>Rationale</th></tr></thead><tbody>' +
+      rows.map(e => `<tr><td style="white-space:nowrap;font-size:.76rem;">${escapeHtml((e.event_timestamp||'').replace('T',' ').slice(0,19))}</td><td><span class="badge">${escapeHtml(e.event_type)}</span></td><td>${escapeHtml(e.actor_user||'-')}</td><td>${escapeHtml(e.scope_level||'-')}</td><td>${escapeHtml(e.rationale||'')}</td></tr>`).join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+
 (async () => {
   try {
     const me = await (await fetch('/api/auth/me', { cache:'no-store' })).json();
@@ -704,7 +800,7 @@ async function loadDeployments() {
   loadIntegrations();
   loadIntegrationAudit();
   const initial = (location.hash || '').replace(/^#/, '');
-  const valid = new Set(['overview','users','activity','safety','data','integrations','governance']);
+  const valid = new Set(['overview','users','activity','safety','data','integrations','governance','hierarchy']);
   setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();

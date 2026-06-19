@@ -2934,6 +2934,284 @@ async function getVersionLineage({ versionId }) {
   return r && r.rows ? r.rows : [];
 }
 
+// ===========================================================================
+// Feature 011 — Multi-School Hierarchy, Approval Chains & Hierarchical Reporting
+// ===========================================================================
+
+// --- Hierarchy graph ------------------------------------------------------
+async function createHierarchyNode({ nodeType, displayName, countryCode = null, externalRef = null }) {
+  const r = await q(
+    `INSERT INTO hierarchy_node (node_type, display_name, country_code, external_ref)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [nodeType, displayName, countryCode, externalRef]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function getHierarchyNode(id) {
+  const r = await q(`SELECT * FROM hierarchy_node WHERE id = $1`, [id]);
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function listHierarchyNodes({ nodeType = null, countryCode = null, limit = 500 } = {}) {
+  const r = await q(
+    `SELECT * FROM hierarchy_node
+      WHERE ($1::text IS NULL OR node_type = $1)
+        AND ($2::text IS NULL OR country_code = $2)
+      ORDER BY node_type, display_name LIMIT $3`,
+    [nodeType, countryCode, limit]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+async function createHierarchyEdge({ parentNodeId, childNodeId, changeReason = null, createdBy = null }) {
+  // Close any existing active edge for this child to keep the active set acyclic/single-parent.
+  await q(
+    `UPDATE hierarchy_edge SET effective_to = now()
+      WHERE child_node_id = $1 AND effective_to IS NULL`,
+    [childNodeId]
+  );
+  const r = await q(
+    `INSERT INTO hierarchy_edge (parent_node_id, child_node_id, change_reason, created_by)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [parentNodeId, childNodeId, changeReason, createdBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+// Resolve all descendant nodes of a root via the ACTIVE edge set (effective_to IS NULL).
+async function descendantNodes({ rootId, nodeType = null }) {
+  const r = await q(
+    `WITH RECURSIVE sub AS (
+        SELECT n.id, n.node_type, n.display_name, n.country_code, n.status, 0 AS depth
+          FROM hierarchy_node n WHERE n.id = $1
+        UNION ALL
+        SELECT c.id, c.node_type, c.display_name, c.country_code, c.status, sub.depth + 1
+          FROM hierarchy_edge e
+          JOIN sub ON e.parent_node_id = sub.id
+          JOIN hierarchy_node c ON c.id = e.child_node_id
+         WHERE e.effective_to IS NULL AND sub.depth < 12
+     )
+     SELECT DISTINCT id, node_type, display_name, country_code, status, depth FROM sub
+      WHERE ($2::text IS NULL OR node_type = $2)
+      ORDER BY depth`,
+    [rootId, nodeType]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+// --- Role/scope grants ----------------------------------------------------
+async function createRoleScopeGrant({ userEmail, role, scopeLevel, scopeNodeId, grantedBy = null }) {
+  const r = await q(
+    `INSERT INTO role_scope_grant (user_email, role, scope_level, scope_node_id, granted_by)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (user_email, role, scope_node_id) WHERE status = 'active'
+     DO UPDATE SET scope_level = EXCLUDED.scope_level, granted_by = EXCLUDED.granted_by
+     RETURNING *`,
+    [userEmail, role, scopeLevel, scopeNodeId, grantedBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function listActiveGrants(userEmail) {
+  const r = await q(
+    `SELECT * FROM role_scope_grant
+      WHERE user_email = $1 AND status = 'active'
+        AND (effective_to IS NULL OR effective_to > now())
+      ORDER BY scope_level, created_at`,
+    [userEmail]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+// Atomic role transition: revoke old grants for (user, role), grant new scope.
+async function transitionRoleGrant({ userEmail, role, scopeLevel, scopeNodeId, actor }) {
+  if (!enabled || !pool) return null;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE role_scope_grant SET status = 'revoked', revoked_by = $3, effective_to = now()
+        WHERE user_email = $1 AND role = $2 AND status = 'active'`,
+      [userEmail, role, actor]
+    );
+    const ins = await client.query(
+      `INSERT INTO role_scope_grant (user_email, role, scope_level, scope_node_id, granted_by)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [userEmail, role, scopeLevel, scopeNodeId, actor]
+    );
+    await client.query('COMMIT');
+    return ins.rows[0];
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('[db] transitionRoleGrant failed:', e.message);
+    return null;
+  } finally {
+    client.release();
+  }
+}
+
+// --- District approval workflow ------------------------------------------
+async function createDistrictWorkflow({ contentRef, contentTitle = null, districtNodeId, submittedBy }) {
+  const r = await q(
+    `INSERT INTO district_approval_workflow (content_ref, content_title, district_node_id, state, current_gate_order, submitted_by)
+     VALUES ($1,$2,$3,'submitted',1,$4) RETURNING *`,
+    [contentRef, contentTitle, districtNodeId, submittedBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function getDistrictWorkflow(id) {
+  const r = await q(`SELECT * FROM district_approval_workflow WHERE id = $1`, [id]);
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function listPendingDistrictApprovals(districtNodeId = null) {
+  const r = await q(
+    `SELECT * FROM v_pending_district_approvals
+      WHERE ($1::uuid IS NULL OR district_node_id = $1)
+      ORDER BY submitted_at`,
+    [districtNodeId]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+async function listDistrictWorkflows(limit = 100) {
+  const r = await q(`SELECT * FROM district_approval_workflow ORDER BY created_at DESC LIMIT $1`, [limit]);
+  return r && r.rows ? r.rows : [];
+}
+
+// Optimistic-locked workflow transition.
+async function transitionDistrictWorkflow({ id, expectedLockVersion, nextState, nextGateOrder, resolved = false }) {
+  const r = await q(
+    `UPDATE district_approval_workflow
+        SET state = $3, current_gate_order = $4, lock_version = lock_version + 1,
+            updated_at = now(), resolved_at = CASE WHEN $5 THEN now() ELSE resolved_at END
+      WHERE id = $1 AND lock_version = $2
+      RETURNING *`,
+    [id, expectedLockVersion, nextState, nextGateOrder, resolved]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function recordDistrictStep({ workflowId, gateOrder, requiredRole, decision, decisionNote = null, decidedBy }) {
+  const r = await q(
+    `INSERT INTO district_approval_step (workflow_id, gate_order, required_role, decision, decision_note, decided_by)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [workflowId, gateOrder, requiredRole, decision, decisionNote, decidedBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function listDistrictSteps(workflowId) {
+  const r = await q(
+    `SELECT * FROM district_approval_step WHERE workflow_id = $1 ORDER BY gate_order, decided_at`,
+    [workflowId]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+async function recordSchoolAdoption({ workflowId, schoolNodeId, decision, decisionNote = null, variantContentRef = null, decidedBy }) {
+  const r = await q(
+    `INSERT INTO school_adoption_decision (workflow_id, school_node_id, decision, decision_note, variant_content_ref, decided_by)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [workflowId, schoolNodeId, decision, decisionNote, variantContentRef, decidedBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function getAdoptionMetrics(workflowId) {
+  const r = await q(`SELECT * FROM v_school_adoption_metrics WHERE workflow_id = $1`, [workflowId]);
+  return r && r.rows ? r.rows[0] : { workflow_id: workflowId, total_decisions: 0, adopt_count: 0, adapt_count: 0, decline_count: 0 };
+}
+
+// --- Reporting snapshots & rollups ---------------------------------------
+async function upsertReportingSnapshot({ periodStart, periodEnd, schoolNodeId, subjectCode = 'ALL', cohortSize, enrollmentCount, completionRate, masteryRate, aggregationVersion = 'v1' }) {
+  const r = await q(
+    `INSERT INTO reporting_snapshot (period_start, period_end, school_node_id, subject_code, cohort_size, enrollment_count, completion_rate, mastery_rate, aggregation_version)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     ON CONFLICT (school_node_id, subject_code, period_start, period_end)
+     DO UPDATE SET cohort_size = EXCLUDED.cohort_size, enrollment_count = EXCLUDED.enrollment_count,
+                   completion_rate = EXCLUDED.completion_rate, mastery_rate = EXCLUDED.mastery_rate,
+                   aggregation_version = EXCLUDED.aggregation_version
+     RETURNING *`,
+    [periodStart, periodEnd, schoolNodeId, subjectCode, cohortSize, enrollmentCount, completionRate, masteryRate, aggregationVersion]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+// School-level snapshots within a scope (rootId) and period window.
+async function schoolSnapshotsForScope({ rootId, periodStart, periodEnd, subjectCode = null }) {
+  const r = await q(
+    `WITH RECURSIVE sub AS (
+        SELECT id FROM hierarchy_node WHERE id = $1
+        UNION ALL
+        SELECT c.id FROM hierarchy_edge e
+          JOIN sub ON e.parent_node_id = sub.id
+          JOIN hierarchy_node c ON c.id = e.child_node_id
+         WHERE e.effective_to IS NULL
+     )
+     SELECT rs.*, n.display_name AS school_name
+       FROM reporting_snapshot rs
+       JOIN hierarchy_node n ON n.id = rs.school_node_id
+      WHERE rs.school_node_id IN (SELECT id FROM sub)
+        AND rs.period_start >= $2 AND rs.period_end <= $3
+        AND ($4::text IS NULL OR rs.subject_code = $4)
+      ORDER BY rs.period_start, n.display_name`,
+    [rootId, periodStart, periodEnd, subjectCode]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
+async function createReportRequest({ requestedBy, scopeLevel, scopeNodeId, dimension = 'school', periodStart, periodEnd, status, suppressionApplied = false, reidRiskFlag = false }) {
+  const r = await q(
+    `INSERT INTO hierarchical_report_request (requested_by, scope_level, scope_node_id, dimension, period_start, period_end, status, suppression_applied, reid_risk_flag, generated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, CASE WHEN $7 = 'generated' THEN now() ELSE NULL END)
+     RETURNING *`,
+    [requestedBy, scopeLevel, scopeNodeId, dimension, periodStart, periodEnd, status, suppressionApplied, reidRiskFlag]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+// --- Peer benchmarking ----------------------------------------------------
+async function upsertPeerBenchmark({ schoolNodeId, districtNodeId, metricCode, schoolValue, districtAverage, nationalAverage, gapPercent, recommendationText }) {
+  const r = await q(
+    `INSERT INTO peer_benchmark_record (school_node_id, district_node_id, metric_code, school_value, district_average, national_average, gap_percent, recommendation_text)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [schoolNodeId, districtNodeId, metricCode, schoolValue, districtAverage, nationalAverage, gapPercent, recommendationText]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function setBenchmarkRequestStatus({ id, requestStatus, requestedBy }) {
+  const r = await q(
+    `UPDATE peer_benchmark_record SET request_status = $2, requested_by = $3, updated_at = now()
+      WHERE id = $1 RETURNING *`,
+    [id, requestStatus, requestedBy]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+// --- Hierarchy audit ------------------------------------------------------
+async function logHierarchyAudit({ eventType, actorUser = null, actorRole = null, scopeLevel = null, scopeNodeId = null, subjectRefType = null, subjectRefId = null, rationale = null, details = {} }) {
+  const r = await q(
+    `INSERT INTO hierarchy_audit_event (event_type, actor_user, actor_role, scope_level, scope_node_id, subject_ref_type, subject_ref_id, rationale, details_json)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) RETURNING *`,
+    [eventType, actorUser, actorRole, scopeLevel, scopeNodeId, subjectRefType, subjectRefId, rationale, JSON.stringify(details || {})]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+
+async function listHierarchyAudit({ eventType = null, limit = 100 } = {}) {
+  const r = await q(
+    `SELECT * FROM hierarchy_audit_event
+      WHERE ($1::text IS NULL OR event_type = $1)
+      ORDER BY event_timestamp DESC LIMIT $2`,
+    [eventType, limit]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
 
 module.exports = {
   enabled,
@@ -3133,6 +3411,31 @@ module.exports = {
   logContentAudit,
   listContentAudit,
   getVersionLineage,
+  // Feature 011 — Multi-School Hierarchy, Approval Chains & Hierarchical Reporting
+  createHierarchyNode,
+  getHierarchyNode,
+  listHierarchyNodes,
+  createHierarchyEdge,
+  descendantNodes,
+  createRoleScopeGrant,
+  listActiveGrants,
+  transitionRoleGrant,
+  createDistrictWorkflow,
+  getDistrictWorkflow,
+  listPendingDistrictApprovals,
+  listDistrictWorkflows,
+  transitionDistrictWorkflow,
+  recordDistrictStep,
+  listDistrictSteps,
+  recordSchoolAdoption,
+  getAdoptionMetrics,
+  upsertReportingSnapshot,
+  schoolSnapshotsForScope,
+  createReportRequest,
+  upsertPeerBenchmark,
+  setBenchmarkRequestStatus,
+  logHierarchyAudit,
+  listHierarchyAudit,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

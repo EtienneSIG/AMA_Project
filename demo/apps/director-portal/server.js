@@ -650,5 +650,13 @@ app.post('/api/teacher-questions/:id/answer', async (req, res) => {
   res.json({ row });
 });
 
+// Feature 011 — Multi-school hierarchy governance routes (district dashboard,
+// hierarchical reporting, peer benchmarking, scope RBAC). Guarded require.
+try {
+  require('./server-hierarchy')(app, { db, APP_ROLE });
+} catch (e) {
+  console.warn('[hierarchy] routes not mounted:', e && e.message);
+}
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[${APP_ROLE}] listening on :${port} (allowedRoles=${ALLOWED.join(',')}, APIM=${APIM || 'unset'})`));

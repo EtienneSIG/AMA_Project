@@ -920,5 +920,13 @@ app.get('/api/admin/cms/audit', async (req, res) => {
   catch (e) { res.status(500).json({ error: 'cms_audit_failed' }); }
 });
 
+// Feature 011 — Multi-school hierarchy governance routes (scope RBAC, district
+// approvals, hierarchical reporting, benchmarking, audit). Guarded require.
+try {
+  require('./server-hierarchy')(app, { db, APP_ROLE: 'admin' });
+} catch (e) {
+  console.warn('[hierarchy] routes not mounted:', e && e.message);
+}
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[admin] listening on :${port} (managed=${MANAGED_SITES.join(',')})`));
