@@ -267,6 +267,9 @@ $modelBim = @{
           @{ name = "Total Attempts"; expression = "COUNTROWS('Item Attempts')" }
           @{ name = "Correct Attempts"; expression = "COUNTROWS(FILTER('Item Attempts', 'Item Attempts'[correct] = TRUE()))" }
           @{ name = "Correctness Rate"; expression = "DIVIDE([Correct Attempts], [Total Attempts], 0)"; formatString = "0.0%" }
+          @{ name = "National Correctness Rate"; expression = 'CALCULATE([Correctness Rate], REMOVEFILTERS(''Hierarchy Assignments''), REMOVEFILTERS(''Learners''))'; formatString = "0.0%" }
+          @{ name = "Delta vs National (pts)"; expression = 'VAR establishmentRate = [Correctness Rate] VAR nationalRate = [National Correctness Rate] RETURN IF(OR(ISBLANK(establishmentRate), ISBLANK(nationalRate)), BLANK(), ROUND((establishmentRate - nationalRate) * 100, 1))'; formatString = "0.0" }
+          @{ name = "Recent Trend (pts)"; expression = 'VAR recentRate = CALCULATE([Correctness Rate], FILTER(ALL(''Item Attempts''[created_at]), DATEVALUE(''Item Attempts''[created_at]) >= TODAY() - 6)) VAR priorRate = CALCULATE([Correctness Rate], FILTER(ALL(''Item Attempts''[created_at]), DATEVALUE(''Item Attempts''[created_at]) >= TODAY() - 13 && DATEVALUE(''Item Attempts''[created_at]) < TODAY() - 6)) RETURN IF(OR(ISBLANK(recentRate), ISBLANK(priorRate)), BLANK(), ROUND((recentRate - priorRate) * 100, 1))'; formatString = "0.0" }
           @{ name = "Active Learners"; expression = "DISTINCTCOUNT('Item Attempts'[email])" }
           @{ name = "Avg Difficulty"; expression = "AVERAGE('Item Attempts'[difficulty])"; formatString = "0.00" }
           @{ name = "Attempts Per Learner"; expression = "DIVIDE([Total Attempts], [Active Learners], 0)"; formatString = "#,##0.0" }
@@ -483,6 +486,7 @@ $modelBim = @{
         measures = @(
           @{ name = "Hierarchy Rows"; expression = "COUNTROWS('Hierarchy Assignments')" }
           @{ name = "Assigned Learners"; expression = "DISTINCTCOUNT('Hierarchy Assignments'[learner_id])" }
+          @{ name = "Exception Count"; expression = 'COUNTROWS(FILTER(''Hierarchy Assignments'', ''Hierarchy Assignments''[exception_flag] = TRUE()))' }
           @{ name = "Hierarchy Exception Rate"; expression = 'DIVIDE(COUNTROWS(FILTER(''Hierarchy Assignments'', ''Hierarchy Assignments''[exception_flag] = TRUE())), COUNTROWS(''Hierarchy Assignments''), 0)'; formatString = "0.0%" }
         )
       }
@@ -569,6 +573,13 @@ $modelBim = @{
         name = "DirectorProfiles_to_ReportingScope"
         fromTable = "Reporting Scope"; fromColumn = "director_subject_id"
         toTable = "Director Profiles"; toColumn = "director_subject_id"
+      }
+      # Learners ↔ Hierarchy Assignments (benchmark scope filtering)
+      @{
+        name = "Learners_to_HierarchyAssignments"
+        fromTable = "Learners"; fromColumn = "pseudonym"
+        toTable = "Hierarchy Assignments"; toColumn = "learner_id"
+        crossFilteringBehavior = "bothDirections"
       }
     ) # end relationships
 

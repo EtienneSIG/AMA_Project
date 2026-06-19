@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: LearnEU Multi-School Hierarchy and Governance API
+  version: 0.1.0
+  description: >-
+    Contract for hierarchy-aware RBAC, district approval chains, school adoption
+    decisions, hierarchical reporting (district/region/national), and peer benchmarking.
+servers:
+  - url: /api/hierarchy
+paths:
+  /reporting/hierarchical:
+    get:
+      summary: Generate a hierarchical aggregate report in authorized scope
+      operationId: getHierarchicalReport
+      tags: [Reporting]
+      parameters:
+        - in: query
+          name: scopeLevel
+          required: true
+          schema:
+            type: string
+            enum: [district, region, national]
+        - in: query
+          name: scopeNodeId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: dimension
+          required: true
+          schema:
+            type: string
+            enum: [school, subject, cohort]
+        - in: query
+          name: periodStart
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: periodEnd
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HierarchicalReportResponse'
+        '403':
+          description: Scope denied
+        '409':
+          description: Report blocked for manual review due to re-identification risk
+  /reporting/hierarchical/export:
+    post:
+      summary: Export a previously generated hierarchical report
+      operationId: exportHierarchicalReport
+      tags: [Reporting]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportRequestId, format]
+              properties:
+                reportRequestId:
+                  type: string
+                  format: uuid
+                format:
+                  type: string
+                  enum: [pdf]
+      responses:
+        '202':
+          description: Export accepted
+        '403':
+          description: Scope denied
+        '422':
+          description: Export not allowed for suppressed or blocked report
+  /district-approvals:
+    post:
+      summary: Submit district content into approval workflow
+      operationId: submitDistrictApproval
+      tags: [Approvals]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitDistrictApprovalRequest'
+      responses:
+        '201':
+          description: Workflow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictApprovalWorkflow'
+  /district-approvals/{workflowId}/decisions:
+    post:
+      summary: Record current gate decision in district approval chain
+      operationId: decideDistrictApprovalGate
+      tags: [Approvals]
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DistrictApprovalDecisionRequest'
+      responses:
+        '200':
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictApprovalWorkflow'
+        '403':
+          description: Role or scope not authorized for current gate
+        '409':
+          description: Stale lock version
+  /district-approvals/{workflowId}/school-decisions:
+    post:
+      summary: Record school-level adopt/adapt/decline decision
+      operationId: decideSchoolAdoption
+      tags: [Approvals]
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolAdoptionDecisionRequest'
+      responses:
+        '201':
+          description: School decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolAdoptionDecision'
+        '403':
+          description: Not authorized for school scope
+        '422':
+          description: Workflow not available to schools
+  /rbac/scope-check:
+    post:
+      summary: Validate whether caller can access a target node at a hierarchy level
+      operationId: checkScopeAuthorization
+      tags: [RBAC]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, scopeLevel, scopeNodeId]
+              properties:
+                role:
+                  type: string
+                scopeLevel:
+                  type: string
+                  enum: [school, district, region, country]
+                scopeNodeId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Scope check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScopeCheckResult'
+  /benchmarking/peer-comparisons:
+    get:
+      summary: Retrieve peer benchmarking view for authorized school scope
+      operationId: getPeerBenchmarking
+      tags: [Benchmarking]
+      parameters:
+        - in: query
+          name: schoolNodeId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: metricCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Benchmarking comparison response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerBenchmarkResponse'
+        '403':
+          description: Scope denied
+  /benchmarking/collaboration-requests:
+    post:
+      summary: Create peer collaboration request for a high-performing school
+      operationId: createCollaborationRequest
+      tags: [Benchmarking]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sourceSchoolNodeId, targetSchoolNodeId, metricCode]
+              properties:
+                sourceSchoolNodeId:
+                  type: string
+                  format: uuid
+                targetSchoolNodeId:
+                  type: string
+                  format: uuid
+                metricCode:
+                  type: string
+                note:
+                  type: string
+      responses:
+        '201':
+          description: Collaboration request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollaborationRequest'
+        '403':
+          description: Scope denied
+components:
+  parameters:
+    WorkflowId:
+      name: workflowId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    SubmitDistrictApprovalRequest:
+      type: object
+      required: [contentId, districtNodeId]
+      properties:
+        contentId:
+          type: string
+          format: uuid
+        districtNodeId:
+          type: string
+          format: uuid
+    DistrictApprovalWorkflow:
+      type: object
+      required: [id, contentId, districtNodeId, state, currentGateOrder, lockVersion]
+      properties:
+        id:
+          type: string
+          format: uuid
+        contentId:
+          type: string
+          format: uuid
+        districtNodeId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [draft, submitted, in_review, changes_requested, rejected, approved, available_to_schools]
+        currentGateOrder:
+          type: integer
+        lockVersion:
+          type: integer
+          format: int64
+    DistrictApprovalDecisionRequest:
+      type: object
+      required: [decision, expectedLockVersion]
+      properties:
+        decision:
+          type: string
+          enum: [approved, changes_requested, rejected]
+        decisionNote:
+          type: string
+        expectedLockVersion:
+          type: integer
+          format: int64
+    SchoolAdoptionDecisionRequest:
+      type: object
+      required: [schoolNodeId, decision]
+      properties:
+        schoolNodeId:
+          type: string
+          format: uuid
+        decision:
+          type: string
+          enum: [adopt, adapt, decline]
+        decisionNote:
+          type: string
+        variantContentId:
+          type: string
+          format: uuid
+          nullable: true
+    SchoolAdoptionDecision:
+      type: object
+      required: [id, workflowId, schoolNodeId, decision, decidedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        workflowId:
+          type: string
+          format: uuid
+        schoolNodeId:
+          type: string
+          format: uuid
+        decision:
+          type: string
+          enum: [adopt, adapt, decline]
+        decidedAt:
+          type: string
+          format: date-time
+    ScopeCheckResult:
+      type: object
+      required: [authorized, role, scopeLevel, scopeNodeId]
+      properties:
+        authorized:
+          type: boolean
+        role:
+          type: string
+        scopeLevel:
+          type: string
+        scopeNodeId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          nullable: true
+    HierarchicalReportResponse:
+      type: object
+      required: [reportRequestId, scopeLevel, scopeNodeId, periodStart, periodEnd, status, suppressionApplied, rows]
+      properties:
+        reportRequestId:
+          type: string
+          format: uuid
+        scopeLevel:
+          type: string
+          enum: [district, region, national]
+        scopeNodeId:
+          type: string
+          format: uuid
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [generated, suppressed, blocked_for_review]
+        suppressionApplied:
+          type: boolean
+        reidentificationRiskFlag:
+          type: boolean
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/HierarchicalReportRow'
+    HierarchicalReportRow:
+      type: object
+      required: [nodeId, nodeLabel, enrollmentCount, completionRate, masteryRate]
+      properties:
+        nodeId:
+          type: string
+          format: uuid
+        nodeLabel:
+          type: string
+        enrollmentCount:
+          type: integer
+        completionRate:
+          type: number
+          format: float
+        masteryRate:
+          type: number
+          format: float
+        suppressed:
+          type: boolean
+    PeerBenchmarkResponse:
+      type: object
+      required: [schoolNodeId, metricCode, schoolValue, districtAverage, recommendation]
+      properties:
+        schoolNodeId:
+          type: string
+          format: uuid
+        metricCode:
+          type: string
+        schoolValue:
+          type: number
+          format: float
+        districtAverage:
+          type: number
+          format: float
+        nationalAverage:
+          type: number
+          format: float
+          nullable: true
+        recommendation:
+          type: string
+        suggestedPeerSchoolIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    CollaborationRequest:
+      type: object
+      required: [id, sourceSchoolNodeId, targetSchoolNodeId, metricCode, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceSchoolNodeId:
+          type: string
+          format: uuid
+        targetSchoolNodeId:
+          type: string
+          format: uuid
+        metricCode:
+          type: string
+        status:
+          type: string
+          enum: [requested, accepted, declined]
+        createdAt:
+          type: string
+          format: date-time

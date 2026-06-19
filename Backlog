@@ -1,0 +1,191 @@
+put the task on focus with the progress bar. make it more game friendly (earning medal) (learning experience on the center )
+
+UX --> review 
+
+generer html and css pour le UX
+
+Goal : learner get better.
+
+Dimension, ecole, region , pays pour faciliter le scale 
+powerbi embedded pour le scale 
+
+Reproting : workspace for each school or region ... (RLS and CLS)
+
+keep focus on 4.1 millions people.
+
+Slide request: create one slide on "Scale and cost at scale" covering:
+- 4.1M learners as the target scale
+- capacity by school / region / country
+- Power BI embedded for reporting scale
+- RLS / CLS for scoped reporting
+- cost per learner and cost drivers at scale
+
+Backlog item: rewrite the repo README to match the style of [fredgis/UDCSP: Unified Digital Citizen Services Platform](https://github.com/fredgis/udcsp)
+
+## Backlog - elements non developpes (source: executive draft K-12)
+
+> **📋 NOTE (2026-06-18)**: This Backlog is a **high-level roadmap**. Each item now maps to a **Spec Kit feature spec** (001–012 in `specs/` directory), which is the **single source of truth** for implementation. See `specs/INDEX.md` for complete mapping and use `/speckit.specify` → `/speckit.plan` → `/speckit.tasks` workflow for detailed planning.
+
+### Regles de priorisation
+- P0: indispensable pour un MVP operationnel
+- P1: important apres MVP
+- P2: optimisation / extension
+
+### Student experience (MVP mobile-first)
+- [P0] Dashboard etudiant avec "Continue where I left off", taches du jour, deadlines et carte de progression par competence.
+- [P0] UX par tranche d'age (primaire vs college): ecrans simplifies, taille des cibles, objectifs adaptes.
+- [P0] Boucle d'apprentissage courte: micro-lecons, videos courtes, exercices interactifs, hints pas-a-pas, retry immediat.
+- [P0] Accessibilite de base: read-aloud, sous-titres, contraste, taille de texte.
+- [P0] Continuite d'usage: pause/reprise cross-device et synchronisation robuste.
+- [P1] Adaptivite: ajustement de difficulte, next-best-activity, mode rattrapage, activites d'approfondissement.
+- [P1] Couche projet/pratique: mini-projets, evidence capture (photo/audio/video/output).
+- [P1] Collaboration securisee: activites en binome/equipe, reactions/discussions moderees enseignant.
+- [P2] Virtual labs navigateur (science/coding/experiments).
+
+### Gamification (simple, pedagogique, non toxique)
+- [P0] Progress bars + mastery map par matiere/competence.
+- [P0] Streaks (quotidien/hebdo) + micro-celebrations contextualisees.
+- [P0] Quests/missions et objectifs de classe/equipe.
+- [P1] XP/levels et customisation avatar/profil.
+- [P1] Achievement map et showcase des projets.
+- [P1] Regles anti-patterns: leaderboards publics optionnels (desactives par defaut pour plus jeunes), pas de surenchere de badges.
+
+### Parent portal (lightweight et actionnable)
+- [P0] Dashboard parent: progression enfant, devoirs semaine, absences/travail manque, alertes, evenements.
+- [P0] Communication securisee parent-enseignant + annonces + accuses de lecture.
+- [P0] Consentements/approbations (sorties, activites, permissions).
+- [P0] Multi-enfants: switch rapide, calendrier combine, notifications foyer.
+- [P1] Digest hebdo (email/push) + "How to help this week".
+- [P1] Mode traduction parent + centre de ressources famille.
+
+### Teacher console (gain de temps + intervention)
+- [P0] Gestion classe: roster/groupes, calendrier, statut eleves.
+- [P0] Authoring: lecons, quiz, devoirs, rubriques, templates, tagging grade/subject/skill.
+- [P0] Evaluation: auto-correction quiz + correction manuelle rubric + feedback audio/video.
+- [P0] Differenciation/intervention: groupes par besoin, alertes inactifs/en difficulte, remediation.
+- [P0] Analytics classe: engagement, completion, mastery gaps, at-risk alerts.
+- [P1] Bibliotheque de ressources partagees et reaffectation/remediation workflow.
+- [P2] IA enseignant: generation de questions et variation de niveau.
+
+### Director / School leadership
+- [P0] Dashboard ecole: usage actif, completion, resultats, attendance trends, teacher adoption.
+- [P0] Governance: RBAC fin, journaux d'audit, consent/privacy records, export/inspection.
+- [P0] Couverture curriculum + workflow d'approbation contenu.
+- [P1] Decision support: comparaisons ecole/niveau/classe, heatmaps intervention, KPI programme.
+- [P1] Change management: campagnes d'adoption, objectifs ecole, suivi formation enseignants.
+- [P2] Multi-ecoles/district + rapports executifs personnalises.
+
+### Plateforme transverse (web + mobile)
+- [P0] Parite web/mobile sur les parcours coeur par role.
+- [P0] Onboarding faible friction par role + empty states guides.
+- [P0] Notifications role-based (in-app, email, push) + rappels intelligents.
+- [P0] Privacy/safety/compliance: consentement parental, permissions role-based, moderation/reporting, audit trail.
+- [P1] Interoperabilite: SCORM/xAPI, import/export LMS, integrations SIS/identity/calendar/storage.
+- [P1] CMS contenu: versioning, workflow d'approbation, localisation/traduction.
+- [P1] Fondation analytics: cohortes, adoption, mastery, completion.
+- [P2] A/B testing framework et experimentation produit.
+
+### Offline, bandwidth et accessibilite avancee
+- [P0] Mode faible bande passante + mode video leger.
+- [P1] Download lessons + sync au retour reseau.
+- [P1] WCAG renforce: clavier, focus visible, navigation ecran lecteur.
+
+### Suggested rollout
+- [MVP/P0] Student dashboard + Teacher dashboard + Parent dashboard + Assignments/Quizzes + Progress tracking + Messaging + streaks/progress bars/quests + Director dashboard + consent/RBAC.
+- [Phase 2/P1-P2] Adaptive pathways + Virtual labs + portfolios + IA differentiation + hierarchy multi-school + analytics avancees + multilingual riche.
+
+### Dependances techniques et produit a planifier
+- [P0] Definition of Done commune (pedagogie + produit + conformite).
+- [P0] Telemetrie evenementielle standardisee pour toutes les experiences role-based.
+- [P1] Gouvernance contenu (owner, SLA validation, versioning).
+- [P1] Plan d'adoption (enseignants, parents, directions) et KPIs d'usage.
+
+## Statut verifie dans le code (DONE / PARTIAL / TODO)
+
+### Legende
+- DONE: developpe et visible dans le code/deploiement.
+- PARTIAL: present mais incomplet vs cible backlog.
+- TODO: non trouve ou non implemente a ce stade.
+
+### Student
+- [DONE][P0] Student mobile PWA (entrypoint mobile, manifest, service worker, install flow).
+- [DONE][P0] Continuite web + mobile avec auth/session et returnTo.
+- [PARTIAL][P0] Dashboard et progression etudiant (present, a enrichir selon spec complete).
+- [PARTIAL][P0] Gamification de base: progress/streak/micro-celebrations.
+- [TODO][P1] Adaptive learning complet (next-best-activity robuste, catch-up/stretch systematiques).
+- [TODO][P2] Virtual labs complets integres.
+
+### Parent
+- [DONE][P0] Consentement parental GDPR Art. 8 (UI, API, gate server).
+- [DONE][P0] Multi-enfants (selection/switch enfant).
+- [PARTIAL][P0] Dashboard parent et communication (present, couverture fonctionnelle a etendre).
+- [TODO][P1] Digest hebdo automatise + "How to help this week" industrialise.
+- [TODO][P1] Mode traduction parent et centre de ressources complet.
+
+### Teacher
+- [DONE][P0] Console enseignant operationnelle avec analytics classe et overrides.
+- [DONE][P0] Quiz generation flow et endpoints de suivi enseignant.
+- [PARTIAL][P0] Authoring/assessment complet (rubrics/workflows a approfondir).
+- [TODO][P1] Bibliotheque mutualisee + reaffectation/remediation complete.
+- [TODO][P2] IA enseignant avancee (leveled generation end-to-end + gouvernance).
+
+### Director
+- [DONE][P0] Director portal role-gate + reporting metadata contract + fail-closed.
+- [PARTIAL][P0] Dashboard direction (present via report embed, enrichissements KPI backlog a ajouter).
+- [TODO][P1] Multi-school/district hierarchy avancee.
+
+### Plateforme transverse
+- [DONE][P0] RBAC, auth gate et base compliance (incl. consent under-16).
+- [PARTIAL][P0] Parite web/mobile (forte cote learner, a harmoniser sur autres roles).
+- [PARTIAL][P0] Notifications/annonces (presentes mais non unifiees role-based).
+- [TODO][P1] Interoperabilite SCORM/xAPI/SIS.
+- [TODO][P1] CMS versioning + workflow approbation complet.
+- [TODO][P2] Framework A/B testing.
+
+### Offline et accessibilite
+- [PARTIAL][P0] Support offline de base via shell PWA.
+- [TODO][P1] Download lessons + sync offline avancee.
+- [PARTIAL][P1] Accessibilite (elements presents, WCAG complet a valider/etendre).
+
+### Hygiene documentaire
+- [DONE][P1] Aligner les README de parent/teacher (actuellement "placeholder") avec l'etat reel des apps pour eviter les ecarts de pilotage.
+
+---
+
+## Specs Kit Mapping (006–012 Created 2026-06-18)
+
+Each backlog item now maps to a Spec Kit feature spec. Specs are the **single source of truth**.
+
+### Parent Portal [SPEC 006]
+- [PARTIAL→P0][006] Dashboard parent et communication (present, couverture fonctionnelle à étendre)
+- [TODO→P1][006] Digest hebdo automatisé + "How to help this week" industrialisé
+- [TODO→P1][006] Mode traduction parent et centre de ressources complet
+
+### Student — Adaptive Learning [SPEC 007]
+- [TODO→P1][007] Adaptive learning complet (next-best-activity robuste, catch-up/stretch systématiques)
+
+### Teacher Assessment & Library [SPEC 008]
+- [PARTIAL→P0][008] Authoring/assessment complet (rubrics/workflows à approfondir)
+- [TODO→P1][008] Bibliothèque mutualisée + reaffectation/remediation complète
+- [TODO→P2][008] IA enseignant avancée (leveled generation end-to-end + gouvernance)
+
+### Platform — Interoperability [SPEC 009]
+- [TODO→P1][009] Interopérabilité SCORM/xAPI/SIS
+
+### Platform — CMS Versioning [SPEC 010]
+- [TODO→P1][010] CMS versioning + workflow approbation complet
+
+### Director — Multi-School Hierarchy [SPEC 011]
+- [TODO→P1][011] Multi-school/district hierarchy avancée
+
+### Platform — A/B Testing [SPEC 012]
+- [TODO→P2][012] Framework A/B testing
+
+---
+
+## Reference
+
+- **Index**: See `specs/INDEX.md` for complete catalog of all 12 specs (001–012)
+- **Details**: Each spec includes user stories, requirements, success criteria, and compliance checks
+- **Process**: Use `/speckit.specify` → `/speckit.clarify` → `/speckit.plan` → `/speckit.tasks` workflow
+- **Constitution**: All specs comply with `.specify/memory/constitution.md` principles (I–VII)

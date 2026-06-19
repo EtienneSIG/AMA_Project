@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LearnEU mobile app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F1B2D" />
+      <stop offset="100%" stop-color="#1A3658" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <g transform="translate(92,106)">
+    <polygon points="112,0 168,32 168,96 112,128 56,96 56,32" fill="#2BB4B8" />
+    <polygon points="52,92 108,124 108,188 52,220 -4,188 -4,124" fill="none" stroke="#EAF8F8" stroke-width="10" />
+    <circle cx="32" cy="24" r="10" fill="#EAF8F8" />
+    <circle cx="16" cy="206" r="10" fill="#EAF8F8" />
+    <circle cx="196" cy="184" r="10" fill="#EAF8F8" />
+  </g>
+  <text x="256" y="394" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="114" font-weight="800" text-anchor="middle">LE</text>
+</svg>

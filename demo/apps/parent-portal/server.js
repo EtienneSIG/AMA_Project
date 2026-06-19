@@ -11,11 +11,11 @@ const cs = require('./contentSafety');
 const app = express();
 app.use(express.json({ limit: '64kb' }));
 
-const ROLE_INFER = { 'app-learner-web': 'student', 'app-parent-portal': 'parent', 'app-teacher-console': 'teacher', 'app-admin': 'admin' };
+const ROLE_INFER = { 'app-learner-web': 'student', 'app-parent-portal': 'parent', 'app-teacher-console': 'teacher', 'app-admin': 'admin', 'app-director-portal': 'director' };
 const inferred = Object.entries(ROLE_INFER).find(([k]) => (process.env.WEBSITE_SITE_NAME || '').includes(k));
 const APP_ROLE = process.env.APP_ROLE || (inferred ? inferred[1] : 'student');
 const APP_NAME = process.env.APP_NAME || APP_ROLE;
-const ALLOWED = [APP_ROLE, 'admin'];
+const ALLOWED = APP_ROLE === 'director' ? [APP_ROLE] : [APP_ROLE, 'admin'];
 
 const APIM = (process.env.APIM_GATEWAY_URL || '').replace(/\/$/, '');
 const KEY  = process.env.APIM_SUBSCRIPTION_KEY || '';
@@ -202,6 +202,12 @@ app.get('/api/data/learners', async (_req, res) => {
   if (!db.enabled) return res.json({ enabled: false, rows: [] });
   const rows = await db.summariseLearners();
   res.json({ enabled: true, rows: rows || [] });
+});
+app.get('/api/data/hierarchy', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, hierarchy: null });
+  const asOf = req.query.asOf ? new Date(String(req.query.asOf)) : new Date();
+  const hierarchy = await db.getHierarchySummary({ asOf });
+  res.json({ enabled: true, hierarchy });
 });
 // Skill catalogue (Feature 2). Open to any signed-in user. Optional filters:
 //   ?domain=numeracy

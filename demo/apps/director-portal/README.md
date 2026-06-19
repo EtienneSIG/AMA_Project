@@ -5,6 +5,7 @@ Role-gated portal for school directors with aggregated school and region reporti
 ## Purpose
 
 - Show the approved director report directly in-app for the current scope.
+- Keep director benchmark visuals inside the embedded Power BI report, not as a separate app-rendered section.
 - Enforce fail-closed behavior when reporting metadata is missing.
 - Keep learner-identifying data out of this portal by default.
 
@@ -29,6 +30,7 @@ Role-gated portal for school directors with aggregated school and region reporti
 - No-scope users are redirected to public/no-access.html or receive 403 JSON.
 - Reporting metadata is loaded from config/reporting.json.
 - The configured report is rendered in-app through the report embed URL, with a fallback link to open Fabric in a new tab.
+- Director benchmark visuals are expected to live inside the Power BI report itself.
 - Power BI embed tokens are issued only when `PBI_TENANT_ID`, `PBI_CLIENT_ID`, and `PBI_CLIENT_SECRET` are configured.
 - When metadata is missing or empty, the portal stays fail-closed.
 - Audit events are written for portal access attempts and report session usage.
@@ -38,6 +40,7 @@ Role-gated portal for school directors with aggregated school and region reporti
 - Workspace: `EULearn`
 - Report: `test director`
 - Semantic model: `test`
+- Benchmark visuals now live on the Power BI report page, not in the app shell.
 
 ## Power BI embed unblock
 

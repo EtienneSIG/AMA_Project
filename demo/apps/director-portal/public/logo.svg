@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" role="img" aria-label="EdTech Group">
+  <style>
+    .hex-stroke { fill: none; stroke: #0a2a43; stroke-width: 6; }
+    .hex-fill   { fill: #2bb4b8; stroke: #2bb4b8; stroke-width: 6; }
+    .word-ed    { fill: #2bb4b8; font-family: "Segoe UI", Arial, sans-serif; font-weight: 800; font-size: 96px; }
+    .word-grp   { fill: #0a2a43; font-family: "Segoe UI", Arial, sans-serif; font-weight: 800; font-size: 96px; }
+  </style>
+  <g transform="translate(20,40)">
+    <polygon class="hex-stroke" points="60,0 110,28 110,84 60,112 10,84 10,28" />
+    <polygon class="hex-fill" points="120,28 170,56 170,112 120,140 70,112 70,56" />
+    <polygon class="hex-stroke" points="60,112 110,140 110,196 60,224 10,196 10,140" />
+    <circle cx="40" cy="20" r="6" fill="none" stroke="#0a2a43" stroke-width="3"/>
+    <circle cx="20" cy="200" r="6" fill="none" stroke="#0a2a43" stroke-width="3"/>
+    <circle cx="160" cy="160" r="6" fill="none" stroke="#0a2a43" stroke-width="3"/>
+  </g>
+  <text x="220" y="120" class="word-ed">EdTech</text>
+  <text x="220" y="220" class="word-grp">Group</text>
+</svg>

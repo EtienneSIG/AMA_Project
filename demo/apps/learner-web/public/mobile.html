@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0F1B2D" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>LearnEU Student PWA</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/mobile-icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<style>
+  :root {
+    --navy: #0F1B2D;
+    --navy-2: #173251;
+    --teal: #2BB4B8;
+    --orange: #F26334;
+    --line: #DCE3EC;
+    --bg: #F4F7FB;
+    --card: #FFFFFF;
+    --text: #324357;
+    --muted: #627086;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at top left, rgba(43,180,184,0.10), transparent 36%), linear-gradient(180deg, #F7FAFD 0%, #EDF2F7 100%); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+  body { min-height: 100vh; }
+  button, input, textarea { font: inherit; }
+  a { color: inherit; }
+  .app { max-width: 1040px; margin: 0 auto; padding: 16px 16px 96px; }
+  .topbar { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: rgba(244,247,251,0.84); border-bottom: 1px solid rgba(220,227,236,0.8); margin: 0 -16px 16px; padding: 12px 16px 10px; }
+  .topbar-inner { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand img { width: 42px; height: 42px; flex: 0 0 auto; }
+  .brand-copy { min-width: 0; }
+  .brand-copy h1 { margin: 0; font-size: 1.08rem; line-height: 1.1; font-family: 'Poppins', sans-serif; color: var(--navy); }
+  .brand-copy p { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
+  .status-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(15,27,45,0.05); font-size: 0.78rem; color: var(--navy); }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: #B6BDC7; }
+  .chip.ok .dot { background: #1FB779; }
+  .chip.warn .dot { background: #F2A03A; }
+  .chip.err .dot { background: #E53E3E; }
+  .hero { background: linear-gradient(145deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff; border-radius: 24px; padding: 20px; box-shadow: 0 18px 40px rgba(15,27,45,0.16); overflow: hidden; position: relative; }
+  .hero::after { content: ''; position: absolute; inset: auto -60px -60px auto; width: 180px; height: 180px; background: radial-gradient(circle, rgba(43,180,184,0.28), transparent 68%); pointer-events: none; }
+  .hero-grid { display: grid; grid-template-columns: 1.35fr 0.85fr; gap: 14px; align-items: stretch; position: relative; z-index: 1; }
+  .hero h2 { margin: 0 0 6px; font-family: 'Poppins', sans-serif; font-size: clamp(1.35rem, 4vw, 2.1rem); color: #fff; }
+  .hero p { margin: 0; max-width: 56ch; color: rgba(255,255,255,0.84); line-height: 1.5; }
+  .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .btn { border: 0; border-radius: 999px; padding: 12px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+  .btn.primary { background: var(--orange); color: #fff; box-shadow: 0 10px 24px rgba(242,99,52,0.26); }
+  .btn.primary:hover { background: #d9562d; }
+  .btn.secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.16); }
+  .btn.secondary:hover { background: rgba(255,255,255,0.16); }
+  .hero-card { border-radius: 18px; padding: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); display: grid; gap: 12px; align-content: start; }
+  .hero-card .metric { display: grid; gap: 4px; }
+  .metric .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.68); }
+  .metric .value { font-size: 1.05rem; font-weight: 800; color: #fff; }
+  .metric .sub { font-size: 0.8rem; color: rgba(255,255,255,0.75); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .card { background: var(--card); border: 1px solid rgba(220,227,236,0.9); border-radius: 20px; box-shadow: 0 12px 28px rgba(15,27,45,0.06); padding: 16px; }
+  .card h3 { margin: 0; color: var(--navy); font-size: 1rem; font-family: 'Poppins', sans-serif; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .card-head .hint { color: var(--muted); font-size: 0.8rem; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #EEF7F7; color: #15757A; font-weight: 700; font-size: 0.76rem; }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.9; }
+  .composer { display: grid; gap: 10px; }
+  .composer textarea { width: 100%; min-height: 110px; resize: vertical; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; color: var(--navy); background: #fff; }
+  .composer textarea:focus, .sheet-detail button:focus, .sheet-list button:focus, .btn:focus { outline: 2px solid rgba(43,180,184,0.45); outline-offset: 2px; }
+  .quick-prompts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .quick-prompts button, .sheet-list button, .sheet-detail button { border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 999px; padding: 9px 12px; cursor: pointer; font-weight: 600; }
+  .quick-prompts button:hover, .sheet-list button:hover, .sheet-detail button:hover { border-color: var(--teal); color: var(--teal); }
+  .reply { border-radius: 16px; border: 1px solid var(--line); background: #F8FAFC; padding: 12px 14px; min-height: 112px; }
+  .reply h1, .reply h2, .reply h3 { color: var(--navy); }
+  .reply p, .reply ul, .reply ol { margin-top: 0; }
+  .reply code { background: #EEF2F7; padding: 0.08rem 0.35rem; border-radius: 4px; }
+  .sheet-list { display: grid; gap: 10px; max-height: 340px; overflow: auto; }
+  .sheet-row { border: 1px solid var(--line); border-radius: 16px; background: #fff; padding: 12px; display: grid; gap: 10px; }
+  .sheet-row.active { border-color: rgba(43,180,184,0.5); box-shadow: 0 0 0 4px rgba(43,180,184,0.08); }
+  .sheet-row .title { font-weight: 700; color: var(--navy); }
+  .sheet-row .meta { font-size: 0.78rem; color: var(--muted); }
+  .sheet-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sheet-detail { margin-top: 12px; display: grid; gap: 10px; }
+  .sheet-detail .body { background: #F8FAFC; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; color: var(--navy); white-space: pre-wrap; }
+  .progress-grid { display: grid; gap: 12px; }
+  .progress-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .stat { border-radius: 16px; background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFC 100%); border: 1px solid var(--line); padding: 14px; }
+  .stat .value { font-size: 1.4rem; font-weight: 800; color: var(--navy); }
+  .stat .label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 4px; }
+  .list { display: grid; gap: 10px; }
+  .mini-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #F8FAFC; border: 1px solid var(--line); }
+  .mini-row strong { color: var(--navy); }
+  .mini-row span { color: var(--muted); font-size: 0.8rem; }
+  .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 16px 14px; background: linear-gradient(180deg, rgba(244,247,251,0.15) 0%, rgba(244,247,251,0.95) 22%, rgba(244,247,251,1) 100%); border-top: 1px solid rgba(220,227,236,0.85); backdrop-filter: blur(12px); }
+  .bottom-nav .bar { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .tab-btn { border: 1px solid transparent; background: #fff; color: var(--navy); border-radius: 18px; min-height: 58px; display: grid; gap: 3px; place-items: center; cursor: pointer; box-shadow: 0 10px 24px rgba(15,27,45,0.06); }
+  .tab-btn .icon { font-size: 1.1rem; line-height: 1; }
+  .tab-btn .text { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; }
+  .tab-btn.active { background: var(--orange); color: #fff; box-shadow: 0 12px 26px rgba(242,99,52,0.22); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .empty { padding: 14px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); background: #fff; }
+  .overlay { position: fixed; inset: 0; display: none; align-items: flex-end; justify-content: center; padding: 18px; background: rgba(15,27,45,0.45); z-index: 60; }
+  .overlay.open { display: flex; }
+  .dialog { width: min(680px, 100%); background: #fff; border-radius: 24px; padding: 16px; box-shadow: 0 24px 60px rgba(15,27,45,0.26); max-height: 86vh; overflow: auto; }
+  .dialog h4 { margin: 0 0 8px; color: var(--navy); font-size: 1rem; }
+  .dialog .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dialog pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+  @media (max-width: 900px) {
+    .hero-grid, .grid, .progress-cards { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px) {
+    .app { padding: 12px 12px 102px; }
+    .topbar { margin: 0 -12px 14px; padding: 10px 12px; }
+    .brand-copy p { display: none; }
+    .bottom-nav { padding: 10px 12px 12px; }
+    .tab-btn { min-height: 54px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <img src="/mobile-icon.svg" alt="LearnEU" />
+          <div class="brand-copy">
+            <h1>LearnEU Student</h1>
+            <p>Mobile-first PWA for the student journey</p>
+          </div>
+        </div>
+        <div class="status-row">
+          <div class="chip" id="chipRegion"><span class="dot"></span><span>West Europe</span></div>
+          <div class="chip" id="chipModel"><span class="dot"></span><span>gpt-5.4-nano</span></div>
+          <div class="chip" id="chipHealth"><span class="dot"></span><span>Checking…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="pill" style="margin-bottom:12px"><span class="dot"></span><span>Student-only PWA</span></div>
+          <h2 id="welcomeTitle">Welcome back</h2>
+          <p id="welcomeCopy">Your study sheets, coaching, and progress now fit the phone without losing the desktop web app.</p>
+          <div class="hero-actions">
+            <button class="btn primary" id="jumpCoachBtn" type="button">Ask for help</button>
+            <a class="btn secondary" href="/" id="webAppLink">Open web app</a>
+            <button class="btn secondary" id="installBtn" type="button" hidden>Install app</button>
+          </div>
+        </div>
+        <div class="hero-card" id="summaryCard">
+          <div class="metric">
+            <div class="label">Streak</div>
+            <div class="value" id="streakValue">0 days</div>
+            <div class="sub" id="streakCopy">Loading learner streak…</div>
+          </div>
+          <div class="metric">
+            <div class="label">Recent sheets</div>
+            <div class="value" id="sheetCountValue">0</div>
+            <div class="sub">Tap a sheet below to preview or quiz it.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main style="margin-top:14px">
+      <section class="panel active" data-panel="home">
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Quick Coach</h3>
+                <div class="hint">Ask the same backend, but from a thumb-friendly layout.</div>
+              </div>
+              <span class="pill"><span class="dot"></span><span>West Europe</span></span>
+            </div>
+            <div class="composer">
+              <textarea id="coachPrompt" placeholder="Explain equivalent fractions with one example, then give me a short quiz."></textarea>
+              <div class="quick-prompts" id="promptChips">
+                <button type="button" data-prompt="Explain equivalent fractions with one example, then give me a short quiz.">Quiz me</button>
+                <button type="button" data-prompt="Help me remember the steps for adding fractions with unlike denominators.">Study help</button>
+                <button type="button" data-prompt="Create a 5-minute revision plan for my next lesson.">Revision plan</button>
+              </div>
+              <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn primary" id="sendPromptBtn" type="button">Send</button>
+                <button class="btn secondary" id="clearPromptBtn" type="button">Clear</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Reply</h3>
+                <div class="hint">Rendered from the same `/api/chat` endpoint.</div>
+              </div>
+            </div>
+            <div class="reply" id="coachReply">Type a prompt to get started.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="sheets">
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Study Sheets</h3>
+                <div class="hint">Open a saved sheet or generate a quiz from it.</div>
+              </div>
+              <span class="pill"><span class="dot"></span><span id="sheetStoreLabel">live</span></span>
+            </div>
+            <div class="sheet-list" id="sheetList"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Sheet Detail</h3>
+                <div class="hint">Preview the selected sheet and launch a quiz.</div>
+              </div>
+            </div>
+            <div class="sheet-detail">
+              <div class="body" id="sheetBody">Select a sheet on the left.</div>
+              <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn primary" id="quizSheetBtn" type="button" disabled>Generate quiz</button>
+                <button class="btn secondary" id="refreshSheetsBtn" type="button">Refresh</button>
+              </div>
+              <div class="reply" id="quizReply">Quiz results will appear here.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="progress">
+        <div class="progress-grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Progress Snapshot</h3>
+                <div class="hint">Streak, mastery, and recent attempts.</div>
+              </div>
+            </div>
+            <div class="progress-cards">
+              <div class="stat">
+                <div class="value" id="streakStat">0</div>
+                <div class="label">day streak</div>
+              </div>
+              <div class="stat">
+                <div class="value" id="masteryStat">0</div>
+                <div class="label">mastery items</div>
+              </div>
+              <div class="stat">
+                <div class="value" id="attemptStat">0</div>
+                <div class="label">recent attempts</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="card">
+              <div class="card-head"><div><h3>Mastery</h3><div class="hint">A compact view of your current learning graph.</div></div></div>
+              <div class="list" id="masteryList"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><div><h3>Recent Attempts</h3><div class="hint">Latest learner signals.</div></div></div>
+              <div class="list" id="attemptList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="profile">
+        <div class="grid">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Profile</h3>
+                <div class="hint">The PWA respects the same identity and consent rules as the desktop web app.</div>
+              </div>
+            </div>
+            <div class="list" id="profileList"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>App Notes</h3>
+                <div class="hint">Install, switch back to web, or sign out.</div>
+              </div>
+            </div>
+            <div class="empty">
+              If this is on your home screen, it is using the LearnEU student PWA shell. The desktop web app is still available for larger screens and shared devices.
+            </div>
+            <div class="hero-actions" style="margin-top:12px">
+              <button class="btn primary" id="signOutBtn" type="button">Sign out</button>
+              <a class="btn secondary" href="/login.html">Go to login</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Student navigation">
+    <div class="bar">
+      <button class="tab-btn active" data-tab="home" type="button"><span class="icon">🏠</span><span class="text">Home</span></button>
+      <button class="tab-btn" data-tab="sheets" type="button"><span class="icon">📚</span><span class="text">Sheets</span></button>
+      <button class="tab-btn" data-tab="progress" type="button"><span class="icon">📈</span><span class="text">Progress</span></button>
+      <button class="tab-btn" data-tab="profile" type="button"><span class="icon">👤</span><span class="text">Profile</span></button>
+    </div>
+  </nav>
+
+  <div class="overlay" id="sheetModal" aria-hidden="true">
+    <div class="dialog">
+      <h4 id="sheetModalTitle">Sheet quiz</h4>
+      <div class="reply" id="sheetModalBody">Loading…</div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn secondary" id="closeSheetModalBtn" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const state = {
+    me: null,
+    health: null,
+    sheets: [],
+    selectedSheet: null,
+    streak: { streak: 0, badges: [] },
+    mastery: [],
+    attempts: [],
+    deferredInstall: null
+  };
+
+  const els = {
+    chipHealth: document.getElementById('chipHealth'),
+    welcomeTitle: document.getElementById('welcomeTitle'),
+    welcomeCopy: document.getElementById('welcomeCopy'),
+    streakValue: document.getElementById('streakValue'),
+    streakCopy: document.getElementById('streakCopy'),
+    sheetCountValue: document.getElementById('sheetCountValue'),
+    coachPrompt: document.getElementById('coachPrompt'),
+    coachReply: document.getElementById('coachReply'),
+    sheetList: document.getElementById('sheetList'),
+    sheetBody: document.getElementById('sheetBody'),
+    quizReply: document.getElementById('quizReply'),
+    quizSheetBtn: document.getElementById('quizSheetBtn'),
+    sheetStoreLabel: document.getElementById('sheetStoreLabel'),
+    streakStat: document.getElementById('streakStat'),
+    masteryStat: document.getElementById('masteryStat'),
+    attemptStat: document.getElementById('attemptStat'),
+    masteryList: document.getElementById('masteryList'),
+    attemptList: document.getElementById('attemptList'),
+    profileList: document.getElementById('profileList'),
+    promptChips: document.getElementById('promptChips'),
+    installBtn: document.getElementById('installBtn'),
+    sheetModal: document.getElementById('sheetModal'),
+    sheetModalTitle: document.getElementById('sheetModalTitle'),
+    sheetModalBody: document.getElementById('sheetModalBody'),
+    jumpCoachBtn: document.getElementById('jumpCoachBtn')
+  };
+
+  function fmtDate(value) {
+    if (!value) return 'Unknown date';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
+  }
+
+  async function api(path, options = {}) {
+    const response = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(detail || (response.status + ' ' + response.statusText));
+    }
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) return response.json();
+    return response.text();
+  }
+
+  function setTab(name) {
+    document.querySelectorAll('[data-panel]').forEach((panel) => {
+      panel.classList.toggle('active', panel.dataset.panel === name);
+    });
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tab === name);
+    });
+  }
+
+  function renderStatus(health) {
+    if (!health) return;
+    const healthLabel = health.apimConfigured && health.keyConfigured ? 'Online' : 'Needs attention';
+    els.chipHealth.className = 'chip ' + (health.apimConfigured && health.keyConfigured ? 'ok' : 'warn');
+    els.chipHealth.innerHTML = '<span class="dot"></span><span>' + healthLabel + '</span>';
+    document.getElementById('chipRegion').className = 'chip ok';
+    document.getElementById('chipModel').className = 'chip ok';
+    document.getElementById('chipRegion').innerHTML = '<span class="dot"></span><span>' + (health.region || 'West Europe') + '</span>';
+    document.getElementById('chipModel').innerHTML = '<span class="dot"></span><span>' + (health.deployment || 'gpt-5.4-nano') + '</span>';
+  }
+
+  function renderProfile() {
+    const me = state.me || {};
+    const rows = [
+      ['Name', [me.firstName, me.lastName].filter(Boolean).join(' ') || 'Student'],
+      ['Email', me.email || 'Unknown'],
+      ['Language', me.language || 'en'],
+      ['Role', me.role || 'student'],
+      ['Age', me.age == null ? 'Unknown' : String(me.age)]
+    ];
+    els.profileList.innerHTML = rows.map(([label, value]) => (
+      '<div class="mini-row"><div><strong>' + label + '</strong><br><span>' + value + '</span></div><span>LearnEU</span></div>'
+    )).join('');
+  }
+
+  function renderMastery() {
+    els.masteryStat.textContent = String(state.mastery.length || 0);
+    if (!state.mastery.length) {
+      els.masteryList.innerHTML = '<div class="empty">No mastery rows yet. Start a quiz or ask the coach to generate one.</div>';
+      return;
+    }
+    els.masteryList.innerHTML = state.mastery.slice(0, 8).map((row) => {
+      const percent = Number.isFinite(Number(row.mastery)) ? Math.round(Number(row.mastery) * 100) : null;
+      const label = row.skill_name || row.skillId || row.skill_id || 'Skill';
+      const detail = row.domain || row.subject || row.curriculum || '';
+      return '<div class="mini-row"><div><strong>' + label + '</strong><br><span>' + (detail || 'Current mastery signal') + '</span></div><span>' + (percent == null ? '—' : percent + '%') + '</span></div>';
+    }).join('');
+  }
+
+  function renderAttempts() {
+    els.attemptStat.textContent = String(state.attempts.length || 0);
+    if (!state.attempts.length) {
+      els.attemptList.innerHTML = '<div class="empty">No attempts yet. The first quiz will show up here.</div>';
+      return;
+    }
+    els.attemptList.innerHTML = state.attempts.slice(0, 8).map((row) => {
+      const label = row.itemId || row.item_id || 'Attempt';
+      const status = row.correct ? 'correct' : 'needs review';
+      return '<div class="mini-row"><div><strong>' + label + '</strong><br><span>' + status + '</span></div><span>' + fmtDate(row.createdAt || row.created_at) + '</span></div>';
+    }).join('');
+  }
+
+  function renderSheets() {
+    els.sheetCountValue.textContent = String(state.sheets.length || 0);
+    els.sheetStoreLabel.textContent = state.sheets.length ? 'live' : 'empty';
+    if (!state.sheets.length) {
+      els.sheetList.innerHTML = '<div class="empty">No sheets yet. Create one from the web app or ask the coach to save a study note there first.</div>';
+      els.sheetBody.textContent = 'Select a sheet on the left.';
+      els.quizSheetBtn.disabled = true;
+      return;
+    }
+    els.sheetList.innerHTML = state.sheets.map((sheet) => {
+      const active = state.selectedSheet && state.selectedSheet.id === sheet.id ? ' active' : '';
+      return '<button class="sheet-row' + active + '" type="button" data-sheet-id="' + sheet.id + '"><div><div class="title">' + escapeHtml(sheet.title || 'Untitled sheet') + '</div><div class="meta">' + fmtDate(sheet.createdAt) + '</div></div><div class="sheet-actions"><span>Open</span></div></button>';
+    }).join('');
+    if (state.selectedSheet) {
+      els.sheetBody.textContent = state.selectedSheet.answer || state.selectedSheet.prompt || 'This sheet has no preview text.';
+      els.quizSheetBtn.disabled = false;
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderCoachReply(markdown) {
+    const html = DOMPurify.sanitize(marked.parse(markdown || ''));
+    els.coachReply.innerHTML = html || '<span style="color:var(--muted)">No reply yet.</span>';
+  }
+
+  function renderQuiz(markdownOrJson) {
+    if (!markdownOrJson) {
+      els.quizReply.textContent = 'Quiz results will appear here.';
+      return;
+    }
+    els.quizReply.innerHTML = DOMPurify.sanitize(marked.parse(markdownOrJson));
+  }
+
+  async function loadMe() {
+    const payload = await api('/api/auth/me');
+    state.me = payload.user || {};
+    const firstName = state.me.firstName || 'there';
+    els.welcomeTitle.textContent = 'Welcome back, ' + firstName + '.';
+    els.welcomeCopy.textContent = 'Your learner space is now mobile-first, while the desktop web app stays available for larger screens and shared devices.';
+    renderProfile();
+  }
+
+  async function loadHealth() {
+    state.health = await api('/api/health');
+    renderStatus(state.health);
+  }
+
+  async function loadStreak() {
+    const payload = await api('/api/learner/streak');
+    state.streak = payload || { streak: 0, badges: [] };
+    const value = Number(state.streak.streak || 0);
+    els.streakValue.textContent = value + (value === 1 ? ' day' : ' days');
+    els.streakCopy.textContent = (state.streak.badges && state.streak.badges.length)
+      ? ('Badges earned: ' + state.streak.badges.map((badge) => badge.label || badge.name || badge).join(', '))
+      : 'Keep going to earn a streak badge.';
+    els.streakStat.textContent = String(value);
+  }
+
+  async function loadMastery() {
+    const payload = await api('/api/learner/mastery');
+    state.mastery = Array.isArray(payload.rows) ? payload.rows : [];
+    renderMastery();
+  }
+
+  async function loadAttempts() {
+    const payload = await api('/api/learner/attempts');
+    state.attempts = Array.isArray(payload.rows) ? payload.rows : [];
+    renderAttempts();
+  }
+
+  async function loadSheets() {
+    const payload = await api('/api/sheets');
+    state.sheets = Array.isArray(payload.sheets) ? payload.sheets : [];
+    if (!state.selectedSheet && state.sheets.length) {
+      state.selectedSheet = state.sheets[0];
+    }
+    renderSheets();
+  }
+
+  async function openSheet(sheetId) {
+    const sheet = state.sheets.find((item) => item.id === sheetId);
+    if (!sheet) return;
+    state.selectedSheet = sheet;
+    renderSheets();
+    const detail = await api('/api/sheets/' + encodeURIComponent(sheetId));
+    const loaded = detail.sheet || sheet;
+    state.selectedSheet = loaded;
+    renderSheets();
+  }
+
+  async function quizSelectedSheet() {
+    if (!state.selectedSheet) return;
+    els.quizSheetBtn.disabled = true;
+    els.quizReply.textContent = 'Generating quiz…';
+    try {
+      const data = await api('/api/sheets/' + encodeURIComponent(state.selectedSheet.id) + '/quiz', { method: 'POST', body: '{}' });
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+      if (!questions.length) {
+        renderQuiz('No quiz items came back for this sheet. Try another one.');
+        return;
+      }
+      const quizMarkdown = ['## Quiz for ' + (data.title || state.selectedSheet.title || 'this sheet')];
+      questions.forEach((question, index) => {
+        quizMarkdown.push(String(index + 1) + '. ' + (question.q || 'Question'));
+        if (Array.isArray(question.choices) && question.choices.length) {
+          question.choices.forEach((choice) => quizMarkdown.push('   - ' + choice));
+        }
+        if (question.explanation) quizMarkdown.push('   - Hint: ' + question.explanation);
+      });
+      renderQuiz(quizMarkdown.join('\n'));
+      setTab('sheets');
+    } catch (error) {
+      renderQuiz('Could not generate the quiz right now: ' + error.message);
+    } finally {
+      els.quizSheetBtn.disabled = false;
+    }
+  }
+
+  async function sendCoachPrompt() {
+    const prompt = els.coachPrompt.value.trim();
+    if (!prompt) return;
+    els.coachReply.textContent = 'Thinking…';
+    try {
+      const data = await api('/api/chat', { method: 'POST', body: JSON.stringify({ prompt, max_tokens: 700 }) });
+      renderCoachReply(data.answer || 'No answer returned.');
+      setTab('home');
+    } catch (error) {
+      renderCoachReply('The coach could not answer right now: ' + error.message);
+    }
+  }
+
+  function wireTabs() {
+    document.querySelectorAll('.tab-btn').forEach((button) => {
+      button.addEventListener('click', () => setTab(button.dataset.tab));
+    });
+    document.getElementById('sendPromptBtn').addEventListener('click', sendCoachPrompt);
+    document.getElementById('clearPromptBtn').addEventListener('click', () => {
+      els.coachPrompt.value = '';
+      els.coachPrompt.focus();
+    });
+    document.getElementById('refreshSheetsBtn').addEventListener('click', loadSheets);
+    els.quizSheetBtn.addEventListener('click', quizSelectedSheet);
+    els.jumpCoachBtn.addEventListener('click', () => setTab('home'));
+    document.getElementById('signOutBtn').addEventListener('click', async () => {
+      try { await api('/api/auth/logout', { method: 'POST', body: '{}' }); } catch (_) {}
+      location.href = '/login.html?returnTo=' + encodeURIComponent('/mobile.html');
+    });
+    els.promptChips.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-prompt]');
+      if (!button) return;
+      els.coachPrompt.value = button.dataset.prompt;
+      els.coachPrompt.focus();
+    });
+    els.sheetList.addEventListener('click', async (event) => {
+      const button = event.target.closest('button[data-sheet-id]');
+      if (!button) return;
+      await openSheet(button.dataset.sheetId);
+      setTab('sheets');
+    });
+    document.getElementById('closeSheetModalBtn').addEventListener('click', () => {
+      els.sheetModal.classList.remove('open');
+      els.sheetModal.setAttribute('aria-hidden', 'true');
+    });
+    els.sheetModal.addEventListener('click', (event) => {
+      if (event.target === els.sheetModal) {
+        els.sheetModal.classList.remove('open');
+        els.sheetModal.setAttribute('aria-hidden', 'true');
+      }
+    });
+  }
+
+  function wireInstallPrompt() {
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      state.deferredInstall = event;
+      els.installBtn.hidden = false;
+    });
+    els.installBtn.addEventListener('click', async () => {
+      if (!state.deferredInstall) return;
+      state.deferredInstall.prompt();
+      await state.deferredInstall.userChoice.catch(() => null);
+      state.deferredInstall = null;
+      els.installBtn.hidden = true;
+    });
+  }
+
+  async function bootstrap() {
+    wireTabs();
+    wireInstallPrompt();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    try {
+      await Promise.all([loadMe(), loadHealth(), loadStreak(), loadMastery(), loadAttempts(), loadSheets()]);
+    } catch (error) {
+      els.chipHealth.className = 'chip err';
+      els.chipHealth.innerHTML = '<span class="dot"></span><span>Offline</span>';
+      els.coachReply.textContent = 'Could not load the app shell: ' + error.message;
+      els.sheetBody.textContent = 'Could not load sheets right now.';
+      els.quizReply.textContent = 'Quiz data will appear when the network is back.';
+    }
+  }
+
+  bootstrap();
+</script>
+</body>
+</html>

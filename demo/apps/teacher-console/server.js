@@ -11,11 +11,11 @@ const cs = require('./contentSafety');
 const app = express();
 app.use(express.json({ limit: '64kb' }));
 
-const ROLE_INFER = { 'app-learner-web': 'student', 'app-parent-portal': 'parent', 'app-teacher-console': 'teacher', 'app-admin': 'admin' };
+const ROLE_INFER = { 'app-learner-web': 'student', 'app-parent-portal': 'parent', 'app-teacher-console': 'teacher', 'app-admin': 'admin', 'app-director-portal': 'director' };
 const inferred = Object.entries(ROLE_INFER).find(([k]) => (process.env.WEBSITE_SITE_NAME || '').includes(k));
 const APP_ROLE = process.env.APP_ROLE || (inferred ? inferred[1] : 'student');
 const APP_NAME = process.env.APP_NAME || APP_ROLE;
-const ALLOWED = [APP_ROLE, 'admin'];
+const ALLOWED = APP_ROLE === 'director' ? [APP_ROLE] : [APP_ROLE, 'admin'];
 
 const APIM = (process.env.APIM_GATEWAY_URL || '').replace(/\/$/, '');
 const KEY  = process.env.APIM_SUBSCRIPTION_KEY || '';
@@ -203,6 +203,12 @@ app.get('/api/data/learners', async (_req, res) => {
   const rows = await db.summariseLearners();
   res.json({ enabled: true, rows: rows || [] });
 });
+app.get('/api/data/hierarchy', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, hierarchy: null });
+  const asOf = req.query.asOf ? new Date(String(req.query.asOf)) : new Date();
+  const hierarchy = await db.getHierarchySummary({ asOf });
+  res.json({ enabled: true, hierarchy });
+});
 // Skill catalogue (Feature 2). Open to any signed-in user. Optional filters:
 //   ?domain=numeracy
 //   ?competency=NL-MATH-Y7-FRAC-02   (returns skills mapped to that ministry competency)
@@ -374,41 +380,6 @@ app.get('/api/teacher/class/mastery', async (req, res) => {
   const rows = await db.listClassMastery({ limit: 50 });
   res.json({ enabled: true, rows: rows || [] });
 });
-
-app.get('/api/teacher/class/badges', async (req, res) => {
-  const u = req.user;
-  if (!db.enabled) return res.json({ enabled: false, rows: [] });
-  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
-  const r = await db._query(
-    `SELECT
-       email,
-       COUNT(*)::int AS "badgeCount",
-       MAX(earned_at) AS "lastEarnedAt",
-       COALESCE(
-         json_agg(
-           json_build_object('key', badge_key, 'label', badge_label, 'source', source, 'earnedAt', earned_at)
-           ORDER BY earned_at DESC
-         ) FILTER (WHERE badge_key IS NOT NULL),
-         '[]'::json
-       ) AS badges
-     FROM learner_badges
-     WHERE email LIKE 'student%@learneu.demo'
-     GROUP BY email
-     ORDER BY MAX(earned_at) DESC NULLS LAST, email
-     LIMIT 200`,
-    []
-  );
-
-  const nameByEmail = new Map((auth.SEED_USERS || []).map((x) => [
-    String(x.email || '').toLowerCase(),
-    [x.firstName, x.lastName].filter(Boolean).join(' ').trim() || x.email
-  ]));
-  const rows = (r && r.rows ? r.rows : []).map((row) => ({
-    ...row,
-    displayName: nameByEmail.get(String(row.email || '').toLowerCase()) || row.email
-  }));
-  res.json({ enabled: true, rows });
-});
 // Heat-map: pseudonym × skill matrix (Feature 5a). Teacher / admin only.
 app.get('/api/teacher/class/heatmap', async (req, res) => {
   const u = req.user;
@@ -448,75 +419,6 @@ app.get('/api/teacher/overrides', async (req, res) => {
     limit:   Math.min(Number(req.query.limit) || 50, 200)
   });
   res.json({ enabled: true, rows: rows || [] });
-});
-
-// --- Learner gamification moderation (Feature 003) ------------------------
-app.get('/api/teacher/gamification/motivation', async (req, res) => {
-  const u = req.user;
-  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
-  if (!db.enabled) return res.json({ enabled: false, rows: [] });
-  const r = await db._query(
-    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
-       FROM learner_motivation_messages
-      WHERE class_key = 'class-y7-fractions'
-      ORDER BY created_at DESC
-      LIMIT 100`,
-    []
-  );
-  res.json({ enabled: true, rows: r ? r.rows : [] });
-});
-
-app.post('/api/teacher/gamification/motivation/:id/hide', async (req, res) => {
-  const u = req.user;
-  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
-  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
-  const id = Number.parseInt(req.params.id, 10);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
-  const reason = String(req.body?.reason || 'teacher_moderation').slice(0, 200);
-  const up = await db._query(
-    `UPDATE learner_motivation_messages
-        SET status = 'hidden'
-      WHERE id = $1
-      RETURNING id, email, message, status`,
-    [id]
-  );
-  if (!up || !up.rows[0]) return res.status(404).json({ error: 'message not found' });
-  await db._query(
-    `INSERT INTO learner_gamification_overrides (teacher_email, action_type, target_type, target_id, reason)
-     VALUES ($1, 'hide_message', 'motivation_message', $2, $3)`,
-    [u.email, String(id), reason]
-  );
-  res.json({ row: up.rows[0] });
-});
-
-app.get('/api/teacher/gamification/overrides', async (req, res) => {
-  const u = req.user;
-  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
-  if (!db.enabled) return res.json({ enabled: false, rows: [] });
-  const r = await db._query(
-    `SELECT id, teacher_email AS "teacherEmail", action_type AS "actionType", target_type AS "targetType", target_id AS "targetId", reason, created_at AS "createdAt"
-       FROM learner_gamification_overrides
-      ORDER BY created_at DESC
-      LIMIT 100`,
-    []
-  );
-  res.json({ enabled: true, rows: r ? r.rows : [] });
-});
-
-app.get('/api/teacher/gamification/kpis', async (req, res) => {
-  const u = req.user;
-  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
-  if (!db.enabled) return res.json({ enabled: false, kpis: null });
-  const kpiR = await db._query(
-    `SELECT
-       (SELECT COUNT(*)::int FROM learner_activity WHERE day = CURRENT_DATE AND email LIKE 'student%@learneu.demo') AS attempts_today,
-       (SELECT COUNT(*)::int FROM learner_daily_chests WHERE day = CURRENT_DATE) AS chest_claims_today,
-       (SELECT COUNT(*)::int FROM learner_motivation_messages WHERE status = 'active' AND created_at > now() - INTERVAL '24 hours') AS motivation_posts_24h,
-       (SELECT COUNT(*)::int FROM learner_badges WHERE earned_at > now() - INTERVAL '24 hours') AS badges_24h,
-       (SELECT COUNT(*)::int FROM learner_gamification_overrides WHERE created_at > now() - INTERVAL '24 hours') AS moderation_actions_24h`,
-    []
-  );
-  res.json({ enabled: true, kpis: kpiR && kpiR.rows[0] ? kpiR.rows[0] : null });
 });
 
 // --- Parent dashboard (Feature 6, read-only) ----------------------------

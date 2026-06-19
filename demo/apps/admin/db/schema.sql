@@ -116,21 +116,6 @@ CREATE TABLE IF NOT EXISTS item_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_item_attempts_email ON item_attempts (email, created_at DESC);
 
--- Admin operational controls (infra state checks/actions; no learner content).
-CREATE TABLE IF NOT EXISTS operational_events (
-  id              BIGSERIAL    PRIMARY KEY,
-  app             TEXT         NOT NULL,
-  actor_email     TEXT         NOT NULL,
-  actor_role      TEXT         NOT NULL,
-  event_type      TEXT         NOT NULL CHECK (event_type IN ('postgres_status_check', 'postgres_wakeup')),
-  outcome         TEXT         NOT NULL,
-  correlation_id  TEXT         NOT NULL,
-  detail          TEXT,
-  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_operational_events_created ON operational_events (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_operational_events_event_created ON operational_events (event_type, created_at DESC);
-
 -- Content Safety verdicts (one row per scanned text). Linked back to ask_history by ask_id.
 CREATE TABLE IF NOT EXISTS content_safety_results (
   id          BIGSERIAL    PRIMARY KEY,
@@ -321,45 +306,161 @@ CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (pa
 CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);
 
 -- ---------------------------------------------------------------------------
--- Learner gamification UX (Feature 003)
+-- Learner hierarchy and director reporting (Feature 4)
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS learner_badges (
-  email       TEXT         NOT NULL,
-  badge_key   TEXT         NOT NULL,
-  badge_label TEXT         NOT NULL,
-  source      TEXT         NOT NULL,
-  earned_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  PRIMARY KEY (email, badge_key)
+CREATE TABLE IF NOT EXISTS learner_hierarchy_assignment (
+  id              BIGSERIAL    PRIMARY KEY,
+  learner_id      TEXT         NOT NULL,
+  class_id        TEXT         NOT NULL,
+  school_id       TEXT         NOT NULL,
+  region_id       TEXT         NOT NULL,
+  effective_from  DATE         NOT NULL,
+  effective_to    DATE,
+  source_system   TEXT         NOT NULL DEFAULT 'demo-seed',
+  status          TEXT         NOT NULL DEFAULT 'active',
+  exception_flag  BOOLEAN      NOT NULL DEFAULT false,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_learner_badges_earned ON learner_badges (email, earned_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lha_learner_effective ON learner_hierarchy_assignment (learner_id, effective_from DESC, effective_to DESC);
+CREATE INDEX IF NOT EXISTS idx_lha_school_effective ON learner_hierarchy_assignment (school_id, region_id, effective_from DESC);
+CREATE INDEX IF NOT EXISTS idx_lha_exception ON learner_hierarchy_assignment (exception_flag, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS learner_daily_chests (
-  email             TEXT         NOT NULL,
-  day               DATE         NOT NULL,
-  reward_badge_key  TEXT         NOT NULL,
-  reward_label      TEXT         NOT NULL,
-  claimed_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
-  PRIMARY KEY (email, day)
+CREATE TABLE IF NOT EXISTS reporting_scope (
+  id                   BIGSERIAL    PRIMARY KEY,
+  director_subject_id   TEXT         NOT NULL,
+  school_id             TEXT,
+  region_id             TEXT,
+  role                  TEXT         NOT NULL DEFAULT 'director',
+  effective_from        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  effective_to          TIMESTAMPTZ,
+  granted_by            TEXT         NOT NULL,
+  granted_at            TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  status                TEXT         NOT NULL DEFAULT 'active'
 );
+CREATE INDEX IF NOT EXISTS idx_reporting_scope_director_effective ON reporting_scope (director_subject_id, role, effective_from DESC, effective_to DESC);
+CREATE INDEX IF NOT EXISTS idx_reporting_scope_school_region ON reporting_scope (school_id, region_id, status);
 
-CREATE TABLE IF NOT EXISTS learner_motivation_messages (
-  id            BIGSERIAL    PRIMARY KEY,
-  class_key     TEXT         NOT NULL,
-  email         TEXT         NOT NULL,
-  display_name  TEXT         NOT NULL,
-  message       TEXT         NOT NULL,
-  status        TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'hidden')),
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS director_profile (
+  director_subject_id   TEXT         PRIMARY KEY,
+  director_email        TEXT         NOT NULL,
+  display_name          TEXT         NOT NULL,
+  primary_school_id     TEXT,
+  primary_region_id     TEXT,
+  status                TEXT         NOT NULL DEFAULT 'active',
+  created_at            TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_motivation_class_created ON learner_motivation_messages (class_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_director_profile_school ON director_profile (primary_school_id, status);
+CREATE INDEX IF NOT EXISTS idx_director_profile_region ON director_profile (primary_region_id, status);
 
-CREATE TABLE IF NOT EXISTS learner_gamification_overrides (
-  id            BIGSERIAL    PRIMARY KEY,
-  teacher_email TEXT         NOT NULL,
-  action_type   TEXT         NOT NULL,
-  target_type   TEXT         NOT NULL,
-  target_id     TEXT         NOT NULL,
-  reason        TEXT,
-  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS hierarchy_exception (
+  id             BIGSERIAL    PRIMARY KEY,
+  learner_id     TEXT         NOT NULL,
+  issue_type     TEXT         NOT NULL,
+  issue_detail   TEXT         NOT NULL,
+  severity       TEXT         NOT NULL,
+  detected_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  status         TEXT         NOT NULL DEFAULT 'open',
+  resolved_at    TIMESTAMPTZ,
+  resolved_by    TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_gamification_overrides_created ON learner_gamification_overrides (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_exception_learner ON hierarchy_exception (learner_id, detected_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hierarchy_exception_status ON hierarchy_exception (status, severity, detected_at DESC);
+
+CREATE OR REPLACE VIEW vw_reporting_scope_expanded AS
+SELECT
+  rs.id,
+  rs.director_subject_id,
+  COALESCE(dp.display_name, rs.director_subject_id) AS director_name,
+  COALESCE(dp.director_email, rs.director_subject_id) AS director_email,
+  rs.school_id,
+  rs.region_id,
+  rs.role,
+  rs.effective_from,
+  rs.effective_to,
+  rs.status
+FROM reporting_scope rs
+LEFT JOIN director_profile dp
+  ON dp.director_subject_id = rs.director_subject_id;
+
+CREATE OR REPLACE VIEW vw_hierarchy_rollup_school AS
+WITH active_assignments AS (
+  SELECT learner_id, school_id, region_id, exception_flag,
+         ROW_NUMBER() OVER (
+           PARTITION BY learner_id
+           ORDER BY effective_from DESC, created_at DESC, id DESC
+         ) AS rn
+  FROM learner_hierarchy_assignment
+  WHERE status = 'active'
+)
+SELECT
+  school_id,
+  region_id,
+  COUNT(*)::int AS learner_count,
+  COUNT(DISTINCT learner_id)::int AS distinct_learner_count,
+  SUM(CASE WHEN exception_flag THEN 1 ELSE 0 END)::int AS exception_count
+FROM active_assignments
+WHERE rn = 1
+GROUP BY school_id, region_id;
+
+CREATE TABLE IF NOT EXISTS director_portal_session (
+  session_id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  director_subject_id   TEXT         NOT NULL,
+  role                  TEXT         NOT NULL,
+  scope_snapshot        JSONB        NOT NULL,
+  opened_at             TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  report_id             TEXT,
+  outcome               TEXT         NOT NULL,
+  correlation_id        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_director_portal_session_director ON director_portal_session (director_subject_id, opened_at DESC);
+CREATE INDEX IF NOT EXISTS idx_director_portal_session_outcome ON director_portal_session (outcome, opened_at DESC);
+
+CREATE TABLE IF NOT EXISTS embedded_report_reference (
+  report_id               TEXT         PRIMARY KEY,
+  workspace_id            TEXT         NOT NULL,
+  dataset_id              TEXT         NOT NULL,
+  display_name            TEXT         NOT NULL,
+  allowed_scope_dimensions TEXT[]       NOT NULL DEFAULT ARRAY[]::TEXT[],
+  aggregation_level       TEXT         NOT NULL,
+  sensitivity_label       TEXT         NOT NULL,
+  is_approved             BOOLEAN      NOT NULL DEFAULT true,
+  created_at              TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_embedded_report_reference_approved ON embedded_report_reference (is_approved, aggregation_level, display_name);
+CREATE INDEX IF NOT EXISTS idx_embedded_report_reference_scope_dims ON embedded_report_reference USING GIN (allowed_scope_dimensions);
+
+CREATE TABLE IF NOT EXISTS audit_event (
+  id             BIGSERIAL    PRIMARY KEY,
+  event_type     TEXT         NOT NULL,
+  actor_id       TEXT         NOT NULL,
+  actor_role     TEXT         NOT NULL,
+  target_type    TEXT         NOT NULL,
+  target_id      TEXT         NOT NULL,
+  scope          JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  timestamp      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  outcome        TEXT         NOT NULL,
+  correlation_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_event_timestamp ON audit_event (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event_actor ON audit_event (actor_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event_target ON audit_event (target_type, target_id, timestamp DESC);
+
+CREATE OR REPLACE FUNCTION prevent_audit_event_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'audit_event is immutable';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_audit_event_update ON audit_event;
+CREATE TRIGGER trg_prevent_audit_event_update
+BEFORE UPDATE ON audit_event
+FOR EACH ROW
+EXECUTE FUNCTION prevent_audit_event_mutation();
+
+DROP TRIGGER IF EXISTS trg_prevent_audit_event_delete ON audit_event;
+CREATE TRIGGER trg_prevent_audit_event_delete
+BEFORE DELETE ON audit_event
+FOR EACH ROW
+EXECUTE FUNCTION prevent_audit_event_mutation();

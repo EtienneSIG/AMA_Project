@@ -4,13 +4,35 @@ Five App Service web apps make up the demo UX:
 
 | App | Role gate | Purpose |
 |---|---|---|
-| `learner-web/` | `student` (+ `admin`) | Adaptive lesson UI, mermaid + inline-SVG diagrams, study sheets |
+| `learner-web/` | `student` (+ `admin`) | Adaptive lesson UI, mermaid + inline-SVG diagrams, study sheets, plus a mobile-first PWA shell in `public/mobile.html` |
 | `parent-portal/` | `parent` (+ `admin`) | Parental consent (GDPR Art. 8) + rights flows, child progress |
 | `teacher-console/` | `teacher` (+ `admin`) | Class planning, formative-assessment ideas, lesson sheets |
 | `admin/` | `admin` only | Ops console: live status of the 3 portals, restart, **Users** / **Items** / **Deployments** panels via managed identity (Website Contributor on each sibling site) |
 | `director-portal/` | `director` | Aggregated school/region reporting surface with fail-closed report metadata contract |
 
 All five apps share `_shared/` (auth lib + canonical Express server). Run `pwsh apps/_shared/sync.ps1` after editing shared files; the script copies `auth.js` to all apps, `server.js` to the user-facing shared-server apps, `db/` and `public/consent-pending.html` to all app folders.
+
+## Documentation coherence
+
+This file is the cross-app index. Per-app READMEs are the source of truth for role behavior and endpoint details:
+
+- `learner-web/README.md` (desktop + mobile PWA surface)
+- `parent-portal/README.md` (parent visibility + consent workflows)
+- `teacher-console/README.md` (class insights + oversight workflows)
+- `director-portal/README.md` (director reporting and fail-closed metadata contract)
+
+Architecture note: learner mobile is intentionally deployed as a PWA surface inside `learner-web` (same Azure Web App), not as a separate Azure resource.
+
+## Learner Mobile PWA
+
+The learner app keeps the existing web experience and adds an installable mobile shell:
+
+- `public/mobile.html` provides the thumb-friendly student UI.
+- `public/manifest.webmanifest` exposes the install metadata.
+- `public/sw.js` caches the shell so the app can reopen quickly.
+- `public/mobile-icon.svg` is the shared app icon for the PWA assets.
+
+Login preserves the `returnTo` path so students can sign in from the mobile entrypoint and land back on it after authentication.
 
 ## GDPR Art. 8 — Parental Consent for Under-16 Learners
 

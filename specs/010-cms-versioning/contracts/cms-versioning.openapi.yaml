@@ -1,0 +1,342 @@
+openapi: 3.0.3
+info:
+  title: LearnEU CMS Versioning and Approval API
+  version: 0.1.0
+  description: >-
+    Contract for content versioning, approval workflows, localization branches,
+    rollback safety, metadata tagging, and deprecation lifecycle governance.
+servers:
+  - url: /api/cms
+paths:
+  /content/{contentItemId}/versions:
+    post:
+      summary: Create a new content version snapshot
+      operationId: createContentVersion
+      tags: [Versions]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+      responses:
+        '201':
+          description: Version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentVersion'
+  /versions/{versionId}/submit:
+    post:
+      summary: Submit version into approval workflow
+      operationId: submitVersionForApproval
+      tags: [Approvals]
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      responses:
+        '200':
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+  /workflows/{workflowId}/decisions:
+    post:
+      summary: Record approval decision for current step
+      operationId: decideApprovalStep
+      tags: [Approvals]
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecisionRequest'
+      responses:
+        '200':
+          description: Decision accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowInstance'
+        '409':
+          description: Concurrency conflict (stale lock)
+  /versions/{versionId}/publish:
+    post:
+      summary: Publish an approved version
+      operationId: publishVersion
+      tags: [Versions]
+      parameters:
+        - $ref: '#/components/parameters/VersionId'
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishResult'
+        '422':
+          description: Approval gates or metadata requirements unmet
+  /content/{contentItemId}/localization-branches:
+    post:
+      summary: Create localization branch from source version
+      operationId: createLocalizationBranch
+      tags: [Localization]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocalizationBranchRequest'
+      responses:
+        '201':
+          description: Branch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalizationBranch'
+  /localization-branches/{branchId}/merge-choice:
+    post:
+      summary: Decide merge/adapt/defer for source update advisory
+      operationId: recordMergeChoice
+      tags: [Localization]
+      parameters:
+        - $ref: '#/components/parameters/BranchId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeChoiceRequest'
+      responses:
+        '200':
+          description: Choice recorded
+  /content/{contentItemId}/rollback:
+    post:
+      summary: Roll back active content to prior stable snapshot
+      operationId: rollbackContent
+      tags: [Lifecycle]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackRequest'
+      responses:
+        '202':
+          description: Rollback accepted and processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncLifecycleResult'
+  /content/{contentItemId}/deprecate:
+    post:
+      summary: Mark content as deprecated with EOL details
+      operationId: deprecateContent
+      tags: [Lifecycle]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeprecateRequest'
+      responses:
+        '200':
+          description: Content deprecated
+  /content/{contentItemId}/archive:
+    post:
+      summary: Archive deprecated content after EOL
+      operationId: archiveContent
+      tags: [Lifecycle]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      responses:
+        '200':
+          description: Content archived
+  /content/{contentItemId}/lineage:
+    get:
+      summary: Retrieve version lineage for transparency and audit
+      operationId: getContentLineage
+      tags: [Transparency]
+      parameters:
+        - $ref: '#/components/parameters/ContentItemId'
+      responses:
+        '200':
+          description: Lineage graph
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineageResponse'
+  /content/search:
+    get:
+      summary: Search versions by metadata tags
+      operationId: searchContentByMetadata
+      tags: [Metadata]
+      parameters:
+        - in: query
+          name: curriculumStandard
+          schema: { type: string }
+        - in: query
+          name: subject
+          schema: { type: string }
+        - in: query
+          name: gradeLevel
+          schema: { type: string }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentSearchResult'
+components:
+  parameters:
+    ContentItemId:
+      name: contentItemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VersionId:
+      name: versionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    WorkflowId:
+      name: workflowId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BranchId:
+      name: branchId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    CreateVersionRequest:
+      type: object
+      required: [locale, semanticVersion, payload, changeSummary]
+      properties:
+        locale: { type: string }
+        semanticVersion: { type: string, pattern: '^[0-9]+\.[0-9]+\.[0-9]+$' }
+        payload: { type: object, additionalProperties: true }
+        changeSummary: { type: string }
+        previousVersionId: { type: string, format: uuid }
+    ContentVersion:
+      type: object
+      required: [id, contentItemId, locale, semanticVersion, branchType, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        contentItemId: { type: string, format: uuid }
+        locale: { type: string }
+        semanticVersion: { type: string }
+        branchType: { type: string, enum: [source, localization] }
+        previousVersionId: { type: string, format: uuid, nullable: true }
+        sourceVersionId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+    WorkflowInstance:
+      type: object
+      required: [id, state, currentStepOrder, lockVersion]
+      properties:
+        id: { type: string, format: uuid }
+        state:
+          type: string
+          enum: [draft, submitted, in_review, changes_requested, rejected, approved, published]
+        currentStepOrder: { type: integer }
+        lockVersion: { type: integer, format: int64 }
+    ApprovalDecisionRequest:
+      type: object
+      required: [decision, comment, expectedLockVersion]
+      properties:
+        decision: { type: string, enum: [approved, changes_requested, rejected] }
+        comment: { type: string }
+        expectedLockVersion: { type: integer, format: int64 }
+    PublishResult:
+      type: object
+      required: [contentItemId, publishedVersionId, publishedAt]
+      properties:
+        contentItemId: { type: string, format: uuid }
+        publishedVersionId: { type: string, format: uuid }
+        publishedAt: { type: string, format: date-time }
+    CreateLocalizationBranchRequest:
+      type: object
+      required: [targetLocale, sourceVersionId]
+      properties:
+        targetLocale: { type: string }
+        sourceVersionId: { type: string, format: uuid }
+    LocalizationBranch:
+      type: object
+      required: [id, contentItemId, locale, syncStatus]
+      properties:
+        id: { type: string, format: uuid }
+        contentItemId: { type: string, format: uuid }
+        locale: { type: string }
+        syncStatus: { type: string, enum: [up_to_date, update_available, merge_in_progress, deferred] }
+    MergeChoiceRequest:
+      type: object
+      required: [choice]
+      properties:
+        choice: { type: string, enum: [merge, adapt, defer] }
+        rationale: { type: string }
+    RollbackRequest:
+      type: object
+      required: [targetVersionId, rationale]
+      properties:
+        targetVersionId: { type: string, format: uuid }
+        rationale: { type: string }
+    AsyncLifecycleResult:
+      type: object
+      required: [operationId, status]
+      properties:
+        operationId: { type: string, format: uuid }
+        status: { type: string, enum: [accepted, running, completed, failed] }
+    DeprecateRequest:
+      type: object
+      required: [eolDate]
+      properties:
+        eolDate: { type: string, format: date }
+        replacementContentItemId: { type: string, format: uuid, nullable: true }
+        rationale: { type: string }
+    LineageResponse:
+      type: object
+      required: [contentItemId, nodes, edges]
+      properties:
+        contentItemId: { type: string, format: uuid }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              versionId: { type: string, format: uuid }
+              locale: { type: string }
+              semanticVersion: { type: string }
+              approvalState: { type: string }
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              fromVersionId: { type: string, format: uuid }
+              toVersionId: { type: string, format: uuid }
+              relationType: { type: string, enum: [previous, branched_from, merged_from, rollback_to] }
+    ContentSearchResult:
+      type: object
+      required: [contentItemId, versionId, locale, semanticVersion, metadata]
+      properties:
+        contentItemId: { type: string, format: uuid }
+        versionId: { type: string, format: uuid }
+        locale: { type: string }
+        semanticVersion: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true

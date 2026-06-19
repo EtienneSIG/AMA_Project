@@ -44,6 +44,13 @@
   .hero .wrap { max-width: 1100px; margin: 0 auto; }
   .hero h1 { color: #fff; max-width: 740px; }
   .hero p { max-width: 660px; opacity: 0.85; font-size: 1.05rem; margin: 0.75rem 0 0; }
+  .pwa-banner { margin-top: 1rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding: 0.9rem 1rem; border-radius: 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.16); }
+  .pwa-banner.hidden { display: none; }
+  .pwa-banner strong { font-family: 'Poppins', sans-serif; color: #fff; }
+  .pwa-banner span { color: rgba(255,255,255,0.86); }
+  .pwa-banner a { color: #fff; font-weight: 700; text-decoration: underline; }
+  .pwa-banner button { width: auto; margin-top: 0; background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.18); padding: 0.55rem 0.9rem; border-radius: 999px; font-weight: 700; cursor: pointer; }
+  .pwa-banner button:hover { background: rgba(255,255,255,0.18); }
   .hero .pill { display: inline-block; background: rgba(43,180,184,0.18); color: var(--teal); padding: 0.3rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.9rem; }
   main { max-width: 1100px; margin: -2rem auto 3rem; padding: 0 1.5rem; position: relative; }
   .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.75rem; box-shadow: 0 4px 24px rgba(15,27,45,0.06); margin-bottom: 1.25rem; }
@@ -224,6 +231,7 @@
     <img src="/logo.svg" alt="EdTech Group" />
     <div class="links">
       <a href="https://app-learner-web-learneu-demo.azurewebsites.net" class="active">For Schools</a>
+      <a href="/mobile.html">Mobile PWA</a>
       <a href="https://app-parent-portal-learneu-demo.azurewebsites.net">For Families</a>
       <a href="https://app-teacher-console-learneu-demo.azurewebsites.net">For Educators</a>
       <div class="status-wrap">
@@ -247,6 +255,14 @@
     <span class="pill">Learner Web</span>
     <h1>Adaptive math practice, built for every learner.</h1>
     <p>EU-region inference, GDPR Art. 8 minimisation, and a child-safe interface — powered by ONNX Runtime Web and the EdTech Group LearnEU stack.</p>
+    <div class="pwa-banner" id="pwaBanner">
+      <div>
+        <strong>Try the mobile PWA</strong>
+        <span> for a thumb-friendly student experience on phones and tablets.</span>
+      </div>
+      <a href="/mobile.html">Open mobile app</a>
+      <button type="button" onclick="dismissPwaBanner()">Hide</button>
+    </div>
   </div>
 </section>
 <nav class="tabbar" role="tablist" aria-label="Learner workspace">
@@ -672,6 +688,18 @@ document.addEventListener('click', (e) => {
   const w = document.querySelector('.status-wrap');
   if (w && !w.contains(e.target)) document.getElementById('statusPanel').classList.remove('open');
 });
+
+function dismissPwaBanner() {
+  const banner = document.getElementById('pwaBanner');
+  if (banner) banner.classList.add('hidden');
+  try { localStorage.setItem('learneu_hide_pwa_banner', '1'); } catch (_) {}
+}
+try {
+  if (localStorage.getItem('learneu_hide_pwa_banner') === '1') {
+    const banner = document.getElementById('pwaBanner');
+    if (banner) banner.classList.add('hidden');
+  }
+} catch (_) {}
 
 // --- Session + profile ---
 async function loadMe() {

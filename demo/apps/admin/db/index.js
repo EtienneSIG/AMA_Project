@@ -54,6 +54,34 @@ const ITEM_SKILL_SEED_FALLBACK = [
   { itemId: 'FRAC-07', skillId: 'SK-FRAC-MULT' },
   { itemId: 'FRAC-08', skillId: 'SK-FRAC-MIXED' }
 ];
+const HIERARCHY_SEED = [
+  { learnerId: 'student@learneu.demo', classId: 'CLS-7A', schoolId: 'SCH-AMSTERDAM-01', regionId: 'REG-NL-NORTH', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student1@learneu.demo', classId: 'CLS-7A', schoolId: 'SCH-AMSTERDAM-01', regionId: 'REG-NL-NORTH', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student2@learneu.demo', classId: 'CLS-7B', schoolId: 'SCH-ROTTERDAM-01', regionId: 'REG-NL-RANDSTAD', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student3@learneu.demo', classId: 'CLS-8A', schoolId: 'SCH-ROTTERDAM-01', regionId: 'REG-NL-RANDSTAD', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student4@learneu.demo', classId: 'CLS-8B', schoolId: 'SCH-UTRECHT-01', regionId: 'REG-NL-CENTRAL', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student5@learneu.demo', classId: 'CLS-8B', schoolId: 'SCH-UTRECHT-02', regionId: 'REG-NL-CENTRAL', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: true },
+  { learnerId: 'student5@learneu.demo', classId: 'CLS-8B', schoolId: 'SCH-UTRECHT-03', regionId: 'REG-NL-CENTRAL', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: true },
+  { learnerId: 'student6@learneu.demo', classId: 'CLS-7C', schoolId: 'SCH-EINDHOVEN-01', regionId: 'REG-NL-SOUTH', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student7@learneu.demo', classId: 'CLS-7C', schoolId: 'SCH-EINDHOVEN-01', regionId: 'REG-NL-SOUTH', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false },
+  { learnerId: 'student8@learneu.demo', classId: 'CLS-9A', schoolId: 'SCH-GRONINGEN-01', regionId: 'REG-NL-NORTH', effectiveFrom: '2026-01-01', sourceSystem: 'demo-seed', status: 'active', exceptionFlag: false }
+];
+const REPORTING_SCOPE_SEED = [
+  { directorSubjectId: 'director@learneu.demo', schoolId: 'SCH-AMSTERDAM-01', regionId: 'REG-NL-NORTH', role: 'director', grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', status: 'active' },
+  { directorSubjectId: 'director@learneu.demo', schoolId: 'SCH-ROTTERDAM-01', regionId: 'REG-NL-RANDSTAD', role: 'director', grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', status: 'active' },
+  { directorSubjectId: 'director.noscope@learneu.demo', schoolId: null, regionId: null, role: 'director', grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', status: 'active' }
+];
+const DIRECTOR_PROFILE_SEED = [
+  { directorSubjectId: 'director@learneu.demo', directorEmail: 'director@learneu.demo', displayName: 'Ava Janssen', primarySchoolId: 'SCH-AMSTERDAM-01', primaryRegionId: 'REG-NL-NORTH', status: 'active' },
+  { directorSubjectId: 'director.noscope@learneu.demo', directorEmail: 'director.noscope@learneu.demo', displayName: 'No Scope Director', primarySchoolId: null, primaryRegionId: null, status: 'active' }
+];
+const HIERARCHY_EXCEPTION_SEED = [
+  { learnerId: 'student5@learneu.demo', issueType: 'conflicting_assignment', issueDetail: 'Two active school assignments exist for the same reporting period.', severity: 'high', status: 'open' },
+  { learnerId: 'student8@learneu.demo', issueType: 'missing_class_link', issueDetail: 'Hierarchy review flagged a missing class link in the source enrollment feed.', severity: 'medium', status: 'open' }
+];
+const EMBEDDED_REPORT_REFERENCE_SEED = [
+  { reportId: '3f38a2d1-a6f5-482c-91db-edcb2de374bd', workspaceId: '127a12ab-fa94-421b-bee3-4f534264d3ff', datasetId: '08b3758f-e419-4ebc-a884-2d2306bf9ed4', displayName: 'Director Governance Overview', allowedScopeDimensions: ['school', 'region'], aggregationLevel: 'school-region', sensitivityLabel: 'Confidential-aggregated', isApproved: true }
+];
 
 let pool = null;
 let initPromise = null;
@@ -86,6 +114,14 @@ async function init() {
   initPromise = (async () => {
     const p = getPool();
     if (!p) return false;
+    try {
+      // Connectivity preflight: if this fails, skip expensive DDL attempts.
+      await p.query('SELECT 1');
+    } catch (e) {
+      console.error('[db] init connectivity failed:', e.message);
+      initPromise = null;
+      return false;
+    }
     const sqlPath = path.join(__dirname, 'schema.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
     // Apply schema statement-by-statement so a single non-fatal failure (e.g.
@@ -108,6 +144,7 @@ async function init() {
       return true;
     } catch (e) {
       console.error('[db] schema init failed:', e.message);
+      initPromise = null;
       return false;
     }
   })();
@@ -117,44 +154,44 @@ async function init() {
 // Seed curricula, glossary terms, learners from packaged JSON/CSV (idempotent).
 async function seedReferenceData(p) {
   const dataDir = path.join(__dirname, '..', 'data');
-  if (!fs.existsSync(dataDir)) return;
-
-  // 1. Curricula (JSON files)
-  const curDir = path.join(dataDir, 'curricula');
-  if (fs.existsSync(curDir)) {
-    for (const f of fs.readdirSync(curDir).filter(x => x.endsWith('.json'))) {
-      try {
-        const j = JSON.parse(fs.readFileSync(path.join(curDir, f), 'utf8'));
-        for (const c of j.competencies || []) {
-          await p.query(
-            `INSERT INTO curricula (id, country, framework, grade, subject, version, title, description)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description`,
-            [c.id, j.country, j.framework, j.grade, j.subject, j.version, c.title, c.description || null]
-          );
-        }
-      } catch (e) { console.error('[db] curriculum seed failed for', f, e.message); }
+  if (fs.existsSync(dataDir)) {
+    // 1. Curricula (JSON files)
+    const curDir = path.join(dataDir, 'curricula');
+    if (fs.existsSync(curDir)) {
+      for (const f of fs.readdirSync(curDir).filter(x => x.endsWith('.json'))) {
+        try {
+          const j = JSON.parse(fs.readFileSync(path.join(curDir, f), 'utf8'));
+          for (const c of j.competencies || []) {
+            await p.query(
+              `INSERT INTO curricula (id, country, framework, grade, subject, version, title, description)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description`,
+              [c.id, j.country, j.framework, j.grade, j.subject, j.version, c.title, c.description || null]
+            );
+          }
+        } catch (e) { console.error('[db] curriculum seed failed for', f, e.message); }
+      }
     }
-  }
 
-  // 2. Glossary terms (CSV files: source,target,context)
-  const gloDir = path.join(dataDir, 'glossaries');
-  if (fs.existsSync(gloDir)) {
-    for (const f of fs.readdirSync(gloDir).filter(x => x.endsWith('.csv'))) {
-      const lang = f.replace(/^math-/, '').replace(/\.csv$/, ''); // math-de-DE.csv -> de-DE
-      try {
-        const lines = fs.readFileSync(path.join(gloDir, f), 'utf8').split(/\r?\n/);
-        for (let i = 1; i < lines.length; i++) {
-          const cells = parseCsvLine(lines[i]);
-          if (cells.length < 2 || !cells[0]) continue;
-          await p.query(
-            `INSERT INTO glossary_terms (source, target, context, language)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (source, language) DO UPDATE SET target = EXCLUDED.target, context = EXCLUDED.context`,
-            [cells[0], cells[1], cells[2] || null, lang]
-          );
-        }
-      } catch (e) { console.error('[db] glossary seed failed for', f, e.message); }
+    // 2. Glossary terms (CSV files: source,target,context)
+    const gloDir = path.join(dataDir, 'glossaries');
+    if (fs.existsSync(gloDir)) {
+      for (const f of fs.readdirSync(gloDir).filter(x => x.endsWith('.csv'))) {
+        const lang = f.replace(/^math-/, '').replace(/\.csv$/, ''); // math-de-DE.csv -> de-DE
+        try {
+          const lines = fs.readFileSync(path.join(gloDir, f), 'utf8').split(/\r?\n/);
+          for (let i = 1; i < lines.length; i++) {
+            const cells = parseCsvLine(lines[i]);
+            if (cells.length < 2 || !cells[0]) continue;
+            await p.query(
+              `INSERT INTO glossary_terms (source, target, context, language)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (source, language) DO UPDATE SET target = EXCLUDED.target, context = EXCLUDED.context`,
+              [cells[0], cells[1], cells[2] || null, lang]
+            );
+          }
+        } catch (e) { console.error('[db] glossary seed failed for', f, e.message); }
+      }
     }
   }
 
@@ -261,8 +298,86 @@ async function seedReferenceData(p) {
   //    All inserts are idempotent (ON CONFLICT) and the heavier blocks (attempts,
   //    sheets, teacher Q&A) are guarded so they only run once.
   try {
+    await seedHierarchyData(p);
     await seedDemoCohort(p);
   } catch (e) { console.error('[db] demo cohort seed failed:', e.message); }
+}
+
+async function seedHierarchyData(p) {
+  const count = async (table) => {
+    const r = await p.query(`SELECT COUNT(*)::int AS n FROM ${table}`);
+    return r && r.rows[0] ? r.rows[0].n : 0;
+  };
+  if (await count('learner_hierarchy_assignment') === 0) {
+    for (const row of HIERARCHY_SEED) {
+      await p.query(
+        `INSERT INTO learner_hierarchy_assignment (learner_id, class_id, school_id, region_id, effective_from, effective_to, source_system, status, exception_flag)
+         VALUES ($1, $2, $3, $4, $5::date, $6::date, $7, $8, $9)`,
+        [row.learnerId, row.classId, row.schoolId, row.regionId, row.effectiveFrom, row.effectiveTo || null, row.sourceSystem, row.status, Boolean(row.exceptionFlag)]
+      );
+    }
+  }
+  if (await count('reporting_scope') === 0) {
+    for (const row of REPORTING_SCOPE_SEED) {
+      await p.query(
+        `INSERT INTO reporting_scope (director_subject_id, school_id, region_id, role, effective_from, effective_to, granted_by, granted_at, status)
+         VALUES ($1, $2, $3, $4, $5::timestamptz, $6::timestamptz, $7, $8::timestamptz, $9)`,
+        [row.directorSubjectId, row.schoolId, row.regionId, row.role, row.effectiveFrom || row.grantedAt || new Date().toISOString(), row.effectiveTo || null, row.grantedBy, row.grantedAt || new Date().toISOString(), row.status]
+      );
+    }
+  }
+  if (await count('director_profile') === 0) {
+    for (const row of DIRECTOR_PROFILE_SEED) {
+      await p.query(
+        `INSERT INTO director_profile (director_subject_id, director_email, display_name, primary_school_id, primary_region_id, status)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [row.directorSubjectId, row.directorEmail, row.displayName, row.primarySchoolId, row.primaryRegionId, row.status]
+      );
+    }
+  }
+  if (await count('hierarchy_exception') === 0) {
+    for (const row of HIERARCHY_EXCEPTION_SEED) {
+      await p.query(
+        `INSERT INTO hierarchy_exception (learner_id, issue_type, issue_detail, severity, status)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [row.learnerId, row.issueType, row.issueDetail, row.severity, row.status]
+      );
+    }
+  }
+  for (const row of EMBEDDED_REPORT_REFERENCE_SEED) {
+    await p.query(
+      `INSERT INTO embedded_report_reference (report_id, workspace_id, dataset_id, display_name, allowed_scope_dimensions, aggregation_level, sensitivity_label, is_approved)
+       VALUES ($1, $2, $3, $4, $5::text[], $6, $7, $8)
+       ON CONFLICT (report_id) DO UPDATE
+         SET workspace_id = EXCLUDED.workspace_id,
+             dataset_id = EXCLUDED.dataset_id,
+             display_name = EXCLUDED.display_name,
+             allowed_scope_dimensions = EXCLUDED.allowed_scope_dimensions,
+             aggregation_level = EXCLUDED.aggregation_level,
+             sensitivity_label = EXCLUDED.sensitivity_label,
+             is_approved = EXCLUDED.is_approved`,
+      [row.reportId, row.workspaceId, row.datasetId, row.displayName, row.allowedScopeDimensions, row.aggregationLevel, row.sensitivityLabel, row.isApproved]
+    );
+  }
+}
+
+function normalizeList(value) {
+  const list = Array.isArray(value) ? value : (value == null ? [] : [value]);
+  return [...new Set(list.map(item => String(item).trim()).filter(Boolean))];
+}
+
+function toDateOnly(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function toTimestamp(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 // ---------------------------------------------------------------------------
@@ -555,7 +670,8 @@ async function q(text, params) {
   if (!enabled) return null;
   const p = getPool();
   if (!p) return null;
-  await init();
+  const initOk = await init();
+  if (!initOk) return null;
   try {
     return await p.query(text, params);
   } catch (e) {
@@ -574,20 +690,51 @@ async function logConnection({ email, role, app, event, ip, userAgent, detail })
   );
 }
 
-async function logOperationalEvent({ app, actorEmail, actorRole, eventType, outcome, correlationId, detail }) {
+async function recordAuditEvent({ eventType, actorId, actorRole, targetType, targetId, scope, outcome, correlationId }) {
   await q(
-    `INSERT INTO operational_events (app, actor_email, actor_role, event_type, outcome, correlation_id, detail)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      app || APP,
-      actorEmail || 'anonymous',
-      actorRole || 'unknown',
-      eventType,
-      outcome || 'unknown',
-      String(correlationId || 'none').slice(0, 128),
-      (detail || '').slice(0, 500)
-    ]
+    `INSERT INTO audit_event (event_type, actor_id, actor_role, target_type, target_id, scope, outcome, correlation_id)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)`,
+    [eventType, actorId || 'anonymous', actorRole || 'unknown', targetType, targetId, JSON.stringify(scope || {}), outcome || 'ok', correlationId || null]
   );
+}
+
+async function logDirectorPortalAccessAudit({ directorSubjectId, actorRole = 'director', scopeSnapshot, outcome = 'opened', correlationId = null }) {
+  await recordAuditEvent({
+    eventType: 'director_portal_access',
+    actorId: String(directorSubjectId || '').toLowerCase() || 'anonymous',
+    actorRole,
+    targetType: 'director_portal',
+    targetId: 'home',
+    scope: scopeSnapshot || {},
+    outcome,
+    correlationId
+  });
+}
+
+async function logDirectorReportUsageAudit({ directorSubjectId, actorRole = 'director', reportId, scopeSnapshot, outcome = 'opened', correlationId = null }) {
+  await recordAuditEvent({
+    eventType: 'director_report_usage',
+    actorId: String(directorSubjectId || '').toLowerCase() || 'anonymous',
+    actorRole,
+    targetType: 'report',
+    targetId: String(reportId || 'unknown_report'),
+    scope: scopeSnapshot || {},
+    outcome,
+    correlationId
+  });
+}
+
+async function logHierarchyChangeAudit({ actorId, actorRole = 'admin', learnerId, scopeSnapshot, outcome = 'recorded', correlationId = null }) {
+  await recordAuditEvent({
+    eventType: 'hierarchy_change',
+    actorId: String(actorId || '').toLowerCase() || 'anonymous',
+    actorRole,
+    targetType: 'learner_hierarchy',
+    targetId: String(learnerId || 'unknown_learner').toLowerCase(),
+    scope: scopeSnapshot || {},
+    outcome,
+    correlationId
+  });
 }
 
 async function logAsk({ email, role, app, prompt, answer, model, usage, latencyMs, status, error }) {
@@ -610,6 +757,157 @@ async function logAsk({ email, role, app, prompt, answer, model, usage, latencyM
     ]
   );
   return r && r.rows[0] ? r.rows[0].id : null;
+}
+
+async function listLearnerHierarchyAssignments({ learnerId, asOf = new Date() } = {}) {
+  const dateOnly = toDateOnly(asOf) || toDateOnly(new Date());
+  const r = await q(
+    `SELECT id, learner_id AS "learnerId", class_id AS "classId", school_id AS "schoolId", region_id AS "regionId",
+            effective_from AS "effectiveFrom", effective_to AS "effectiveTo", source_system AS "sourceSystem",
+            status, exception_flag AS "exceptionFlag", created_at AS "createdAt"
+       FROM learner_hierarchy_assignment
+      WHERE learner_id = $1 AND effective_from <= $2::date AND (effective_to IS NULL OR effective_to >= $2::date)
+      ORDER BY effective_from DESC, created_at DESC`,
+    [String(learnerId || '').toLowerCase(), dateOnly]
+  );
+  return r ? r.rows : null;
+}
+
+async function resolveLearnerHierarchy({ learnerId, asOf = new Date() } = {}) {
+  const assignments = await listLearnerHierarchyAssignments({ learnerId, asOf });
+  if (!assignments || assignments.length === 0) {
+    return { status: 'missing', learnerId, assignment: null, assignments: [], exception: { issueType: 'missing_assignment', severity: 'high' } };
+  }
+  if (assignments.length > 1) {
+    return { status: 'conflict', learnerId, assignment: null, assignments, exception: { issueType: 'conflicting_assignment', severity: 'high' } };
+  }
+  return { status: 'resolved', learnerId, assignment: assignments[0], assignments, exception: null };
+}
+
+async function listHierarchyRollups({ level = 'school', asOf = new Date() } = {}) {
+  const dateOnly = toDateOnly(asOf) || toDateOnly(new Date());
+  const levelColumn = level === 'class' ? 'class_id' : (level === 'region' ? 'region_id' : 'school_id');
+  const r = await q(
+    `WITH active_assignments AS (
+       SELECT learner_id, class_id, school_id, region_id, exception_flag,
+              ROW_NUMBER() OVER (
+                PARTITION BY learner_id
+                ORDER BY effective_from DESC, created_at DESC, id DESC
+              ) AS rn
+         FROM learner_hierarchy_assignment
+        WHERE effective_from <= $1::date
+          AND (effective_to IS NULL OR effective_to >= $1::date)
+          AND status = 'active'
+     )
+     SELECT ${levelColumn} AS "scopeId",
+            COUNT(*)::int AS "learnerCount",
+            COUNT(DISTINCT learner_id)::int AS "distinctLearnerCount",
+            SUM(CASE WHEN exception_flag THEN 1 ELSE 0 END)::int AS "exceptionCount"
+       FROM active_assignments
+      WHERE rn = 1
+        AND ${levelColumn} IS NOT NULL
+      GROUP BY ${levelColumn}
+      ORDER BY ${levelColumn}`,
+    [dateOnly]
+  );
+  return r ? r.rows : [];
+}
+
+async function getHierarchySummary({ asOf = new Date() } = {}) {
+  const [classRows, schoolRows, regionRows, exceptions] = await Promise.all([
+    listHierarchyRollups({ level: 'class', asOf }),
+    listHierarchyRollups({ level: 'school', asOf }),
+    listHierarchyRollups({ level: 'region', asOf }),
+    listHierarchyExceptions({ status: 'open' })
+  ]);
+  return {
+    asOf: toDateOnly(asOf) || toDateOnly(new Date()),
+    class: classRows || [],
+    school: schoolRows || [],
+    region: regionRows || [],
+    openExceptions: exceptions || []
+  };
+}
+
+async function writeHierarchyException({ learnerId, issueType, issueDetail, severity = 'medium', status = 'open', resolvedBy = null }) {
+  const r = await q(
+    `INSERT INTO hierarchy_exception (learner_id, issue_type, issue_detail, severity, status, resolved_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, learner_id AS "learnerId", issue_type AS "issueType", issue_detail AS "issueDetail", severity, status, detected_at AS "detectedAt", resolved_at AS "resolvedAt", resolved_by AS "resolvedBy"`,
+    [String(learnerId || '').toLowerCase(), issueType, issueDetail, severity, status, resolvedBy]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listHierarchyExceptions({ learnerId, status } = {}) {
+  const params = [];
+  const where = [];
+  if (learnerId) {
+    params.push(String(learnerId).toLowerCase());
+    where.push(`learner_id = $${params.length}`);
+  }
+  if (status) {
+    params.push(status);
+    where.push(`status = $${params.length}`);
+  }
+  const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const r = await q(
+    `SELECT id, learner_id AS "learnerId", issue_type AS "issueType", issue_detail AS "issueDetail",
+            severity, detected_at AS "detectedAt", status, resolved_at AS "resolvedAt", resolved_by AS "resolvedBy"
+       FROM hierarchy_exception ${clause}
+      ORDER BY detected_at DESC, id DESC`,
+    params
+  );
+  return r ? r.rows : null;
+}
+
+async function listReportingScopeForDirector({ directorSubjectId, asOf = new Date() } = {}) {
+  const ts = toTimestamp(asOf) || toTimestamp(new Date());
+  const r = await q(
+    `SELECT id, director_subject_id AS "directorSubjectId", school_id AS "schoolId", region_id AS "regionId",
+            role, effective_from AS "effectiveFrom", effective_to AS "effectiveTo", granted_by AS "grantedBy",
+            granted_at AS "grantedAt", status
+       FROM reporting_scope
+      WHERE director_subject_id = $1 AND effective_from <= $2::timestamptz AND (effective_to IS NULL OR effective_to >= $2::timestamptz)
+      ORDER BY school_id NULLS LAST, region_id NULLS LAST, granted_at DESC`,
+    [String(directorSubjectId || '').toLowerCase(), ts]
+  );
+  return r ? r.rows : null;
+}
+
+async function resolveDirectorScope({ directorSubjectId, asOf = new Date() } = {}) {
+  const rows = await listReportingScopeForDirector({ directorSubjectId, asOf });
+  const schoolIds = rows ? rows.map(row => row.schoolId).filter(Boolean) : [];
+  const regionIds = rows ? rows.map(row => row.regionId).filter(Boolean) : [];
+  return {
+    directorSubjectId: String(directorSubjectId || '').toLowerCase(),
+    schoolIds: normalizeList(schoolIds),
+    regionIds: normalizeList(regionIds),
+    assignments: rows || [],
+    granted: Boolean((schoolIds && schoolIds.length) || (regionIds && regionIds.length))
+  };
+}
+
+async function recordDirectorPortalSession({ directorSubjectId, role = 'director', scopeSnapshot, reportId = null, outcome = 'opened', correlationId = null }) {
+  const r = await q(
+    `INSERT INTO director_portal_session (director_subject_id, role, scope_snapshot, report_id, outcome, correlation_id)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+     RETURNING session_id AS "sessionId", director_subject_id AS "directorSubjectId", role, scope_snapshot AS "scopeSnapshot", opened_at AS "openedAt", report_id AS "reportId", outcome, correlation_id AS "correlationId"`,
+    [String(directorSubjectId || '').toLowerCase(), role, JSON.stringify(scopeSnapshot || {}), reportId, outcome, correlationId]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listEmbeddedReportReferences({ approvedOnly = true } = {}) {
+  const r = await q(
+    `SELECT report_id AS "reportId", workspace_id AS "workspaceId", dataset_id AS "datasetId", display_name AS "displayName",
+            allowed_scope_dimensions AS "allowedScopeDimensions", aggregation_level AS "aggregationLevel",
+            sensitivity_label AS "sensitivityLabel", is_approved AS "isApproved", created_at AS "createdAt"
+       FROM embedded_report_reference
+      ${approvedOnly ? 'WHERE is_approved = true' : ''}
+      ORDER BY aggregation_level, display_name`
+  );
+  return r ? r.rows : null;
 }
 
 // --- Reference data (seeded from packaged files) ---------------------------
@@ -1216,8 +1514,11 @@ module.exports = {
   enabled,
   init,
   logConnection,
-  logOperationalEvent,
   logAsk,
+  recordAuditEvent,
+  logDirectorPortalAccessAudit,
+  logDirectorReportUsageAudit,
+  logHierarchyChangeAudit,
   listSheets,
   getSheet,
   createSheet,
@@ -1246,6 +1547,16 @@ module.exports = {
   isParentOfChild,
   listTeacherQuestionsForLearnerReadOnly,
   listLearnerActivity,
+  listLearnerHierarchyAssignments,
+  resolveLearnerHierarchy,
+  listHierarchyRollups,
+  getHierarchySummary,
+  writeHierarchyException,
+  listHierarchyExceptions,
+  listReportingScopeForDirector,
+  resolveDirectorScope,
+  recordDirectorPortalSession,
+  listEmbeddedReportReferences,
   recomputeAllMastery,
   getLearnerStreak,
   getConsentsForParent,

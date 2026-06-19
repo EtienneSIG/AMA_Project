@@ -13,16 +13,19 @@
   html, body { height: 100%; }
   body { margin:0; min-height:100vh; background:var(--bg); color:var(--grey); font-family:'Inter',system-ui,sans-serif; line-height:1.55; }
   nav.top { background:#fff; border-bottom:1px solid var(--line); }
-  nav.top .wrap { max-width:1180px; margin:0 auto; padding:.9rem 1.5rem; display:flex; align-items:center; gap:1rem; }
-  nav.top img { height:42px; }
+  nav.top .wrap { max-width:1500px; margin:0 auto; padding:.9rem 1.5rem; display:flex; align-items:center; gap:1rem; }
+  nav.top img { height:42px; width:auto; display:block; }
+  nav.top .brand { display:flex; align-items:center; gap:.8rem; }
+  nav.top .brand-text { display:flex; flex-direction:column; gap:.05rem; }
+  nav.top .brand-name { font-family:'Poppins',sans-serif; font-weight:700; color:var(--navy); font-size:1.05rem; line-height:1.1; }
+  nav.top .brand-sub { font-size:.8rem; color:var(--grey); line-height:1.1; }
   nav.top .label { margin-left:auto; background:rgba(43,180,184,.12); color:var(--teal); padding:.35rem .75rem; border-radius:999px; font-size:.8rem; font-weight:700; letter-spacing:.03em; }
   .hero { background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%); color:#fff; padding:2.8rem 1.5rem 4rem; }
-  .hero .wrap, main { max-width:1180px; margin:0 auto; }
+  .hero .wrap, main { max-width:1500px; margin:0 auto; }
   .hero h1, h2 { font-family:'Poppins',sans-serif; margin:0; }
   .hero h1 { font-size:2.2rem; }
   .hero p { max-width:780px; opacity:.88; margin:.75rem 0 0; font-size:1.02rem; }
-  main { margin:-2rem auto 3rem; padding:0 1.5rem; display:grid; grid-template-columns:1.3fr .9fr; gap:1.2rem; }
-  @media (max-width: 960px) { main { grid-template-columns:1fr; } }
+  main { margin:-2rem auto 3rem; padding:0 1.5rem; display:block; }
   .card { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 4px 24px rgba(15,27,45,.06); padding:1.6rem; }
   .card h2 { color:var(--navy); font-size:1.25rem; margin-bottom:.35rem; }
   .muted { color:var(--grey); opacity:.8; }
@@ -39,7 +42,8 @@
   .report a.fallback { background:#EEF2F7; color:var(--navy); }
   .report a.fallback:hover { background:#e4e9f1; }
   .embed-wrap { margin-top:.85rem; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
-  .embed-wrap iframe { width:100%; min-height:520px; border:0; display:block; }
+  .embed-wrap iframe { width:100%; min-height:860px; border:0; display:block; }
+  @media (max-width: 960px) { .embed-wrap iframe { min-height:620px; } }
   .embed-placeholder { font-size:.82rem; color:var(--grey); padding:.75rem; }
   .empty { border:1px dashed var(--line); background:#fff; border-radius:12px; padding:1rem; color:var(--grey); }
   pre { background:#0F1B2D; color:#E3E7EE; padding:1rem; border-radius:10px; overflow:auto; font-size:.78rem; }
@@ -49,7 +53,13 @@
 <body>
 <nav class="top">
   <div class="wrap">
-    <img src="/logo.svg" alt="EdTech Group" />
+    <div class="brand">
+      <img src="/logo.svg" alt="EdTech Group" />
+      <div class="brand-text">
+        <div class="brand-name">EdTech Group</div>
+        <div class="brand-sub">LearnEU · Director Portal</div>
+      </div>
+    </div>
     <div class="label">Aggregated reporting only</div>
   </div>
 </nav>
@@ -64,15 +74,11 @@
     <h2>Scope</h2>
     <div class="muted" id="scopeText">Loading your approved scope…</div>
     <div class="scope" id="scopeChips"></div>
+    <div class="muted" style="margin-top:1rem;">Director benchmarks are now part of the Power BI report embedded below.</div>
     <div class="report-list" id="reportList" style="margin-top:1.25rem;">
       <div class="empty">Loading approved reports…</div>
     </div>
   </section>
-  <aside class="card">
-    <h2>Configuration</h2>
-    <p class="muted">The portal fails closed when reporting metadata is missing or incomplete. This keeps the release safe until the Fabric-backed report contract is supplied.</p>
-    <pre id="configBox">{ "status": "loading" }</pre>
-  </aside>
 </main>
 <footer>© LearnEU · West Europe · Aggregated reporting by default</footer>
 <script>
@@ -132,8 +138,36 @@
     }
   }
 
+  function formatPct(value) {
+    return value == null ? 'Suppressed' : Math.round(value * 100) + '%';
+  }
+
+  function formatDelta(value, suffix = ' pts') {
+    if (value == null) return 'Suppressed';
+    const sign = value > 0 ? '+' : '';
+    return sign + value + suffix;
+  }
+
+  function metricCard(label, value, hint) {
+    return '<div class="metric-card"><div class="label">' + label + '</div><div class="value">' + value + '</div><div class="hint">' + hint + '</div></div>';
+  }
+
+  function buildTrendPath(points, selector, width, height, padding) {
+    const values = points.map(selector).filter(v => v != null);
+    if (!values.length) return '';
+    const min = Math.min.apply(null, values);
+    const max = Math.max.apply(null, values);
+    return points.map((point, index) => {
+      const value = selector(point);
+      const x = padding + (index * (width - padding * 2) / Math.max(1, points.length - 1));
+      const y = value == null
+        ? null
+        : (height - padding - ((value - min) / Math.max(1e-9, max - min || 1)) * (height - padding * 2));
+      return { x, y };
+    }).filter(p => p.y != null).map((p, index) => (index ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+  }
+
   async function boot() {
-    const configBox = document.getElementById('configBox');
     try {
       const auth = await fetch('/api/auth/me', { cache:'no-store' }).then(r => r.json());
       const authState = auth.directorAuthorization || (auth.user && auth.user.directorAuthorization) || { granted: false, scope: { schoolIds: [], regionIds: [] } };
@@ -149,10 +183,8 @@
         if (!r.ok) throw new Error('reporting metadata unavailable');
         return r.json();
       });
-      configBox.textContent = JSON.stringify({ status: payload.status, reporting: payload.reporting, scope: payload.scope, reports: payload.reports.map(r => r.displayName) }, null, 2);
       renderReports(payload);
     } catch (error) {
-      configBox.textContent = JSON.stringify({ status: 'fail-closed', error: String(error) }, null, 2);
       document.getElementById('reportList').innerHTML = '<div class="empty">The portal is currently fail-closed. Check the no-access page or reporting configuration.</div>';
     }
   }

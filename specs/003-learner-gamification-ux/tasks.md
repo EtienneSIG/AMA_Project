@@ -1,14 +1,20 @@
 # Tasks: Learner Gamification UX
 
 **Input**: Design documents from /specs/003-learner-gamification-ux/
-**Prerequisites**: spec.md, checklists/requirements.md (plan.md currently missing and generated as part of Setup)
+**Prerequisites**: spec.md, plan.md, checklists/requirements.md
 
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Establish feature planning artifacts and baseline implementation surfaces before coding user stories.
 
-- [ ] T001 Create implementation plan with technical stack, constraints, and architecture notes in specs/003-learner-gamification-ux/plan.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002 [P] Create feature data model for quest, season, badge, and oversight entities in specs/003-learner-gamification-ux/data-model.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+**GATE: Pedagogical Sign-Off Required Before Phase 2**
+
+Gamification features require explicit review and approval from the Learning Sciences specialist to confirm alignment with Zone of Proximal Development (ZPD), formative assessment principles, and Universal Design for Learning. No user story implementation may begin until sign-off is documented.
+
+- [ ] T001 Learning Sciences Expert: conduct pedagogical review of gamification design (engagement mechanics, reward fairness, collaborative safety, teacher override controls) and provide written sign-off in specs/003-learner-gamification-ux/quickstart.md before Phase 2 tasks begin (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [ ] T001a EdTech Program Orchestrator: confirm pedagogical sign-off is complete and documented; block Phase 2 tasks if sign-off is not present (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [ ] T002 Create implementation plan with technical stack, constraints, and architecture notes in specs/003-learner-gamification-ux/plan.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [ ] T002a [P] Create feature data model for quest, season, badge, and oversight entities in specs/003-learner-gamification-ux/data-model.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [ ] T003 [P] Draft learner and teacher API contract for gamification endpoints in specs/003-learner-gamification-ux/contracts/learner-gamification.openapi.yaml (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 - [ ] T004 [P] Add executable feature validation scenarios in specs/003-learner-gamification-ux/quickstart.md (Accountable: agents/demo-deployment-agent.chatmode.md)
 - [ ] T005 Align feature compliance scope (EU residency, bias prevention, teacher oversight) in specs/003-learner-gamification-ux/checklists/requirements.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)

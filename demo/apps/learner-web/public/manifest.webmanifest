@@ -1,0 +1,19 @@
+{
+  "name": "LearnEU Student PWA",
+  "short_name": "LearnEU Student",
+  "id": "/mobile.html",
+  "start_url": "/mobile.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F7FA",
+  "theme_color": "#0F1B2D",
+  "description": "Mobile-first student app for LearnEU with sheets, coach prompts, and progress views.",
+  "icons": [
+    {
+      "src": "/mobile-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

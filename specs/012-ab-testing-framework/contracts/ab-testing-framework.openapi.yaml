@@ -1,0 +1,542 @@
+openapi: 3.0.3
+info:
+  title: LearnEU A/B Testing Framework API
+  version: 0.1.0
+  description: >-
+    Contract for experiment lifecycle, randomization, monitoring, significance,
+    segmentation, decisions, and archive for feature 012.
+servers:
+  - url: /api
+security:
+  - cookieAuth: []
+tags:
+  - name: experiments
+  - name: monitoring
+  - name: analysis
+  - name: governance
+  - name: archive
+paths:
+  /experiments:
+    post:
+      tags: [experiments]
+      summary: Create experiment draft
+      operationId: createExperiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Experiment'
+    get:
+      tags: [experiments]
+      summary: List experiments with filters
+      operationId: listExperiments
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/ExperimentStatus'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Experiment'
+  /experiments/{experimentId}/validate:
+    post:
+      tags: [experiments]
+      summary: Validate experiment design before start
+      operationId: validateExperiment
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+  /experiments/{experimentId}/start:
+    post:
+      tags: [experiments]
+      summary: Start experiment and generate assignments
+      operationId: startExperiment
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '202':
+          description: Start accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateTransitionResult'
+  /experiments/{experimentId}/stop:
+    post:
+      tags: [experiments]
+      summary: Stop experiment immediately
+      operationId: stopExperiment
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateTransitionResult'
+  /experiments/{experimentId}/assignments/summary:
+    get:
+      tags: [experiments]
+      summary: Assignment distribution by strata
+      operationId: getAssignmentSummary
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentSummary'
+  /experiments/{experimentId}/monitoring:
+    get:
+      tags: [monitoring]
+      summary: Get real-time monitoring metrics
+      operationId: getMonitoring
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Monitoring payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitoringResponse'
+  /experiments/{experimentId}/alerts:
+    get:
+      tags: [monitoring]
+      summary: List active and historical alerts
+      operationId: listAlerts
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Alerts list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExperimentAlert'
+  /experiments/{experimentId}/analysis/significance:
+    post:
+      tags: [analysis]
+      summary: Compute or refresh significance results
+      operationId: runSignificance
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Significance output
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignificanceResponse'
+  /experiments/{experimentId}/analysis/segments:
+    post:
+      tags: [analysis]
+      summary: Compute segment-level differential impact
+      operationId: runSegmentAnalysis
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dimensions]
+              properties:
+                dimensions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Segment analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentAnalysisResponse'
+  /experiments/{experimentId}/decisions:
+    post:
+      tags: [governance]
+      summary: Record human decision and rationale
+      operationId: recordDecision
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionRequest'
+      responses:
+        '201':
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRecord'
+  /experiments/{experimentId}/archive:
+    post:
+      tags: [archive]
+      summary: Archive experiment and index learnings
+      operationId: archiveExperiment
+      parameters:
+        - $ref: '#/components/parameters/ExperimentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lessonsLearned]
+              properties:
+                lessonsLearned:
+                  type: string
+                keywords:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchiveRecord'
+  /experiments/archive/search:
+    get:
+      tags: [archive]
+      summary: Search archived experiments
+      operationId: searchArchive
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: metric
+          schema:
+            type: string
+        - in: query
+          name: audience
+          schema:
+            type: string
+        - in: query
+          name: outcome
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArchiveRecord'
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+  parameters:
+    ExperimentId:
+      in: path
+      name: experimentId
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ExperimentStatus:
+      type: string
+      enum: [draft, validated, running, paused, completed, decided, archived]
+    Experiment:
+      type: object
+      required: [experimentId, name, status, successMetric]
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/ExperimentStatus'
+        successMetric:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+    ExperimentCreateRequest:
+      type: object
+      required:
+        - name
+        - hypothesis
+        - targetScope
+        - variants
+        - successMetric
+      properties:
+        name:
+          type: string
+        hypothesis:
+          type: string
+        targetScope:
+          type: object
+          additionalProperties: true
+        randomizationRatio:
+          type: object
+          additionalProperties:
+            type: number
+        variants:
+          type: array
+          items:
+            type: object
+            required: [key, config]
+            properties:
+              key:
+                type: string
+              config:
+                type: object
+                additionalProperties: true
+        successMetric:
+          type: string
+        durationDays:
+          type: integer
+          minimum: 7
+    ValidationResult:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+        errors:
+          type: array
+          items:
+            type: string
+    StateTransitionResult:
+      type: object
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        fromStatus:
+          $ref: '#/components/schemas/ExperimentStatus'
+        toStatus:
+          $ref: '#/components/schemas/ExperimentStatus'
+        transitionedAt:
+          type: string
+          format: date-time
+    AssignmentSummary:
+      type: object
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        countsByVariant:
+          type: object
+          additionalProperties:
+            type: integer
+        countsByStrata:
+          type: array
+          items:
+            type: object
+            properties:
+              strataKey:
+                type: string
+              variantCounts:
+                type: object
+                additionalProperties:
+                  type: integer
+        fairnessStatus:
+          type: string
+          enum: [pass, monitor, fail]
+    MonitoringResponse:
+      type: object
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        freshnessMinutes:
+          type: integer
+        variantMetrics:
+          type: array
+          items:
+            type: object
+            properties:
+              variantKey:
+                type: string
+              metricName:
+                type: string
+              mean:
+                type: number
+              ci95Low:
+                type: number
+              ci95High:
+                type: number
+              sampleSize:
+                type: integer
+    ExperimentAlert:
+      type: object
+      properties:
+        alertId:
+          type: string
+          format: uuid
+        alertType:
+          type: string
+          enum: [underperformance, fairness_skew, confound, sample_drift, outage]
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+    SignificanceResponse:
+      type: object
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        comparisons:
+          type: array
+          items:
+            type: object
+            properties:
+              controlVariant:
+                type: string
+              treatmentVariant:
+                type: string
+              pValue:
+                type: number
+              effectSize:
+                type: number
+              effectInterpretation:
+                type: string
+              isStatisticallySignificant:
+                type: boolean
+              recommendation:
+                type: string
+                enum: [continue, stop, investigate, review_for_adoption]
+    SegmentAnalysisResponse:
+      type: object
+      properties:
+        experimentId:
+          type: string
+          format: uuid
+        dimensions:
+          type: array
+          items:
+            type: string
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              dimensionKey:
+                type: string
+              dimensionValue:
+                type: string
+              sampleSize:
+                type: integer
+              deltaPct:
+                type: number
+              pValue:
+                type: number
+              fairnessFlag:
+                type: string
+                enum: [none, monitor, high_risk]
+              oppositeEffect:
+                type: boolean
+    DecisionRequest:
+      type: object
+      required: [decisionType, rationale]
+      properties:
+        decisionType:
+          type: string
+          enum: [continue, stop, investigate, adopt_variant, archive]
+        rationale:
+          type: string
+        teacherSignOff:
+          type: boolean
+        pedagogySignOff:
+          type: boolean
+    DecisionRecord:
+      type: object
+      properties:
+        decisionId:
+          type: string
+          format: uuid
+        decisionType:
+          type: string
+        decidedBy:
+          type: string
+        decidedAt:
+          type: string
+          format: date-time
+    ArchiveRecord:
+      type: object
+      properties:
+        archiveId:
+          type: string
+          format: uuid
+        experimentId:
+          type: string
+          format: uuid
+        finalOutcome:
+          type: string
+        lessonsLearned:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string

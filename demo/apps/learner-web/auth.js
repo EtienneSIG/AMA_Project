@@ -26,6 +26,8 @@ const SEED_USERS = [
   { email: 'teacher@learneu.demo',  role: 'teacher', firstName: 'Klaus',    lastName: 'Klein',    age: 42, social: '@klaus.klein',    language: 'de' },
   { email: 'parent@learneu.demo',   role: 'parent',  firstName: 'Sophie',   lastName: 'De Vries', age: 40, social: '@sophie.dv',      language: 'nl' },
   { email: 'student@learneu.demo',  role: 'student', firstName: 'Lucas',    lastName: 'Janssen',  age: 12, social: '@lucas12',        language: 'fr' },
+  { email: 'director@learneu.demo', role: 'director', firstName: 'Ines',     lastName: 'Bakker',   age: 46, social: '@ines.director',  language: 'en', reportingScope: { schoolIds: ['SCH-AMSTERDAM-01'], regionIds: ['REG-NL-NORTH'], grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', effectiveFrom: '2026-06-01T00:00:00Z' } },
+  { email: 'director.noscope@learneu.demo', role: 'director', firstName: 'Noa', lastName: 'Scope', age: 47, social: '@noa.noscope', language: 'en', reportingScope: { schoolIds: [], regionIds: [], grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', effectiveFrom: '2026-06-01T00:00:00Z' } },
   // --- extended teachers ---------------------------------------------------
   { email: 'teacher1@learneu.demo', role: 'teacher', firstName: 'Marieke',  lastName: 'Visser',   age: 38, social: '@m.visser',       language: 'nl' },
   { email: 'teacher2@learneu.demo', role: 'teacher', firstName: 'Camille',  lastName: 'Laurent',  age: 45, social: '@c.laurent',      language: 'fr' },
@@ -115,8 +117,36 @@ let ready = false;
 
 function publicProfile(u) {
   if (!u) return null;
-  const { passwordHash, ...rest } = u;
+  const { passwordHash, reportingScope, ...rest } = u;
+  if (u.role === 'director') {
+    rest.directorAuthorization = buildDirectorAuthorization(u);
+  }
   return rest;
+}
+
+function normalizeDirectorScope(scope = {}) {
+  const normalizeIds = (value) => {
+    const list = Array.isArray(value) ? value : (value == null ? [] : [value]);
+    return [...new Set(list.map(item => String(item).trim()).filter(Boolean))];
+  };
+  return {
+    schoolIds: normalizeIds(scope.schoolIds || scope.schoolId || scope.schools),
+    regionIds: normalizeIds(scope.regionIds || scope.regionId || scope.regions),
+    grantedBy: scope.grantedBy || null,
+    grantedAt: scope.grantedAt || null,
+    effectiveFrom: scope.effectiveFrom || null,
+    effectiveTo: scope.effectiveTo || null
+  };
+}
+
+function buildDirectorAuthorization(u) {
+  if (!u || u.role !== 'director') return null;
+  const scope = normalizeDirectorScope(u.reportingScope || {});
+  return {
+    role: 'director',
+    granted: scope.schoolIds.length > 0 || scope.regionIds.length > 0,
+    scope
+  };
 }
 
 function sign(payload) {
@@ -172,7 +202,7 @@ function mountAuth(app, options = {}) {
     res.json({ csrfToken: token });
   });
 
-  app.get('/api/auth/me', (req, res) => res.json({ user: publicProfile(req.user), allowedRoles }));
+  app.get('/api/auth/me', (req, res) => res.json({ user: publicProfile(req.user), allowedRoles, directorAuthorization: buildDirectorAuthorization(req.user) }));
 
   // PATCH /api/auth/me — update mutable profile fields (firstName, lastName, age, social, language).
   // Demo-grade: writes only to in-memory userMap (persists until app restart).
@@ -221,7 +251,7 @@ function mountAuth(app, options = {}) {
     const csrfToken = generateCsrfToken();
     setCsrfCookie(res, csrfToken);
     db.logConnection({ email: u.email, role: u.role, app: APP_NAME, event: 'login', ip, userAgent: ua }).catch(() => {});
-    res.json({ user: publicProfile(u), csrfToken });
+    res.json({ user: publicProfile(u), csrfToken, returnTo: String(req.body?.returnTo || '') });
   });
 
   app.post('/api/auth/logout', (req, res) => {
@@ -300,11 +330,14 @@ function mountAuth(app, options = {}) {
 
 // Gate every request after public ones. PUBLIC_PATHS + /api/auth/* + /api/health are open.
 function gateMiddleware(allowedRoles) {
-  const PUBLIC = new Set(['/login.html', '/logo.svg', '/favicon.ico']);
+  const PUBLIC = new Set(['/login.html', '/logo.svg', '/favicon.ico', '/no-access.html']);
   return (req, res, next) => {
     if (PUBLIC.has(req.path) || req.path.startsWith('/api/auth/') || req.path === '/api/health') return next();
     if (!req.user) {
-      if (req.accepts('html') && !req.path.startsWith('/api/')) return res.redirect('/login.html');
+      if (req.accepts('html') && !req.path.startsWith('/api/')) {
+        const target = encodeURIComponent(req.originalUrl || req.url || '/');
+        return res.redirect('/login.html?returnTo=' + target);
+      }
       return res.status(401).json({ error: 'authentication required' });
     }
     if (allowedRoles.length && !allowedRoles.includes(req.user.role)) {

@@ -51,6 +51,21 @@ function New-BarChartVisual([hashtable]$pos, [string]$catEntity, [string]$catCol
     }
     @{ x=[int]$pos.x; y=[int]$pos.y; z=0; width=[int]$pos.w; height=[int]$pos.h; config=($config|ConvertTo-Json -Depth 20 -Compress); filters='[]' }
 }
+function New-LineChartVisual([hashtable]$pos, [string]$catEntity, [string]$catColumn, [string]$catAlias, [string]$measEntity, [string]$measure1, [string]$measure2, [string]$measAlias) {
+    $guid = New-GuidString
+    $fromList = @((New-FromEntry $catAlias $catEntity))
+    if ($catEntity -ne $measEntity) { $fromList += (New-FromEntry $measAlias $measEntity) }
+    $config = @{
+        name = $guid
+        layouts = @(@{ id = 0; position = @{ x = $pos.x; y = $pos.y; z = 0; width = $pos.w; height = $pos.h; tabOrder = 0 } })
+        singleVisual = @{
+            visualType = 'lineChart'
+            projections = @{ Category = @(@{ queryRef = "$catEntity.$catColumn" }); Y = @(@{ queryRef = "$measEntity.$measure1" }, @{ queryRef = "$measEntity.$measure2" }) }
+            prototypeQuery = @{ Version = 2; From = $fromList; Select = @((New-ColumnSelect $catAlias $catEntity $catColumn), (New-MeasureSelect $measAlias $measEntity $measure1), (New-MeasureSelect $measAlias $measEntity $measure2)) }
+        }
+    }
+    @{ x=[int]$pos.x; y=[int]$pos.y; z=0; width=[int]$pos.w; height=[int]$pos.h; config=($config|ConvertTo-Json -Depth 20 -Compress); filters='[]' }
+}
 function New-TableVisual([hashtable]$pos, [array]$columns, [array]$measures) {
     $guid = New-GuidString
     $fromEntries = @{}
@@ -70,7 +85,30 @@ function New-TableVisual([hashtable]$pos, [array]$columns, [array]$measures) {
 }
 function New-TitleVisual([hashtable]$pos, [string]$titleText) {
     $guid = New-GuidString
-    $config = @{ name = $guid; layouts = @(@{id=0; position=@{x=$pos.x;y=$pos.y;z=9999;width=$pos.w;height=$pos.h;tabOrder=0}}); singleVisual = @{ visualType = 'textbox' } }
+    $config = @{
+        name = $guid
+        layouts = @(@{id=0; position=@{x=$pos.x;y=$pos.y;z=9999;width=$pos.w;height=$pos.h;tabOrder=0}})
+        singleVisual = @{
+            visualType = 'textbox'
+            objects = @{
+                general = @(@{
+                    properties = @{
+                        paragraphs = @(@{
+                            textRuns = @(@{
+                                value = $titleText
+                                textStyle = @{
+                                    fontFamily = 'Poppins'
+                                    fontSize = '20px'
+                                    fontWeight = 'bold'
+                                    color = '#00314A'
+                                }
+                            })
+                        })
+                    }
+                })
+            }
+        }
+    }
     @{ x=[int]$pos.x; y=[int]$pos.y; z=9999; width=[int]$pos.w; height=[int]$pos.h; config=($config|ConvertTo-Json -Depth 20 -Compress); filters='[]' }
 }
 
@@ -103,12 +141,34 @@ $page2Visuals += New-TableVisual @{x=20;y=470;w=1220;h=250} @(
     @{entity='Hierarchy Exceptions';property='status';alias='he'}
 ) @()
 
+$themeObj = @{
+    version = '5.53'
+    themeCollection = @{
+        baseTheme = @{
+            name = 'CY24SU06'
+            reportVersionAtImport = '5.53'
+            type = 2
+        }
+    }
+    activeSectionIndex = 0
+    defaultDrillFilterOtherVisuals = $true
+    publicCustomVisuals = @()
+    objects = @{
+        page = @(@{
+            properties = @{
+                background = @{ solid = @{ color = @{ expr = @{ Literal = @{ Value = "'#F0F4F8'" } } } } }
+            }
+        })
+    }
+}
+$reportConfig = ($themeObj | ConvertTo-Json -Depth 20 -Compress)
+
 $reportJson = @{
     sections = @(
         @{ name='page1'; displayName='Director Overview'; displayOption=1; width=1280; height=720; visualContainers=$page1Visuals },
         @{ name='page2'; displayName='Coverage and Exceptions'; displayOption=1; width=1280; height=720; visualContainers=$page2Visuals }
     )
-    config = (@{ version='5.53'; activeSectionIndex=0 } | ConvertTo-Json -Depth 10 -Compress)
+    config = $reportConfig
     layoutOptimization = 0
 }
 
@@ -133,6 +193,7 @@ $existingReports = Invoke-RestMethod -Uri $listUri -Headers $headers -Method Get
 $existing = $existingReports.value | Where-Object { $_.displayName -eq $ReportName }
 if ($existing) {
     Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/reports/$($existing.id)" -Headers $headers -Method Delete
+    Start-Sleep -Seconds 2
 }
 
 $response = Invoke-WebRequest -Uri $listUri -Headers $headers -Method Post -Body $apiBody -UseBasicParsing
@@ -140,7 +201,40 @@ if ($response.StatusCode -eq 201) {
     $result = $response.Content | ConvertFrom-Json
     Write-Host "Report created successfully: $($result.id)" -ForegroundColor Green
 } elseif ($response.StatusCode -eq 202) {
-    Write-Host 'Report creation accepted. Check workspace for completion.' -ForegroundColor Yellow
+    Write-Host 'Report creation accepted (202). Polling for completion...' -ForegroundColor Yellow
+    $locationHeader = $response.Headers['Location']
+    if (-not $locationHeader) {
+        throw 'Report creation returned 202 but no Location header for polling.'
+    }
+
+    $pollUrl = if ($locationHeader -is [array]) { $locationHeader[0] } else { $locationHeader }
+    $maxRetries = 36
+    $retryCount = 0
+    $completed = $false
+
+    while (-not $completed -and $retryCount -lt $maxRetries) {
+        Start-Sleep -Seconds 5
+        $retryCount++
+
+        $pollResponse = Invoke-RestMethod -Uri $pollUrl -Headers $headers -Method Get
+        $status = [string]$pollResponse.status
+
+        if ($status -in @('Succeeded', 'Completed')) {
+            Write-Host 'Report deployment completed successfully.' -ForegroundColor Green
+            $completed = $true
+        } elseif ($status -eq 'Failed') {
+            $details = $pollResponse | ConvertTo-Json -Depth 10
+            throw "Report deployment failed. Details: $details"
+        } elseif ($status -eq 'Cancelled') {
+            throw 'Report deployment was cancelled.'
+        } else {
+            Write-Host "  Status: $status (attempt $retryCount/$maxRetries)" -ForegroundColor DarkGray
+        }
+    }
+
+    if (-not $completed) {
+        throw 'Timed out waiting for report creation to complete.'
+    }
 } else {
     throw "Unexpected status code: $($response.StatusCode)"
 }
