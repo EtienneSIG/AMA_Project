@@ -117,8 +117,8 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Tests for User Story 3
 
-- [ ] T035 [P] [US3] Add acceptance scenario for under-16 learner consent request, 7-day link validity, and successful consent activation in demo/scripts/acceptance_tests.ps1 (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T036 [P] [US3] Add acceptance scenario for expired consent link reminder and pending-consent enforcement in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T035 [P] [US3] Add acceptance scenario for under-16 learner consent request, 7-day link validity, and successful consent activation in demo/scripts/acceptance_tests.ps1 (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T036 [P] [US3] Add acceptance scenario for expired consent link reminder and pending-consent enforcement in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 ### Implementation for User Story 3
 

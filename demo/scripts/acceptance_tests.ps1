@@ -288,6 +288,73 @@ Test-It '13' 'Admin PostgreSQL status p95 <= 2000 ms and wake-up acknowledgement
     }
 }
 
+# 14 — US3 (T035): under-16 consent request issuance, 7-day link validity, successful activation
+Test-It '14' 'US3 parental consent — request issuance, 7-day token validity, and grant activation' {
+    $base = 'https://app-parent-portal-learneu-demo.azurewebsites.net'
+    # Use an already-consented pair (parent3 -> student3): re-granting is idempotent, so the
+    # test never alters the demo's intentionally consent-less learners (student5/student8).
+    $childEmail = 'student3@learneu.demo'
+    $loginBody = @{ email='admin@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    try {
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $csrf = (Invoke-RestMethod "$base/api/auth/csrf" -WebSession $s -TimeoutSec 30).csrfToken
+        $hdr = @{ 'X-CSRF-Token' = $csrf }
+        # Admin enqueues a consent request (T038 dispatch) -> token + link + expiry.
+        $enq = Invoke-RestMethod "$base/api/consent/requests" -Method POST -Body (@{ childEmail=$childEmail } | ConvertTo-Json) -ContentType 'application/json' -WebSession $s -Headers $hdr -TimeoutSec 60
+        $entry = $enq.requests | Select-Object -First 1
+        if (-not $entry -or -not $entry.token) { return @{ status='FAIL'; detail='enqueue returned no token' } }
+        $token = $entry.token
+        $days = ([datetime]$entry.expiresAt - (Get-Date)).TotalDays
+        $ttlOk = ($days -ge 6.5 -and $days -le 7.5)                          # 7-day validity (T037)
+        $linkOk = ($entry.link -match '/consent-pending\.html\?token=')      # parent-followable link
+        # Public disclosure fetch (no auth) — parent landing on the link.
+        $disc = Invoke-RestMethod "$base/api/consent/requests/$token" -TimeoutSec 60
+        $discOk = ($disc.status -eq 'pending' -and $disc.disclosureVersion -and $disc.rights -and $disc.childDisplayName)
+        # Public grant with EXPLICIT consent (unauthenticated parent, CSRF via /api/auth/csrf cookie).
+        $pInit = Invoke-RestMethod "$base/api/auth/csrf" -SessionVariable p -TimeoutSec 30
+        $decide = Invoke-RestMethod "$base/api/consent/requests/$token/decide" -Method POST -Body (@{ decision='granted'; agree=$true } | ConvertTo-Json) -ContentType 'application/json' -WebSession $p -Headers @{ 'X-CSRF-Token'=$pInit.csrfToken } -TimeoutSec 60
+        $grantOk = ($decide.ok -and $decide.decision -eq 'granted')
+        if ($ttlOk -and $linkOk -and $discOk -and $grantOk) {
+            @{ status='PASS'; detail="Request issued (token len=$($token.Length)), link valid, TTL=$([math]::Round($days,2))d (~7), disclosure v=$($disc.disclosureVersion) + rights surfaced, explicit grant activated consent." }
+        } else {
+            @{ status='PARTIAL'; detail="ttlOk=$ttlOk (days=$([math]::Round($days,2))) linkOk=$linkOk discOk=$discOk grantOk=$grantOk" }
+        }
+    } catch {
+        @{ status='FAIL'; detail=$_.Exception.Message }
+    }
+}
+
+# 15 — US3 (T036): expired-link reminder dispatch + pending-consent enforcement
+Test-It '15' 'US3 parental consent — day-6 reminder dispatch and pending-consent enforcement' {
+    $base = 'https://app-parent-portal-learneu-demo.azurewebsites.net'
+    $loginBody = @{ email='admin@learneu.demo'; password='DemoPass2026!' } | ConvertTo-Json
+    try {
+        $null = Invoke-WebRequest "$base/api/auth/login" -Method POST -Body $loginBody -ContentType 'application/json' -SessionVariable s -TimeoutSec 60 -UseBasicParsing
+        $csrf = (Invoke-RestMethod "$base/api/auth/csrf" -WebSession $s -TimeoutSec 30).csrfToken
+        $hdr = @{ 'X-CSRF-Token' = $csrf }
+        # Reminder dispatch path (T043): expires stale links first, then reminds the rest.
+        $rem = Invoke-RestMethod "$base/api/consent/reminders/run" -Method POST -Body '{}' -ContentType 'application/json' -WebSession $s -Headers $hdr -TimeoutSec 60
+        $remNames = $rem.PSObject.Properties.Name
+        $remOk = ($rem.ok -and ($remNames -contains 'expired') -and ($remNames -contains 'remindedCount'))
+        # Pending-consent enforcement: a grant WITHOUT explicit agreement must be refused.
+        $enq = Invoke-RestMethod "$base/api/consent/requests" -Method POST -Body (@{ childEmail='student4@learneu.demo' } | ConvertTo-Json) -ContentType 'application/json' -WebSession $s -Headers $hdr -TimeoutSec 60
+        $token = ($enq.requests | Select-Object -First 1).token
+        $pInit = Invoke-RestMethod "$base/api/auth/csrf" -SessionVariable p -TimeoutSec 30
+        $pHdr = @{ 'X-CSRF-Token' = $pInit.csrfToken }
+        $noAgree = Invoke-WebRequest "$base/api/consent/requests/$token/decide" -Method POST -Body (@{ decision='granted'; agree=$false } | ConvertTo-Json) -ContentType 'application/json' -WebSession $p -Headers $pHdr -SkipHttpErrorCheck -TimeoutSec 60 -UseBasicParsing
+        $enforceOk = ([int]$noAgree.StatusCode -eq 400)                       # explicit consent required
+        $bad = Invoke-WebRequest "$base/api/consent/requests/deadbeefdeadbeef0000" -SkipHttpErrorCheck -TimeoutSec 60 -UseBasicParsing
+        $invalidOk = ([int]$bad.StatusCode -eq 404)                           # unknown token rejected
+        if ($remOk -and $enforceOk -and $invalidOk) {
+            @{ status='PASS'; detail="Reminder sweep ok (expired=$($rem.expired), reminded=$($rem.remindedCount)); explicit-consent enforced (HTTP 400 on agree=false); unknown token -> HTTP 404." }
+        } else {
+            @{ status='PARTIAL'; detail="remOk=$remOk enforceOk=$enforceOk(HTTP $([int]$noAgree.StatusCode)) invalidOk=$invalidOk(HTTP $([int]$bad.StatusCode))" }
+        }
+    } catch {
+        @{ status='FAIL'; detail=$_.Exception.Message }
+    }
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Acceptance summary ===" -ForegroundColor Cyan
@@ -298,7 +365,7 @@ $partial = ($results | Where-Object Status -eq 'PARTIAL').Count
 $skip    = ($results | Where-Object Status -eq 'SKIP').Count
 $fail    = ($results | Where-Object Status -eq 'FAIL').Count
 Write-Host ""
-Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / 12" -ForegroundColor White
+Write-Host "PASS: $pass · PARTIAL: $partial · SKIP: $skip · FAIL: $fail / $($results.Count)" -ForegroundColor White
 
 # Persist JSON
 $out = "$PSScriptRoot/../.deploy/acceptance-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
