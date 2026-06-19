@@ -251,7 +251,7 @@ function mountAuth(app, options = {}) {
     const csrfToken = generateCsrfToken();
     setCsrfCookie(res, csrfToken);
     db.logConnection({ email: u.email, role: u.role, app: APP_NAME, event: 'login', ip, userAgent: ua }).catch(() => {});
-    res.json({ user: publicProfile(u), csrfToken, returnTo: String(req.body?.returnTo || '') });
+    res.json({ user: publicProfile(u), csrfToken });
   });
 
   app.post('/api/auth/logout', (req, res) => {
@@ -334,10 +334,7 @@ function gateMiddleware(allowedRoles) {
   return (req, res, next) => {
     if (PUBLIC.has(req.path) || req.path.startsWith('/api/auth/') || req.path === '/api/health') return next();
     if (!req.user) {
-      if (req.accepts('html') && !req.path.startsWith('/api/')) {
-        const target = encodeURIComponent(req.originalUrl || req.url || '/');
-        return res.redirect('/login.html?returnTo=' + target);
-      }
+      if (req.accepts('html') && !req.path.startsWith('/api/')) return res.redirect('/login.html');
       return res.status(401).json({ error: 'authentication required' });
     }
     if (allowedRoles.length && !allowedRoles.includes(req.user.role)) {

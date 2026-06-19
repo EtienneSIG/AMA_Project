@@ -1171,6 +1171,181 @@ app.post('/api/learner/mastery/recompute', async (req, res) => {
   res.json(out);
 });
 
+// --- Parent ↔ teacher messaging (Feature 6, US2) ---------------------------
+// All parent/teacher message bodies are scanned by Azure Content Safety before
+// delivery. Flagged content is quarantined (delivery_state='quarantined') and held
+// for teacher moderation (EU AI Act Art. 14 human oversight); clean content is
+// delivered immediately. Every action is written to the immutable audit_event log.
+
+// Parent inbox: latest delivered message per thread + unread badge count.
+app.get('/api/parent/messages', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, threads: [], unread: 0 });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const threads = await db.listParentInbox({ recipientEmail: req.user.email, limit: 50 }) || [];
+  const unread = await db.countUnreadParentMessages({ recipientEmail: req.user.email });
+  res.json({ enabled: true, threads, unread });
+});
+// Full message list for one thread (parent or teacher participant).
+app.get('/api/parent/messages/thread/:threadId', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, messages: [] });
+  const u = req.user;
+  if (!['parent', 'teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'forbidden' });
+  const rows = await db.listParentThread({ threadId: String(req.params.threadId), viewerEmail: u.email, includeQuarantined: u.role !== 'parent', limit: 100 });
+  res.json({ enabled: true, messages: rows || [] });
+});
+// Parent sends a message to the child's teacher (or replies in a thread).
+app.post('/api/parent/messages', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  const recipientEmail = String(req.body?.recipientEmail || '').trim().toLowerCase() || null;
+  const body = String(req.body?.body || '').trim();
+  const subject = req.body?.subject ? String(req.body.subject).trim() : null;
+  if (!childEmail || !body) return res.status(400).json({ error: 'childEmail and body required' });
+  if (req.user.role !== 'admin') {
+    const linked = await db.isParentOfChild({ parentEmail: req.user.email, childEmail });
+    if (!linked) return res.status(403).json({ error: 'not linked to this learner' });
+  }
+  const scan = await cs.analyze(`${subject || ''}\n\n${body}`);
+  const flagged = scan.ran && scan.blocked;
+  const threadId = db.parentThreadId({ parentEmail: req.user.email, childEmail });
+  const row = await db.createParentMessage({
+    threadId, senderEmail: req.user.email, senderRole: 'parent', recipientEmail, childEmail,
+    subject, body, csVerdict: scan.ran ? (flagged ? 'flagged' : 'clean') : 'skipped',
+    csSeverities: scan.severities || {}, deliveryState: flagged ? 'quarantined' : 'delivered'
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  db.recordAuditEvent({ eventType: 'parent_message_sent', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_message', targetId: String(row.id), scope: { childEmail, csVerdict: row.cs_verdict, deliveryState: row.delivery_state }, outcome: flagged ? 'quarantined' : 'delivered' }).catch(() => {});
+  res.status(201).json({ message: row, moderation: flagged ? 'Your message is awaiting teacher review (Content Safety).' : null });
+});
+// Mark a delivered message read (read receipt).
+app.post('/api/parent/messages/:id/read', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const row = await db.markParentMessageRead({ id: req.params.id, recipientEmail: req.user.email });
+  res.json({ ok: Boolean(row), readAt: row ? row.read_at : null });
+});
+
+// Teacher posts an announcement / reply to the parent(s) of a child.
+app.post('/api/teacher/parent-messages', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  const body = String(req.body?.body || '').trim();
+  const subject = req.body?.subject ? String(req.body.subject).trim() : null;
+  if (!childEmail || !body) return res.status(400).json({ error: 'childEmail and body required' });
+  const parents = await db.listParentsForChild({ childEmail }) || [];
+  if (!parents.length) return res.status(404).json({ error: 'no linked parent for this learner' });
+  const scan = await cs.analyze(`${subject || ''}\n\n${body}`);
+  const flagged = scan.ran && scan.blocked;
+  const out = [];
+  for (const p of parents) {
+    const threadId = db.parentThreadId({ parentEmail: p.parentEmail, childEmail });
+    const row = await db.createParentMessage({
+      threadId, senderEmail: u.email, senderRole: 'teacher', recipientEmail: p.parentEmail, childEmail,
+      subject, body, csVerdict: scan.ran ? (flagged ? 'flagged' : 'clean') : 'skipped',
+      csSeverities: scan.severities || {}, deliveryState: flagged ? 'quarantined' : 'delivered'
+    });
+    if (row) out.push(row);
+  }
+  db.recordAuditEvent({ eventType: 'teacher_announcement_sent', actorId: u.email, actorRole: 'teacher', targetType: 'parent_message', targetId: childEmail, scope: { recipients: parents.length, csVerdict: flagged ? 'flagged' : 'clean' }, outcome: flagged ? 'quarantined' : 'delivered' }).catch(() => {});
+  res.status(201).json({ sent: out.length, messages: out });
+});
+// Moderation queue (flagged messages) — teacher / admin only.
+app.get('/api/teacher/parent-messages/moderation', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(req.user.role)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listParentModerationQueue({ limit: 100 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Approve (deliver) or reject a quarantined message.
+app.post('/api/teacher/parent-messages/:id/moderate', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!['teacher', 'admin'].includes(req.user.role)) return res.status(403).json({ error: 'teacher only' });
+  const action = req.body?.action === 'approve' ? 'approve' : 'reject';
+  const row = await db.moderateParentMessage({ id: req.params.id, moderatorEmail: req.user.email, action });
+  if (!row) return res.status(404).json({ error: 'not found or already moderated' });
+  db.recordAuditEvent({ eventType: 'parent_message_moderated', actorId: req.user.email, actorRole: req.user.role, targetType: 'parent_message', targetId: String(row.id), scope: { action }, outcome: row.delivery_state }).catch(() => {});
+  res.json({ ok: true, message: row });
+});
+
+// --- Parent preferences (Feature 6, US4 digest opt-in / US5 language) -------
+app.get('/api/parent/preferences', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, preferences: null });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const preferences = await db.getParentPreferences({ parentEmail: req.user.email });
+  res.json({ enabled: true, preferences });
+});
+app.put('/api/parent/preferences', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const SUPPORTED = ['en', 'nl', 'de', 'fr', 'es', 'pl', 'ro'];
+  const language = req.body?.language != null ? String(req.body.language).toLowerCase() : null;
+  if (language && !SUPPORTED.includes(language)) return res.status(400).json({ error: `language must be one of ${SUPPORTED.join(', ')}` });
+  const row = await db.setParentPreferences({
+    parentEmail: req.user.email,
+    language,
+    digestOptIn: req.body?.digestOptIn != null ? Boolean(req.body.digestOptIn) : null,
+    emailFrequency: req.body?.emailFrequency != null ? String(req.body.emailFrequency) : null,
+    notifyInApp: req.body?.notifyInApp != null ? Boolean(req.body.notifyInApp) : null,
+    notifyEmail: req.body?.notifyEmail != null ? Boolean(req.body.notifyEmail) : null
+  });
+  db.recordAuditEvent({ eventType: 'parent_preferences_updated', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_preferences', targetId: req.user.email, scope: { language: row ? row.language : null, digestOptIn: row ? row.digest_opt_in : null }, outcome: 'ok' }).catch(() => {});
+  res.json({ ok: true, preferences: row });
+});
+
+// --- Weekly digest + "How to help" (Feature 6, US4) ------------------------
+// "How to help this week" tips, sourced from approved pedagogical guidance keyed by
+// learning domain. Reviewed by Learning Sciences (ZPD-aligned, non-prescriptive).
+const HOW_TO_HELP = {
+  numeracy:  'Practise fractions with everyday objects — split a pizza or share coins to make the maths concrete.',
+  literacy:  'Read together for 10 minutes and ask your child to summarise the story in their own words.',
+  science:   'Cook a simple recipe together and talk about what changes when things heat or cool.',
+  language:  'Label a few household objects in the target language and review them at dinner.',
+  _default:  'Ask your child to teach you one thing they learned this week — explaining it back deepens learning.'
+};
+function howToHelpFor(summary) {
+  const dom = summary && summary.weakestDomain ? summary.weakestDomain.domain : (summary && summary.topDomains && summary.topDomains[0] ? summary.topDomains[0].domain : null);
+  const key = dom ? String(dom).toLowerCase() : '_default';
+  return HOW_TO_HELP[key] || HOW_TO_HELP._default;
+}
+// Live weekly summary for one linked child (dashboard + digest preview).
+app.get('/api/parent/child/:child/weekly-summary', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, summary: null });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const summary = await db.weeklyChildSummary({ childEmail });
+  res.json({ enabled: true, summary, howToHelp: howToHelpFor(summary) });
+});
+// Past digests for the parent.
+app.get('/api/parent/digests', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const rows = await db.listParentDigests({ parentEmail: req.user.email, limit: 12 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Generate (or refresh) this week's digest for every linked child — respects opt-out.
+app.post('/api/parent/digests/generate', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const prefs = await db.getParentPreferences({ parentEmail: req.user.email });
+  if (prefs && prefs.digest_opt_in === false) return res.json({ ok: true, generated: 0, optedOut: true });
+  const children = await db.listChildrenForParent({ parentEmail: req.user.email }) || [];
+  const monday = new Date(); const day = (monday.getUTCDay() + 6) % 7; monday.setUTCDate(monday.getUTCDate() - day);
+  const weekStart = monday.toISOString().slice(0, 10);
+  const out = [];
+  for (const c of children) {
+    const summary = await db.weeklyChildSummary({ childEmail: c.childEmail });
+    const row = await db.upsertParentDigest({
+      parentEmail: req.user.email, childEmail: c.childEmail, weekStart,
+      summary, howToHelp: howToHelpFor(summary), tone: summary.tone, language: prefs ? prefs.language : 'en'
+    });
+    if (row) out.push(row);
+  }
+  res.json({ ok: true, generated: out.length, weekStart, digests: out });
+});
+
 // --- Teacher Q&A (learner ↔ teacher async messaging) ----------------------
 // Learner posts a question; teacher (or admin) sees an inbox and replies.
 app.post('/api/teacher-questions', async (req, res) => {

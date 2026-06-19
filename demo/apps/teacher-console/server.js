@@ -364,6 +364,646 @@ app.get('/api/learner/activity', async (req, res) => {
   const rows = await db.listLearnerActivity({ email: u.email, days: 30 });
   res.json({ enabled: true, rows: rows || [] });
 });
+// --- Learner gamification UX (Feature 003) -------------------------------
+const GAM_BADGES = [
+  { key: 'daily-flame', label: 'Daily Flame' },
+  { key: 'fraction-hunter', label: 'Fraction Hunter' },
+  { key: 'team-helper', label: 'Team Helper' },
+  { key: 'boss-slayer', label: 'Boss Slayer' },
+  { key: 'streak-sprinter', label: 'Streak Sprinter' }
+];
+
+function tierFromAttempts(totalAttempts) {
+  if (totalAttempts >= 200) return { tier: 10, name: 'Mythic' };
+  if (totalAttempts >= 160) return { tier: 9, name: 'Legend' };
+  if (totalAttempts >= 130) return { tier: 8, name: 'Master' };
+  if (totalAttempts >= 100) return { tier: 7, name: 'Diamond' };
+  if (totalAttempts >= 75) return { tier: 6, name: 'Gold' };
+  if (totalAttempts >= 55) return { tier: 5, name: 'Silver' };
+  if (totalAttempts >= 40) return { tier: 4, name: 'Bronze+' };
+  if (totalAttempts >= 25) return { tier: 3, name: 'Bronze' };
+  if (totalAttempts >= 12) return { tier: 2, name: 'Starter+' };
+  return { tier: 1, name: 'Starter' };
+}
+
+function rewardForDay(dateIso) {
+  const d = String(dateIso || '').replace(/-/g, '');
+  const seed = Number.parseInt(d.slice(-2), 10) || 1;
+  return GAM_BADGES[seed % GAM_BADGES.length];
+}
+
+async function getConsecutiveCorrect(email) {
+  const r = await db._query(
+    `SELECT correct FROM item_attempts WHERE email = $1 ORDER BY created_at DESC LIMIT 30`,
+    [email]
+  );
+  if (!r || !r.rows) return 0;
+  let streak = 0;
+  for (const row of r.rows) {
+    if (row.correct) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
+async function buildGamificationDashboard(email) {
+  const todayR = await db._query(
+    `SELECT COALESCE(attempts, 0)::int AS attempts, COALESCE(correct, 0)::int AS correct
+       FROM learner_activity WHERE email = $1 AND day = CURRENT_DATE`,
+    [email]
+  );
+  const todayAttempts = todayR && todayR.rows[0] ? todayR.rows[0].attempts : 0;
+  const todayCorrect = todayR && todayR.rows[0] ? todayR.rows[0].correct : 0;
+
+  const weekR = await db._query(
+    `SELECT COALESCE(SUM(attempts), 0)::int AS total_attempts,
+            COUNT(DISTINCT CASE WHEN attempts > 0 THEN email END)::int AS contributors
+       FROM learner_activity
+      WHERE day >= date_trunc('week', now())::date
+        AND email LIKE 'student%@learneu.demo'`,
+    []
+  );
+  const classAttempts = weekR && weekR.rows[0] ? weekR.rows[0].total_attempts : 0;
+  const classContributors = weekR && weekR.rows[0] ? weekR.rows[0].contributors : 0;
+
+  const streakStats = await db.getLearnerStreak({ email, windowDays: 30 });
+  const totalAttempts30 = streakStats ? (streakStats.totalAttempts || 0) : 0;
+  const tier = tierFromAttempts(totalAttempts30);
+  const nextTierAttempts = [12, 25, 40, 55, 75, 100, 130, 160, 200, 260][Math.max(0, tier.tier - 1)] || 260;
+
+  const consecutiveCorrect = await getConsecutiveCorrect(email);
+
+  const chestR = await db._query(
+    `SELECT claimed_at, reward_badge_key AS key, reward_label AS label
+       FROM learner_daily_chests WHERE email = $1 AND day = CURRENT_DATE`,
+    [email]
+  );
+  const chestClaimed = Boolean(chestR && chestR.rows && chestR.rows[0]);
+  const todayReward = rewardForDay(new Date().toISOString().slice(0, 10));
+
+  const badgesR = await db._query(
+    `SELECT badge_key AS key, badge_label AS label, source, earned_at
+       FROM learner_badges WHERE email = $1 ORDER BY earned_at DESC LIMIT 40`,
+    [email]
+  );
+
+  const motivationR = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions' AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 25`,
+    []
+  );
+
+  return {
+    mission: {
+      id: 'daily-quest-fractions',
+      title: 'Mission du jour',
+      objective: 'Complete 10 practice attempts today',
+      target: 10,
+      progress: todayAttempts,
+      correct: todayCorrect,
+      completed: todayAttempts >= 10
+    },
+    guildObjective: {
+      classKey: 'class-y7-fractions',
+      title: 'Objectif de la classe',
+      target: 300,
+      progress: classAttempts,
+      contributors: classContributors
+    },
+    collaborativeQuests: [
+      {
+        id: 'cq-duo-help',
+        title: 'Duo entraide',
+        description: 'Two learners each complete 8 attempts this week',
+        target: 16,
+        progress: Math.min(16, classAttempts),
+        completed: classAttempts >= 16
+      },
+      {
+        id: 'cq-class-sprint',
+        title: 'Class sprint',
+        description: 'Class reaches 120 valid attempts',
+        target: 120,
+        progress: Math.min(120, classAttempts),
+        completed: classAttempts >= 120
+      }
+    ],
+    season: {
+      title: 'Season Progression',
+      tier: tier.tier,
+      tierName: tier.name,
+      progress: Math.min(totalAttempts30, nextTierAttempts),
+      target: nextTierAttempts,
+      totalAttempts30
+    },
+    chest: {
+      eligible: todayAttempts >= 10,
+      claimed: chestClaimed,
+      rewardPreview: todayReward,
+      claimedReward: chestClaimed ? { key: chestR.rows[0].key, label: chestR.rows[0].label, claimedAt: chestR.rows[0].claimed_at } : null
+    },
+    bossBattle: {
+      title: 'Boss Battle',
+      objective: '10 consecutive correct answers',
+      currentStreak: consecutiveCorrect,
+      target: 10,
+      defeated: consecutiveCorrect >= 10
+    },
+    badges: badgesR ? badgesR.rows : [],
+    motivation: motivationR ? motivationR.rows : []
+  };
+}
+
+const COLLAB_CLASS_KEY = 'class-y7-fractions';
+
+function learnerDisplayName(u) {
+  return [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email;
+}
+
+app.get('/api/learner/gamification/dashboard', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false });
+  const payload = await buildGamificationDashboard(req.user.email);
+  res.json({ enabled: true, ...payload });
+});
+
+app.post('/api/learner/gamification/chest/claim', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const email = req.user.email;
+  const dash = await buildGamificationDashboard(email);
+  if (!dash.chest.eligible) return res.status(400).json({ error: 'daily mission not completed yet' });
+  if (dash.chest.claimed) return res.status(409).json({ error: 'chest already claimed today', reward: dash.chest.claimedReward });
+  const reward = dash.chest.rewardPreview;
+  await db._query(
+    `INSERT INTO learner_daily_chests (email, day, reward_badge_key, reward_label)
+     VALUES ($1, CURRENT_DATE, $2, $3)`,
+    [email, reward.key, reward.label]
+  );
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, $2, $3, 'daily_chest')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [email, reward.key, reward.label]
+  );
+  res.status(201).json({ ok: true, reward });
+});
+
+app.get('/api/learner/champion/questions', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const email = req.user.email;
+  const r = await db._query(
+    `SELECT
+       c.id,
+       c.author_email AS "authorEmail",
+       c.author_name AS "authorName",
+       c.question,
+       c.options,
+       c.explanation,
+       c.status,
+       c.winner_email AS "winnerEmail",
+       c.winner_name AS "winnerName",
+       c.created_at AS "createdAt",
+       c.closed_at AS "closedAt",
+       COALESCE((SELECT COUNT(*)::int FROM learner_champion_answers a WHERE a.challenge_id = c.id), 0) AS "answersCount",
+       me.selected_index AS "mySelectedIndex",
+       me.is_correct AS "myIsCorrect"
+     FROM learner_champion_challenges c
+     LEFT JOIN learner_champion_answers me
+       ON me.challenge_id = c.id AND me.challenger_email = $2
+     WHERE c.class_key = $1
+     ORDER BY c.created_at DESC
+     LIMIT 50`,
+    [COLLAB_CLASS_KEY, email]
+  );
+  const rows = (r ? r.rows : []).map((row) => ({
+    ...row,
+    isAuthor: String(row.authorEmail || '').toLowerCase() === email,
+    canAnswer: row.status === 'open' && String(row.authorEmail || '').toLowerCase() !== email && row.mySelectedIndex == null,
+    options: Array.isArray(row.options) ? row.options : []
+  }));
+  res.json({ enabled: true, rows });
+});
+
+app.post('/api/learner/champion/questions', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const question = String(req.body?.question || '').trim();
+  const optionsRaw = Array.isArray(req.body?.options) ? req.body.options : [];
+  const options = optionsRaw.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 4);
+  const correctIndex = Number(req.body?.correctIndex);
+  const explanation = String(req.body?.explanation || '').trim().slice(0, 240);
+  if (!question) return res.status(400).json({ error: 'question required' });
+  if (question.length > 220) return res.status(400).json({ error: 'question too long (max 220)' });
+  if (options.length < 2) return res.status(400).json({ error: 'at least 2 options are required' });
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+    return res.status(400).json({ error: 'correctIndex must target one option' });
+  }
+  const scan = await cs.analyze([question, ...options, explanation].filter(Boolean).join('\n'));
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Question blocked by Content Safety.', severities: scan.severities });
+  }
+
+  const authorName = learnerDisplayName(req.user);
+  const r = await db._query(
+    `INSERT INTO learner_champion_challenges (class_key, author_email, author_name, question, options, correct_index, explanation)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
+     RETURNING id, author_email AS "authorEmail", author_name AS "authorName", question, options, explanation, status, created_at AS "createdAt"`,
+    [COLLAB_CLASS_KEY, req.user.email, authorName, question, JSON.stringify(options), correctIndex, explanation || null]
+  );
+
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, 'challenge-creator', 'Challenge Creator', 'champion_question')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [req.user.email]
+  );
+
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/learner/champion/questions/:id/answer', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const challengeId = Number.parseInt(req.params.id, 10);
+  const selectedIndex = Number(req.body?.selectedIndex);
+  if (!Number.isFinite(challengeId)) return res.status(400).json({ error: 'invalid challenge id' });
+  if (!Number.isInteger(selectedIndex)) return res.status(400).json({ error: 'selectedIndex must be an integer' });
+
+  const c = await db._query(
+    `SELECT id, author_email AS "authorEmail", correct_index AS "correctIndex", status
+       FROM learner_champion_challenges
+      WHERE id = $1 AND class_key = $2`,
+    [challengeId, COLLAB_CLASS_KEY]
+  );
+  const challenge = c && c.rows ? c.rows[0] : null;
+  if (!challenge) return res.status(404).json({ error: 'challenge not found' });
+  if (String(challenge.authorEmail || '').toLowerCase() === req.user.email) return res.status(400).json({ error: 'you cannot answer your own challenge' });
+
+  const challengerName = learnerDisplayName(req.user);
+  const isCorrect = selectedIndex === challenge.correctIndex;
+  const points = isCorrect ? 3 : 0;
+
+  const ins = await db._query(
+    `INSERT INTO learner_champion_answers (challenge_id, challenger_email, challenger_name, selected_index, is_correct, points_awarded)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (challenge_id, challenger_email) DO NOTHING
+     RETURNING id`,
+    [challengeId, req.user.email, challengerName, selectedIndex, isCorrect, points]
+  );
+  if (!ins || !ins.rows || !ins.rows.length) return res.status(409).json({ error: 'you already answered this challenge' });
+
+  let closedByMe = false;
+  if (isCorrect && challenge.status === 'open') {
+    const closeR = await db._query(
+      `UPDATE learner_champion_challenges
+          SET status = 'closed', winner_email = $2, winner_name = $3, closed_at = now()
+        WHERE id = $1 AND status = 'open'
+        RETURNING id`,
+      [challengeId, req.user.email, challengerName]
+    );
+    closedByMe = Boolean(closeR && closeR.rows && closeR.rows.length);
+  }
+
+  if (isCorrect) {
+    await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, 'champion-answer', 'Champion Answer', 'champion_question')
+       ON CONFLICT (email, badge_key) DO NOTHING`,
+      [req.user.email]
+    );
+    if (closedByMe) {
+      await db._query(
+        `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+         VALUES ($1, 'champion-winner', 'Champion Winner', 'champion_question')
+         ON CONFLICT (email, badge_key) DO NOTHING`,
+        [req.user.email]
+      );
+    }
+  }
+
+  res.status(201).json({ ok: true, isCorrect, pointsAwarded: points, closedByMe });
+});
+
+app.get('/api/learner/champion/leaderboard', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT challenger_email AS "email",
+            challenger_name AS "displayName",
+            COUNT(*)::int AS "attempts",
+            SUM(CASE WHEN is_correct THEN 1 ELSE 0 END)::int AS "correctAnswers",
+            COALESCE(SUM(points_awarded), 0)::int AS "points"
+       FROM learner_champion_answers
+      GROUP BY challenger_email, challenger_name
+      ORDER BY "points" DESC, "correctAnswers" DESC, "attempts" DESC
+      LIMIT 20`,
+    []
+  );
+  const rows = (r && r.rows ? r.rows : []).map((x, i) => ({ ...x, rank: i + 1 }));
+  res.json({ enabled: true, rows });
+});
+
+app.get('/api/learner/classmates', async (req, res) => {
+  const me = String(req.user.email || '').toLowerCase();
+  const rows = (auth.SEED_USERS || [])
+    .filter((u) => u.role === 'student' && String(u.email || '').toLowerCase() !== me)
+    .map((u) => ({
+      email: u.email,
+      displayName: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email
+    }));
+  res.json({ enabled: true, rows });
+});
+
+app.get('/api/learner/duels', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const email = req.user.email;
+  await db._query(
+    `UPDATE learner_duels
+        SET status = 'expired'
+      WHERE status = 'pending'
+        AND now() > created_at + (time_limit_sec * INTERVAL '1 second')`,
+    []
+  );
+  const r = await db._query(
+    `SELECT d.id,
+            d.challenger_email AS "challengerEmail",
+            d.challenger_name AS "challengerName",
+            d.opponent_email AS "opponentEmail",
+            d.opponent_name AS "opponentName",
+            d.question,
+            d.options,
+            d.time_limit_sec AS "timeLimitSec",
+            d.status,
+            d.winner_email AS "winnerEmail",
+            d.winner_name AS "winnerName",
+            d.points_awarded AS "pointsAwarded",
+            d.created_at AS "createdAt",
+            d.answered_at AS "answeredAt",
+            a.selected_index AS "mySelectedIndex",
+            a.is_correct AS "myIsCorrect",
+            a.elapsed_ms AS "myElapsedMs",
+            COALESCE(EXTRACT(EPOCH FROM (now() - d.created_at))::int, 0) AS "elapsedSec"
+       FROM learner_duels d
+  LEFT JOIN learner_duel_answers a
+         ON a.duel_id = d.id AND a.player_email = $2
+      WHERE d.class_key = $1
+        AND (d.challenger_email = $2 OR d.opponent_email = $2)
+   ORDER BY d.created_at DESC
+      LIMIT 60`,
+    [COLLAB_CLASS_KEY, email]
+  );
+  const rows = (r && r.rows ? r.rows : []).map((row) => ({
+    ...row,
+    options: Array.isArray(row.options) ? row.options : [],
+    isChallenger: String(row.challengerEmail || '').toLowerCase() === email,
+    isOpponent: String(row.opponentEmail || '').toLowerCase() === email,
+    canAnswer: row.status === 'pending'
+      && String(row.opponentEmail || '').toLowerCase() === email
+      && row.mySelectedIndex == null
+      && Number(row.elapsedSec || 0) <= Number(row.timeLimitSec || 90)
+  }));
+  res.json({ enabled: true, rows });
+});
+
+app.post('/api/learner/duels', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const challengerEmail = req.user.email;
+  const challengerName = learnerDisplayName(req.user);
+  const opponentEmail = String(req.body?.opponentEmail || '').trim().toLowerCase();
+  const question = String(req.body?.question || '').trim();
+  const optionsRaw = Array.isArray(req.body?.options) ? req.body.options : [];
+  const options = optionsRaw.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 4);
+  const correctIndex = Number(req.body?.correctIndex);
+  const timeLimitSec = Math.min(180, Math.max(20, Number.parseInt(req.body?.timeLimitSec, 10) || 90));
+  if (!opponentEmail) return res.status(400).json({ error: 'opponentEmail required' });
+  if (opponentEmail === challengerEmail) return res.status(400).json({ error: 'cannot duel yourself' });
+  if (!question) return res.status(400).json({ error: 'question required' });
+  if (question.length > 220) return res.status(400).json({ error: 'question too long (max 220)' });
+  if (options.length < 2) return res.status(400).json({ error: 'at least 2 options are required' });
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+    return res.status(400).json({ error: 'correctIndex must target one option' });
+  }
+
+  const opponent = (auth.SEED_USERS || []).find((u) => String(u.email || '').toLowerCase() === opponentEmail && u.role === 'student');
+  if (!opponent) return res.status(404).json({ error: 'opponent not found' });
+  const opponentName = [opponent.firstName, opponent.lastName].filter(Boolean).join(' ').trim() || opponentEmail;
+
+  const scan = await cs.analyze([question, ...options].join('\n'));
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Duel question blocked by Content Safety.', severities: scan.severities });
+  }
+
+  const r = await db._query(
+    `INSERT INTO learner_duels (class_key, challenger_email, challenger_name, opponent_email, opponent_name, question, options, correct_index, time_limit_sec)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)
+     RETURNING id, challenger_email AS "challengerEmail", challenger_name AS "challengerName", opponent_email AS "opponentEmail", opponent_name AS "opponentName", question, options, time_limit_sec AS "timeLimitSec", status, created_at AS "createdAt"`,
+    [COLLAB_CLASS_KEY, challengerEmail, challengerName, opponentEmail, opponentName, question, JSON.stringify(options), correctIndex, timeLimitSec]
+  );
+
+  await db._query(
+    `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+     VALUES ($1, 'duel-initiator', 'Duel Initiator', 'duel_mode')
+     ON CONFLICT (email, badge_key) DO NOTHING`,
+    [challengerEmail]
+  );
+
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/learner/duels/:id/answer', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const duelId = Number.parseInt(req.params.id, 10);
+  const selectedIndex = Number(req.body?.selectedIndex);
+  if (!Number.isFinite(duelId)) return res.status(400).json({ error: 'invalid duel id' });
+  if (!Number.isInteger(selectedIndex)) return res.status(400).json({ error: 'selectedIndex must be an integer' });
+
+  const d = await db._query(
+    `SELECT id, challenger_email AS "challengerEmail", challenger_name AS "challengerName", opponent_email AS "opponentEmail", correct_index AS "correctIndex", status, time_limit_sec AS "timeLimitSec", created_at AS "createdAt"
+       FROM learner_duels WHERE id = $1 AND class_key = $2`,
+    [duelId, COLLAB_CLASS_KEY]
+  );
+  const duel = d && d.rows ? d.rows[0] : null;
+  if (!duel) return res.status(404).json({ error: 'duel not found' });
+  if (String(duel.opponentEmail || '').toLowerCase() !== req.user.email) return res.status(403).json({ error: 'only invited opponent can answer' });
+  if (duel.status !== 'pending') return res.status(409).json({ error: 'duel already resolved' });
+
+  const elapsedMs = Math.max(0, Date.now() - new Date(duel.createdAt).getTime());
+  const limitMs = Number(duel.timeLimitSec || 90) * 1000;
+  if (elapsedMs > limitMs) {
+    await db._query(
+      `UPDATE learner_duels SET status='expired' WHERE id=$1 AND status='pending'`,
+      [duelId]
+    );
+    return res.status(410).json({ error: 'duel expired' });
+  }
+
+  const isCorrect = selectedIndex === duel.correctIndex;
+  const speedBonus = !isCorrect ? 0 : (elapsedMs <= 15000 ? 3 : elapsedMs <= 30000 ? 2 : elapsedMs <= 60000 ? 1 : 0);
+  const winnerEmail = isCorrect ? req.user.email : duel.challengerEmail;
+  const winnerName = isCorrect ? learnerDisplayName(req.user) : duel.challengerName;
+  const pointsAwarded = isCorrect ? (5 + speedBonus) : 2;
+
+  const ins = await db._query(
+    `INSERT INTO learner_duel_answers (duel_id, player_email, player_name, selected_index, is_correct, elapsed_ms, bonus_points)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (duel_id, player_email) DO NOTHING
+     RETURNING id`,
+    [duelId, req.user.email, learnerDisplayName(req.user), selectedIndex, isCorrect, elapsedMs, speedBonus]
+  );
+  if (!ins || !ins.rows || !ins.rows.length) return res.status(409).json({ error: 'answer already submitted' });
+
+  await db._query(
+    `UPDATE learner_duels
+        SET status = 'answered', winner_email = $2, winner_name = $3, points_awarded = $4, answered_at = now()
+      WHERE id = $1 AND status = 'pending'`,
+    [duelId, winnerEmail, winnerName, pointsAwarded]
+  );
+
+  if (isCorrect) {
+    await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, 'duel-winner', 'Duel Winner', 'duel_mode')
+       ON CONFLICT (email, badge_key) DO NOTHING`,
+      [req.user.email]
+    );
+    if (speedBonus >= 2) {
+      await db._query(
+        `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+         VALUES ($1, 'speed-duelist', 'Speed Duelist', 'duel_mode')
+         ON CONFLICT (email, badge_key) DO NOTHING`,
+        [req.user.email]
+      );
+    }
+  }
+
+  res.status(201).json({ ok: true, isCorrect, elapsedMs, speedBonus, pointsAwarded, winnerEmail, winnerName });
+});
+
+app.get('/api/learner/duels/leaderboard', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT winner_email AS "email",
+            winner_name AS "displayName",
+            COUNT(*)::int AS "wins",
+            COALESCE(SUM(points_awarded), 0)::int AS "points"
+       FROM learner_duels
+      WHERE status = 'answered' AND winner_email IS NOT NULL
+      GROUP BY winner_email, winner_name
+      ORDER BY "points" DESC, "wins" DESC
+      LIMIT 20`,
+    []
+  );
+  const rows = (r && r.rows ? r.rows : []).map((x, i) => ({ ...x, rank: i + 1 }));
+  res.json({ enabled: true, rows });
+});
+
+app.post('/api/admin/gamification/badges/grant', async (req, res) => {
+  const u = req.user;
+  if (u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  const inputBadges = Array.isArray(req.body?.badges) ? req.body.badges : [];
+  const badges = inputBadges
+    .map((b) => ({
+      key: String(b?.key || '').trim().slice(0, 80),
+      label: String(b?.label || '').trim().slice(0, 120),
+      source: String(b?.source || 'manual_grant').trim().slice(0, 60)
+    }))
+    .filter((b) => b.key && b.label);
+
+  if (!badges.length) return res.status(400).json({ error: 'badges[] with key/label required' });
+
+  let granted = 0;
+  for (const b of badges) {
+    const r = await db._query(
+      `INSERT INTO learner_badges (email, badge_key, badge_label, source)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email, badge_key) DO NOTHING
+       RETURNING badge_key`,
+      [email, b.key, b.label, b.source]
+    );
+    if (r && r.rows && r.rows.length) granted += 1;
+  }
+
+  const rows = await db._query(
+    `SELECT badge_key AS key, badge_label AS label, source, earned_at AS "earnedAt"
+       FROM learner_badges WHERE email = $1 ORDER BY earned_at DESC LIMIT 50`,
+    [email]
+  );
+
+  res.status(201).json({ ok: true, email, requested: badges.length, granted, rows: rows ? rows.rows : [] });
+});
+
+app.get('/api/learner/gamification/motivation', async (_req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions' AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 50`,
+    []
+  );
+  res.json({ enabled: true, rows: rows ? rows.rows : [] });
+});
+
+app.post('/api/learner/gamification/motivation', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const message = String(req.body?.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'message required' });
+  if (message.length > 280) return res.status(400).json({ error: 'message too long (max 280)' });
+  const scan = await cs.analyze(message);
+  if (scan.ran && scan.blocked) {
+    return res.status(400).json({ error: 'input_blocked', detail: 'Message blocked by Content Safety.', severities: scan.severities });
+  }
+  const displayName = [req.user.firstName, req.user.lastName].filter(Boolean).join(' ').trim() || req.user.email;
+  const r = await db._query(
+    `INSERT INTO learner_motivation_messages (class_key, email, display_name, message)
+     VALUES ('class-y7-fractions', $1, $2, $3)
+     RETURNING id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"`,
+    [req.user.email, displayName, message]
+  );
+  res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
+});
+
+app.post('/api/teacher/gamification/motivation/:id/hide', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+  const reason = String(req.body?.reason || 'teacher_moderation').slice(0, 200);
+  const up = await db._query(
+    `UPDATE learner_motivation_messages
+        SET status = 'hidden'
+      WHERE id = $1
+      RETURNING id, email, message, status`,
+    [id]
+  );
+  if (!up || !up.rows[0]) return res.status(404).json({ error: 'message not found' });
+  await db._query(
+    `INSERT INTO learner_gamification_overrides (teacher_email, action_type, target_type, target_id, reason)
+     VALUES ($1, 'hide_message', 'motivation_message', $2, $3)`,
+    [u.email, String(id), reason]
+  );
+  res.json({ row: up.rows[0] });
+});
+
+app.get('/api/teacher/gamification/overrides', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const r = await db._query(
+    `SELECT id, teacher_email AS "teacherEmail", action_type AS "actionType", target_type AS "targetType", target_id AS "targetId", reason, created_at AS "createdAt"
+       FROM learner_gamification_overrides
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    []
+  );
+  res.json({ enabled: true, rows: r ? r.rows : [] });
+});
 // Streak + totals + earned badges (Feature 4 widget).
 app.get('/api/learner/streak', async (req, res) => {
   const u = req.user;
@@ -529,6 +1169,181 @@ app.post('/api/learner/mastery/recompute', async (req, res) => {
   if (!u || u.role !== 'admin') return res.status(403).json({ error: 'admin only' });
   const out = await db.recomputeAllMastery();
   res.json(out);
+});
+
+// --- Parent ↔ teacher messaging (Feature 6, US2) ---------------------------
+// All parent/teacher message bodies are scanned by Azure Content Safety before
+// delivery. Flagged content is quarantined (delivery_state='quarantined') and held
+// for teacher moderation (EU AI Act Art. 14 human oversight); clean content is
+// delivered immediately. Every action is written to the immutable audit_event log.
+
+// Parent inbox: latest delivered message per thread + unread badge count.
+app.get('/api/parent/messages', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, threads: [], unread: 0 });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const threads = await db.listParentInbox({ recipientEmail: req.user.email, limit: 50 }) || [];
+  const unread = await db.countUnreadParentMessages({ recipientEmail: req.user.email });
+  res.json({ enabled: true, threads, unread });
+});
+// Full message list for one thread (parent or teacher participant).
+app.get('/api/parent/messages/thread/:threadId', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, messages: [] });
+  const u = req.user;
+  if (!['parent', 'teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'forbidden' });
+  const rows = await db.listParentThread({ threadId: String(req.params.threadId), viewerEmail: u.email, includeQuarantined: u.role !== 'parent', limit: 100 });
+  res.json({ enabled: true, messages: rows || [] });
+});
+// Parent sends a message to the child's teacher (or replies in a thread).
+app.post('/api/parent/messages', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  const recipientEmail = String(req.body?.recipientEmail || '').trim().toLowerCase() || null;
+  const body = String(req.body?.body || '').trim();
+  const subject = req.body?.subject ? String(req.body.subject).trim() : null;
+  if (!childEmail || !body) return res.status(400).json({ error: 'childEmail and body required' });
+  if (req.user.role !== 'admin') {
+    const linked = await db.isParentOfChild({ parentEmail: req.user.email, childEmail });
+    if (!linked) return res.status(403).json({ error: 'not linked to this learner' });
+  }
+  const scan = await cs.analyze(`${subject || ''}\n\n${body}`);
+  const flagged = scan.ran && scan.blocked;
+  const threadId = db.parentThreadId({ parentEmail: req.user.email, childEmail });
+  const row = await db.createParentMessage({
+    threadId, senderEmail: req.user.email, senderRole: 'parent', recipientEmail, childEmail,
+    subject, body, csVerdict: scan.ran ? (flagged ? 'flagged' : 'clean') : 'skipped',
+    csSeverities: scan.severities || {}, deliveryState: flagged ? 'quarantined' : 'delivered'
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  db.recordAuditEvent({ eventType: 'parent_message_sent', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_message', targetId: String(row.id), scope: { childEmail, csVerdict: row.cs_verdict, deliveryState: row.delivery_state }, outcome: flagged ? 'quarantined' : 'delivered' }).catch(() => {});
+  res.status(201).json({ message: row, moderation: flagged ? 'Your message is awaiting teacher review (Content Safety).' : null });
+});
+// Mark a delivered message read (read receipt).
+app.post('/api/parent/messages/:id/read', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const row = await db.markParentMessageRead({ id: req.params.id, recipientEmail: req.user.email });
+  res.json({ ok: Boolean(row), readAt: row ? row.read_at : null });
+});
+
+// Teacher posts an announcement / reply to the parent(s) of a child.
+app.post('/api/teacher/parent-messages', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const childEmail = String(req.body?.childEmail || '').trim().toLowerCase();
+  const body = String(req.body?.body || '').trim();
+  const subject = req.body?.subject ? String(req.body.subject).trim() : null;
+  if (!childEmail || !body) return res.status(400).json({ error: 'childEmail and body required' });
+  const parents = await db.listParentsForChild({ childEmail }) || [];
+  if (!parents.length) return res.status(404).json({ error: 'no linked parent for this learner' });
+  const scan = await cs.analyze(`${subject || ''}\n\n${body}`);
+  const flagged = scan.ran && scan.blocked;
+  const out = [];
+  for (const p of parents) {
+    const threadId = db.parentThreadId({ parentEmail: p.parentEmail, childEmail });
+    const row = await db.createParentMessage({
+      threadId, senderEmail: u.email, senderRole: 'teacher', recipientEmail: p.parentEmail, childEmail,
+      subject, body, csVerdict: scan.ran ? (flagged ? 'flagged' : 'clean') : 'skipped',
+      csSeverities: scan.severities || {}, deliveryState: flagged ? 'quarantined' : 'delivered'
+    });
+    if (row) out.push(row);
+  }
+  db.recordAuditEvent({ eventType: 'teacher_announcement_sent', actorId: u.email, actorRole: 'teacher', targetType: 'parent_message', targetId: childEmail, scope: { recipients: parents.length, csVerdict: flagged ? 'flagged' : 'clean' }, outcome: flagged ? 'quarantined' : 'delivered' }).catch(() => {});
+  res.status(201).json({ sent: out.length, messages: out });
+});
+// Moderation queue (flagged messages) — teacher / admin only.
+app.get('/api/teacher/parent-messages/moderation', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(req.user.role)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listParentModerationQueue({ limit: 100 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Approve (deliver) or reject a quarantined message.
+app.post('/api/teacher/parent-messages/:id/moderate', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!['teacher', 'admin'].includes(req.user.role)) return res.status(403).json({ error: 'teacher only' });
+  const action = req.body?.action === 'approve' ? 'approve' : 'reject';
+  const row = await db.moderateParentMessage({ id: req.params.id, moderatorEmail: req.user.email, action });
+  if (!row) return res.status(404).json({ error: 'not found or already moderated' });
+  db.recordAuditEvent({ eventType: 'parent_message_moderated', actorId: req.user.email, actorRole: req.user.role, targetType: 'parent_message', targetId: String(row.id), scope: { action }, outcome: row.delivery_state }).catch(() => {});
+  res.json({ ok: true, message: row });
+});
+
+// --- Parent preferences (Feature 6, US4 digest opt-in / US5 language) -------
+app.get('/api/parent/preferences', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, preferences: null });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const preferences = await db.getParentPreferences({ parentEmail: req.user.email });
+  res.json({ enabled: true, preferences });
+});
+app.put('/api/parent/preferences', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const SUPPORTED = ['en', 'nl', 'de', 'fr', 'es', 'pl', 'ro'];
+  const language = req.body?.language != null ? String(req.body.language).toLowerCase() : null;
+  if (language && !SUPPORTED.includes(language)) return res.status(400).json({ error: `language must be one of ${SUPPORTED.join(', ')}` });
+  const row = await db.setParentPreferences({
+    parentEmail: req.user.email,
+    language,
+    digestOptIn: req.body?.digestOptIn != null ? Boolean(req.body.digestOptIn) : null,
+    emailFrequency: req.body?.emailFrequency != null ? String(req.body.emailFrequency) : null,
+    notifyInApp: req.body?.notifyInApp != null ? Boolean(req.body.notifyInApp) : null,
+    notifyEmail: req.body?.notifyEmail != null ? Boolean(req.body.notifyEmail) : null
+  });
+  db.recordAuditEvent({ eventType: 'parent_preferences_updated', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_preferences', targetId: req.user.email, scope: { language: row ? row.language : null, digestOptIn: row ? row.digest_opt_in : null }, outcome: 'ok' }).catch(() => {});
+  res.json({ ok: true, preferences: row });
+});
+
+// --- Weekly digest + "How to help" (Feature 6, US4) ------------------------
+// "How to help this week" tips, sourced from approved pedagogical guidance keyed by
+// learning domain. Reviewed by Learning Sciences (ZPD-aligned, non-prescriptive).
+const HOW_TO_HELP = {
+  numeracy:  'Practise fractions with everyday objects — split a pizza or share coins to make the maths concrete.',
+  literacy:  'Read together for 10 minutes and ask your child to summarise the story in their own words.',
+  science:   'Cook a simple recipe together and talk about what changes when things heat or cool.',
+  language:  'Label a few household objects in the target language and review them at dinner.',
+  _default:  'Ask your child to teach you one thing they learned this week — explaining it back deepens learning.'
+};
+function howToHelpFor(summary) {
+  const dom = summary && summary.weakestDomain ? summary.weakestDomain.domain : (summary && summary.topDomains && summary.topDomains[0] ? summary.topDomains[0].domain : null);
+  const key = dom ? String(dom).toLowerCase() : '_default';
+  return HOW_TO_HELP[key] || HOW_TO_HELP._default;
+}
+// Live weekly summary for one linked child (dashboard + digest preview).
+app.get('/api/parent/child/:child/weekly-summary', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, summary: null });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const childEmail = await ensureLinked(req, res); if (!childEmail) return;
+  const summary = await db.weeklyChildSummary({ childEmail });
+  res.json({ enabled: true, summary, howToHelp: howToHelpFor(summary) });
+});
+// Past digests for the parent.
+app.get('/api/parent/digests', async (req, res) => {
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const rows = await db.listParentDigests({ parentEmail: req.user.email, limit: 12 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+// Generate (or refresh) this week's digest for every linked child — respects opt-out.
+app.post('/api/parent/digests/generate', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const prefs = await db.getParentPreferences({ parentEmail: req.user.email });
+  if (prefs && prefs.digest_opt_in === false) return res.json({ ok: true, generated: 0, optedOut: true });
+  const children = await db.listChildrenForParent({ parentEmail: req.user.email }) || [];
+  const monday = new Date(); const day = (monday.getUTCDay() + 6) % 7; monday.setUTCDate(monday.getUTCDate() - day);
+  const weekStart = monday.toISOString().slice(0, 10);
+  const out = [];
+  for (const c of children) {
+    const summary = await db.weeklyChildSummary({ childEmail: c.childEmail });
+    const row = await db.upsertParentDigest({
+      parentEmail: req.user.email, childEmail: c.childEmail, weekStart,
+      summary, howToHelp: howToHelpFor(summary), tone: summary.tone, language: prefs ? prefs.language : 'en'
+    });
+    if (row) out.push(row);
+  }
+  res.json({ ok: true, generated: out.length, weekStart, digests: out });
 });
 
 // --- Teacher Q&A (learner ↔ teacher async messaging) ----------------------

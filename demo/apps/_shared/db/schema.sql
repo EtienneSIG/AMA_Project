@@ -305,6 +305,61 @@ CREATE TABLE IF NOT EXISTS parental_consents (
 CREATE INDEX IF NOT EXISTS idx_parental_consents_parent ON parental_consents (parent_email);
 CREATE INDEX IF NOT EXISTS idx_parental_consents_child ON parental_consents (child_email);
 
+-- Parent ↔ teacher messaging (Feature 6, US2). Every message is scanned by Azure
+-- Content Safety before delivery; flagged content is quarantined for teacher moderation.
+-- delivery_state: 'delivered' (clean, visible to recipient) | 'quarantined' (flagged,
+-- held pending teacher action) | 'rejected' (moderator blocked).
+CREATE TABLE IF NOT EXISTS parent_messages (
+  id              BIGSERIAL    PRIMARY KEY,
+  thread_id       TEXT         NOT NULL,
+  sender_email    TEXT         NOT NULL,
+  sender_role     TEXT         NOT NULL,
+  recipient_email TEXT,
+  child_email     TEXT,
+  class_id        TEXT,
+  subject         TEXT,
+  body            TEXT         NOT NULL,
+  cs_verdict      TEXT         NOT NULL DEFAULT 'clean',
+  cs_severities   JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  delivery_state  TEXT         NOT NULL DEFAULT 'delivered',
+  moderated_by    TEXT,
+  moderated_at    TIMESTAMPTZ,
+  read_at         TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_parent_messages_thread ON parent_messages (thread_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_parent_messages_recipient ON parent_messages (recipient_email, read_at);
+CREATE INDEX IF NOT EXISTS idx_parent_messages_moderation ON parent_messages (delivery_state, created_at);
+
+-- Parent preferences (Feature 6, US4/US5): UI language, weekly digest opt-in, channels.
+CREATE TABLE IF NOT EXISTS parent_preferences (
+  parent_email    TEXT         PRIMARY KEY,
+  language        TEXT         NOT NULL DEFAULT 'en',
+  digest_opt_in   BOOLEAN      NOT NULL DEFAULT true,
+  email_frequency TEXT         NOT NULL DEFAULT 'weekly',
+  notify_in_app   BOOLEAN      NOT NULL DEFAULT true,
+  notify_email    BOOLEAN      NOT NULL DEFAULT true,
+  updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- Weekly digest dispatch records (Feature 6, US4): one row per (parent, child, week).
+-- tone: 'celebration' (strong week) | 'support' (needs attention) | 'neutral'.
+CREATE TABLE IF NOT EXISTS parent_digests (
+  id              BIGSERIAL    PRIMARY KEY,
+  parent_email    TEXT         NOT NULL,
+  child_email     TEXT         NOT NULL,
+  week_start      DATE         NOT NULL,
+  summary         JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  how_to_help     TEXT,
+  tone            TEXT         NOT NULL DEFAULT 'neutral',
+  language        TEXT         NOT NULL DEFAULT 'en',
+  sent_at         TIMESTAMPTZ,
+  opened_at       TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (parent_email, child_email, week_start)
+);
+CREATE INDEX IF NOT EXISTS idx_parent_digests_parent ON parent_digests (parent_email, week_start DESC);
+
 -- ---------------------------------------------------------------------------
 -- Learner hierarchy and director reporting (Feature 4)
 -- ---------------------------------------------------------------------------

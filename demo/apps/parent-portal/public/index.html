@@ -156,6 +156,15 @@
   .tabbar .tab-btn.active { background:var(--orange); color:#fff; border-color:var(--orange); box-shadow:0 6px 18px rgba(242,99,52,0.25); }
   [data-tab] { display:none; }
   [data-tab].active { display:block; }
+  .msg-badge { display:inline-block; min-width:1.1rem; padding:0 .35rem; margin-left:.25rem; background:var(--orange); color:#fff; border-radius:999px; font-size:.7rem; font-weight:700; line-height:1.3rem; text-align:center; }
+  .msg-row { border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; margin-bottom:.6rem; }
+  .msg-row.parent { background:#F3F1FF; border-color:#D9D2FF; }
+  .msg-row.teacher { background:#F8FAFC; }
+  .msg-row .who { font-weight:600; color:var(--navy); font-size:.85rem; }
+  .msg-row .when { font-size:.75rem; color:var(--grey); opacity:.7; }
+  .msg-row .body { margin:.35rem 0 0; color:var(--navy); font-size:.9rem; white-space:pre-wrap; }
+  .msg-row .state { font-size:.72rem; font-weight:600; padding:.1rem .5rem; border-radius:999px; }
+  .msg-row .state.quarantined { background:#FFF1E6; color:var(--orange-dark); }
   .child-wrap { max-width:1100px; margin:0 auto 2rem; padding:0 1.5rem; }
   .child-picker { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.9rem; padding:.65rem .85rem; background:#F8FAFC; border:1px solid var(--line); border-radius:10px; }
   .child-picker select { padding:.45rem .7rem; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:.9rem; background:#fff; }
@@ -251,6 +260,8 @@
 <nav class="tabbar" role="tablist">
   <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab">💬 Ask the assistant</button>
   <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab">🧒 My child's progress</button>
+  <button class="tab-btn" data-tab-btn="messages" onclick="setTab('messages')" role="tab">✉️ Messages <span id="msgBadge" class="msg-badge" style="display:none;">0</span></button>
+  <button class="tab-btn" data-tab-btn="digest" onclick="setTab('digest')" role="tab">📊 Weekly digest</button>
 </nav>
 <div data-tab="ask" class="active">
 <main class="grid2 ask-wrap" style="margin-top:0;">
@@ -301,6 +312,65 @@
       <h2 style="margin-top:0;">Messages from teacher</h2>
       <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Read-only copy of recent questions sent to your child by the teacher (latest 20).</p>
       <div id="childTeacherQ"><div class="sheet-empty">—</div></div>
+    </div>
+  </div>
+</div>
+<div data-tab="messages">
+  <div class="child-wrap">
+    <div class="child-picker">
+      <label for="msgChildSel" style="font-weight:600;color:var(--navy);">Child:</label>
+      <select id="msgChildSel" onchange="loadThread(this.value)"><option value="">Loading…</option></select>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">Conversation with the teacher</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Messages are scanned by Azure Content Safety before delivery. Flagged messages are held for teacher review (EU AI Act Art. 14 human oversight).</p>
+      <div id="threadList" style="max-height:340px;overflow:auto;margin-bottom:1rem;"><div class="sheet-empty">Select a child to see the conversation.</div></div>
+      <textarea id="msgBody" placeholder="Write a message to your child's teacher…"></textarea>
+      <div class="row">
+        <button class="btn" onclick="sendParentMessage()">Send message</button>
+        <span id="msgNote" style="font-size:.82rem;color:var(--grey);"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div data-tab="digest">
+  <div class="child-wrap">
+    <div class="child-picker">
+      <label for="digestChildSel" style="font-weight:600;color:var(--navy);">Child:</label>
+      <select id="digestChildSel" onchange="loadWeeklySummary(this.value)"><option value="">Loading…</option></select>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">This week at a glance</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">A plain-language summary of your child's week, with one concrete way you can help at home.</p>
+      <div class="kpi-grid" id="digestKpis"></div>
+      <div id="digestHelp" class="reply" style="margin-top:1rem;">Select a child to see this week's summary.</div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">Notification & language preferences</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Choose your language and whether you receive the weekly digest. You can change this any time (GDPR — withdrawable consent).</p>
+      <div class="row">
+        <label style="font-weight:600;color:var(--navy);">Language:</label>
+        <select id="prefLang">
+          <option value="en">English</option>
+          <option value="nl">Nederlands</option>
+          <option value="de">Deutsch</option>
+          <option value="fr">Français</option>
+          <option value="es">Español</option>
+          <option value="pl">Polski</option>
+          <option value="ro">Română</option>
+        </select>
+      </div>
+      <div class="row">
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--navy);"><input type="checkbox" id="prefDigest" checked /> Send me the weekly digest</label>
+      </div>
+      <div class="row">
+        <button class="btn" onclick="savePreferences()">Save preferences</button>
+        <span id="prefNote" style="font-size:.82rem;color:var(--grey);"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;">Past digests</h2>
+      <div id="pastDigests"><div class="sheet-empty">—</div></div>
     </div>
   </div>
 </div>
@@ -581,6 +651,7 @@ window.addEventListener('load', () => {
   refreshStatus();
   loadMe();
   loadChildren();
+  loadInboxBadge();
 });
 
 // ===== Feature 6 — child progress tab =====
@@ -588,6 +659,8 @@ let childrenData = []; // cached from /api/parent/children
 function setTab(name) {
   document.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('active', b.dataset.tabBtn === name));
   document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
+  if (name === 'messages') { const c = document.getElementById('msgChildSel'); if (c && c.value) loadThread(c.value); }
+  if (name === 'digest') { const c = document.getElementById('digestChildSel'); if (c && c.value) loadWeeklySummary(c.value); loadPreferences(); }
 }
 async function loadChildren() {
   const sel = document.getElementById('childSel');
@@ -605,6 +678,10 @@ async function loadChildren() {
     document.getElementById('childRel').textContent = first.relationship ? '· ' + first.relationship : '';
     loadChildDashboard(first.childEmail);
     showConsentBanner();
+    // Feature 6 US2/US4 — populate the message + digest child pickers too.
+    const opts = kids.map(k => `<option value="${escapeHtml(k.childEmail)}">${escapeHtml(k.displayName || k.childEmail)}</option>`).join('');
+    const ms = document.getElementById('msgChildSel'); if (ms) { ms.innerHTML = opts; }
+    const ds = document.getElementById('digestChildSel'); if (ds) { ds.innerHTML = opts; }
   } catch (e) { sel.innerHTML = '<option value="">(error)</option>'; }
 }
 function chapterTitle(id) {
@@ -685,6 +762,112 @@ async function loadChildDashboard(childEmail) {
   }
   // Consent status for this child
   renderConsentStatusInDashboard(childEmail);
+}
+
+// ===== Feature 6 US2 — parent ↔ teacher messaging =====
+let _msgChild = '';
+async function loadThread(childEmail) {
+  _msgChild = childEmail || '';
+  const el = document.getElementById('threadList');
+  if (!childEmail) { el.innerHTML = '<div class="sheet-empty">Select a child.</div>'; return; }
+  try {
+    const inbox = await (await fetch('/api/parent/messages')).json();
+    const thread = (inbox.threads || []).find(t => (t.child_email || '') === childEmail);
+    const threadId = thread ? thread.thread_id : null;
+    if (!threadId) { el.innerHTML = '<div class="sheet-empty">No messages yet. Start the conversation below.</div>'; return; }
+    const r = await fetch('/api/parent/messages/thread/' + encodeURIComponent(threadId));
+    const j = await r.json();
+    const msgs = j.messages || [];
+    if (!msgs.length) { el.innerHTML = '<div class="sheet-empty">No messages yet.</div>'; return; }
+    el.innerHTML = msgs.map(m => {
+      const who = m.sender_role === 'parent' ? 'You' : 'Teacher';
+      const when = m.created_at ? new Date(m.created_at).toLocaleString() : '';
+      const quarantined = m.delivery_state === 'quarantined' ? '<span class="state quarantined">awaiting review</span>' : '';
+      return `<div class="msg-row ${escapeHtml(m.sender_role)}"><div style="display:flex;justify-content:space-between;align-items:center;"><span class="who">${who} ${quarantined}</span><span class="when">${escapeHtml(when)}</span></div><div class="body">${escapeHtml(m.body||'')}</div></div>`;
+    }).join('');
+    msgs.filter(m => m.sender_role !== 'parent' && !m.read_at && m.delivery_state === 'delivered')
+        .forEach(m => fetch('/api/parent/messages/' + m.id + '/read', { method: 'POST' }).catch(() => {}));
+    loadInboxBadge();
+  } catch (e) { el.innerHTML = '<div class="sheet-empty">(error loading conversation)</div>'; }
+}
+async function sendParentMessage() {
+  const childEmail = document.getElementById('msgChildSel').value;
+  const body = document.getElementById('msgBody').value.trim();
+  const note = document.getElementById('msgNote');
+  if (!childEmail || !body) { note.textContent = 'Pick a child and write a message first.'; return; }
+  note.textContent = 'Sending…';
+  try {
+    const r = await fetch('/api/parent/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ childEmail, body }) });
+    const j = await r.json();
+    if (!r.ok) { note.textContent = j.error || 'Failed to send.'; return; }
+    document.getElementById('msgBody').value = '';
+    note.textContent = j.moderation || 'Message sent.';
+    loadThread(childEmail);
+  } catch (e) { note.textContent = String(e); }
+}
+async function loadInboxBadge() {
+  try {
+    const j = await (await fetch('/api/parent/messages')).json();
+    const badge = document.getElementById('msgBadge');
+    if (!badge) return;
+    if (j.unread > 0) { badge.textContent = j.unread; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+  } catch (e) {}
+}
+
+// ===== Feature 6 US4/US5 — weekly digest + preferences =====
+async function loadWeeklySummary(childEmail) {
+  const kpis = document.getElementById('digestKpis');
+  const help = document.getElementById('digestHelp');
+  if (!childEmail) { kpis.innerHTML = ''; help.textContent = 'Select a child.'; return; }
+  try {
+    const j = await (await fetch('/api/parent/child/' + encodeURIComponent(childEmail) + '/weekly-summary')).json();
+    if (!j.enabled || !j.summary) { kpis.innerHTML = ''; help.textContent = 'No summary available yet.'; return; }
+    const s = j.summary;
+    const toneLabel = { celebration: '🎉 Great week', support: '🤝 Needs a little support', neutral: '📘 Steady progress' }[s.tone] || '📘';
+    kpis.innerHTML = [
+      `<div class="kpi"><div class="lbl">Items completed</div><div class="val">${s.itemsCompleted}</div><div class="sub">this week</div></div>`,
+      `<div class="kpi"><div class="lbl">Accuracy</div><div class="val">${Math.round((s.accuracy||0)*100)}%</div><div class="sub">${s.correct} correct</div></div>`,
+      `<div class="kpi"><div class="lbl">Active days</div><div class="val">${s.activeDays}</div><div class="sub">out of 7</div></div>`,
+      `<div class="kpi"><div class="lbl">Focus</div><div class="val" style="font-size:1rem;">${toneLabel}</div><div class="sub">${escapeHtml(s.weakestDomain ? s.weakestDomain.domain : '—')}</div></div>`
+    ].join('');
+    help.innerHTML = '<strong>How to help this week:</strong> ' + escapeHtml(j.howToHelp || '');
+  } catch (e) { help.textContent = '(error loading summary)'; }
+}
+async function loadPreferences() {
+  try {
+    const j = await (await fetch('/api/parent/preferences')).json();
+    if (!j.enabled || !j.preferences) return;
+    const p = j.preferences;
+    const lang = document.getElementById('prefLang'); if (lang && p.language) lang.value = p.language;
+    const dg = document.getElementById('prefDigest'); if (dg) dg.checked = p.digest_opt_in !== false;
+    loadPastDigests();
+  } catch (e) {}
+}
+async function savePreferences() {
+  const note = document.getElementById('prefNote');
+  const language = document.getElementById('prefLang').value;
+  const digestOptIn = document.getElementById('prefDigest').checked;
+  note.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/parent/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language, digestOptIn }) });
+    const j = await r.json();
+    note.textContent = r.ok ? 'Preferences saved.' : (j.error || 'Failed to save.');
+  } catch (e) { note.textContent = String(e); }
+}
+async function loadPastDigests() {
+  const el = document.getElementById('pastDigests');
+  if (!el) return;
+  try {
+    const j = await (await fetch('/api/parent/digests')).json();
+    const rows = j.rows || [];
+    if (!rows.length) { el.innerHTML = '<div class="sheet-empty">No digests sent yet.</div>'; return; }
+    el.innerHTML = rows.map(d => {
+      const week = d.week_start ? new Date(d.week_start).toLocaleDateString() : '';
+      const sent = d.sent_at ? 'sent ' + new Date(d.sent_at).toLocaleDateString() : 'not yet sent';
+      return `<div class="msg-row"><div class="who">Week of ${escapeHtml(week)} · ${escapeHtml(d.child_email||'')}</div><div class="body">${escapeHtml(d.how_to_help||'')}</div><div class="when">${escapeHtml(sent)}</div></div>`;
+    }).join('');
+  } catch (e) { el.innerHTML = '<div class="sheet-empty">(error)</div>'; }
 }
 
 // ===== GDPR Art. 8 — Consent management =====

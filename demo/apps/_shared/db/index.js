@@ -1276,6 +1276,13 @@ async function isParentOfChild({ parentEmail, childEmail }) {
   );
   return !!(r && r.rows && r.rows.length);
 }
+async function listParentsForChild({ childEmail }) {
+  const r = await q(
+    `SELECT parent_email AS "parentEmail", relationship FROM parent_links WHERE child_email = $1 ORDER BY created_at`,
+    [String(childEmail).toLowerCase()]
+  );
+  return r ? r.rows : null;
+}
 async function listTeacherQuestionsForLearnerReadOnly({ childEmail, limit = 20 }) {
   // Reuse the existing helper but in a parent-safe shape (drop sensitive fields if any).
   return listTeacherQuestionsForLearner({ learnerEmail: childEmail, limit });
@@ -1381,6 +1388,219 @@ async function hasActiveConsentForLearner({ childEmail }) {
     [String(childEmail).toLowerCase()]
   );
   return !!(r && r.rows && r.rows.length);
+}
+
+// --- Parent portal: messaging (Feature 6, US2) -----------------------------
+// Stable thread id for a parent ↔ teacher conversation about one child.
+function parentThreadId({ parentEmail, childEmail, classId }) {
+  const p = String(parentEmail || '').toLowerCase();
+  const c = String(childEmail || '').toLowerCase();
+  return classId ? `class:${classId}` : `pc:${p}|${c}`;
+}
+
+async function createParentMessage({ threadId, senderEmail, senderRole, recipientEmail, childEmail, classId, subject, body, csVerdict, csSeverities, deliveryState }) {
+  const r = await q(
+    `INSERT INTO parent_messages
+       (thread_id, sender_email, sender_role, recipient_email, child_email, class_id, subject, body, cs_verdict, cs_severities, delivery_state)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11)
+     RETURNING *`,
+    [
+      String(threadId), String(senderEmail).toLowerCase(), String(senderRole),
+      recipientEmail ? String(recipientEmail).toLowerCase() : null,
+      childEmail ? String(childEmail).toLowerCase() : null,
+      classId || null, subject ? String(subject).slice(0, 200) : null,
+      String(body).slice(0, 4000), csVerdict || 'clean',
+      JSON.stringify(csSeverities || {}), deliveryState || 'delivered'
+    ]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Messages in a thread, optionally only those visible to a non-moderator (delivered + own).
+async function listParentThread({ threadId, viewerEmail, includeQuarantined = false, limit = 100 }) {
+  const params = [String(threadId)];
+  let where = `thread_id = $1`;
+  if (!includeQuarantined) {
+    params.push(String(viewerEmail || '').toLowerCase());
+    where += ` AND (delivery_state = 'delivered' OR sender_email = $${params.length})`;
+  }
+  params.push(Math.min(Number(limit) || 100, 200));
+  const r = await q(
+    `SELECT id, thread_id, sender_email, sender_role, recipient_email, child_email, class_id,
+            subject, body, cs_verdict, delivery_state, moderated_by, moderated_at, read_at, created_at
+       FROM parent_messages WHERE ${where} ORDER BY created_at ASC LIMIT $${params.length}`,
+    params
+  );
+  return r ? r.rows : null;
+}
+
+// A parent's inbox: latest delivered message per thread + unread count.
+async function listParentInbox({ recipientEmail, limit = 50 }) {
+  const r = await q(
+    `SELECT DISTINCT ON (thread_id)
+            id, thread_id, sender_email, sender_role, child_email, class_id, subject, body,
+            delivery_state, read_at, created_at
+       FROM parent_messages
+      WHERE recipient_email = $1 AND delivery_state = 'delivered'
+      ORDER BY thread_id, created_at DESC
+      LIMIT $2`,
+    [String(recipientEmail).toLowerCase(), Math.min(Number(limit) || 50, 200)]
+  );
+  return r ? r.rows : null;
+}
+
+async function countUnreadParentMessages({ recipientEmail }) {
+  const r = await q(
+    `SELECT COUNT(*)::int AS unread FROM parent_messages
+      WHERE recipient_email = $1 AND delivery_state = 'delivered' AND read_at IS NULL`,
+    [String(recipientEmail).toLowerCase()]
+  );
+  return r && r.rows[0] ? (r.rows[0].unread | 0) : 0;
+}
+
+async function markParentMessageRead({ id, recipientEmail }) {
+  const r = await q(
+    `UPDATE parent_messages SET read_at = now()
+      WHERE id = $1 AND recipient_email = $2 AND read_at IS NULL
+      RETURNING id, read_at`,
+    [Number(id), String(recipientEmail).toLowerCase()]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Teacher moderation queue: quarantined (flagged) messages awaiting a decision.
+async function listParentModerationQueue({ limit = 100 }) {
+  const r = await q(
+    `SELECT id, thread_id, sender_email, sender_role, recipient_email, child_email, class_id,
+            subject, body, cs_verdict, cs_severities, delivery_state, created_at
+       FROM parent_messages WHERE delivery_state = 'quarantined'
+      ORDER BY created_at ASC LIMIT $1`,
+    [Math.min(Number(limit) || 100, 200)]
+  );
+  return r ? r.rows : null;
+}
+
+// Teacher approves (deliver) or rejects a quarantined message.
+async function moderateParentMessage({ id, moderatorEmail, action }) {
+  const state = action === 'approve' ? 'delivered' : 'rejected';
+  const r = await q(
+    `UPDATE parent_messages
+        SET delivery_state = $3, moderated_by = $2, moderated_at = now()
+      WHERE id = $1 AND delivery_state = 'quarantined'
+      RETURNING *`,
+    [Number(id), String(moderatorEmail).toLowerCase(), state]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Parent portal: preferences (Feature 6, US4/US5) -----------------------
+async function getParentPreferences({ parentEmail }) {
+  const email = String(parentEmail).toLowerCase();
+  const r = await q(`SELECT * FROM parent_preferences WHERE parent_email = $1`, [email]);
+  if (r && r.rows[0]) return r.rows[0];
+  return { parent_email: email, language: 'en', digest_opt_in: true, email_frequency: 'weekly', notify_in_app: true, notify_email: true };
+}
+
+async function setParentPreferences({ parentEmail, language, digestOptIn, emailFrequency, notifyInApp, notifyEmail }) {
+  const email = String(parentEmail).toLowerCase();
+  const r = await q(
+    `INSERT INTO parent_preferences (parent_email, language, digest_opt_in, email_frequency, notify_in_app, notify_email, updated_at)
+     VALUES ($1, COALESCE($2,'en'), COALESCE($3,true), COALESCE($4,'weekly'), COALESCE($5,true), COALESCE($6,true), now())
+     ON CONFLICT (parent_email) DO UPDATE SET
+       language        = COALESCE($2, parent_preferences.language),
+       digest_opt_in   = COALESCE($3, parent_preferences.digest_opt_in),
+       email_frequency = COALESCE($4, parent_preferences.email_frequency),
+       notify_in_app   = COALESCE($5, parent_preferences.notify_in_app),
+       notify_email    = COALESCE($6, parent_preferences.notify_email),
+       updated_at      = now()
+     RETURNING *`,
+    [
+      email,
+      language != null ? String(language).slice(0, 8) : null,
+      digestOptIn != null ? Boolean(digestOptIn) : null,
+      emailFrequency != null ? String(emailFrequency).slice(0, 16) : null,
+      notifyInApp != null ? Boolean(notifyInApp) : null,
+      notifyEmail != null ? Boolean(notifyEmail) : null
+    ]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Parent portal: weekly digest (Feature 6, US4) -------------------------
+// Aggregate one child's current-week activity + per-domain mastery for the digest/dashboard.
+async function weeklyChildSummary({ childEmail, weekStart }) {
+  const email = String(childEmail).toLowerCase();
+  const start = weekStart ? new Date(weekStart) : null;
+  // Items completed + accuracy over the last 7 days (or the given week).
+  const act = await q(
+    start
+      ? `SELECT COALESCE(SUM(attempts),0)::int AS attempts, COALESCE(SUM(correct),0)::int AS correct,
+                COUNT(*) FILTER (WHERE attempts > 0)::int AS active_days
+           FROM learner_activity WHERE email = $1 AND day >= $2::date AND day < $2::date + 7`
+      : `SELECT COALESCE(SUM(attempts),0)::int AS attempts, COALESCE(SUM(correct),0)::int AS correct,
+                COUNT(*) FILTER (WHERE attempts > 0)::int AS active_days
+           FROM learner_activity WHERE email = $1 AND day >= CURRENT_DATE - 6`,
+    start ? [email, start.toISOString().slice(0, 10)] : [email]
+  );
+  const a = act && act.rows[0] ? act.rows[0] : { attempts: 0, correct: 0, active_days: 0 };
+  // Top domains by mastery.
+  const dom = await q(
+    `SELECT s.domain, ROUND(AVG(sm.level)::numeric, 2)::float AS mastery, COUNT(*)::int AS skills
+       FROM skill_mastery sm JOIN skills s ON s.id = sm.skill_id
+      WHERE sm.email = $1
+      GROUP BY s.domain ORDER BY mastery DESC`,
+    [email]
+  );
+  const domains = dom ? dom.rows : [];
+  const attempts = a.attempts | 0;
+  const correct = a.correct | 0;
+  const accuracy = attempts > 0 ? correct / attempts : 0;
+  // Tone heuristic: celebrate a strong, active week; flag a weak subject for support.
+  const weakest = domains.length ? domains[domains.length - 1] : null;
+  let tone = 'neutral';
+  if (attempts >= 10 && accuracy >= 0.75) tone = 'celebration';
+  else if (weakest && weakest.mastery < 0.5) tone = 'support';
+  return {
+    childEmail: email,
+    itemsCompleted: attempts,
+    correct,
+    accuracy: Math.round(accuracy * 100) / 100,
+    activeDays: a.active_days | 0,
+    topDomains: domains.slice(0, 3),
+    weakestDomain: weakest,
+    tone
+  };
+}
+
+async function upsertParentDigest({ parentEmail, childEmail, weekStart, summary, howToHelp, tone, language }) {
+  const r = await q(
+    `INSERT INTO parent_digests (parent_email, child_email, week_start, summary, how_to_help, tone, language)
+     VALUES ($1,$2,$3,$4::jsonb,$5,$6,COALESCE($7,'en'))
+     ON CONFLICT (parent_email, child_email, week_start) DO UPDATE SET
+       summary = EXCLUDED.summary, how_to_help = EXCLUDED.how_to_help, tone = EXCLUDED.tone, language = EXCLUDED.language
+     RETURNING *`,
+    [
+      String(parentEmail).toLowerCase(), String(childEmail).toLowerCase(),
+      new Date(weekStart).toISOString().slice(0, 10), JSON.stringify(summary || {}),
+      howToHelp ? String(howToHelp).slice(0, 600) : null, tone || 'neutral',
+      language ? String(language).slice(0, 8) : 'en'
+    ]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function markDigestSent({ id }) {
+  const r = await q(`UPDATE parent_digests SET sent_at = now() WHERE id = $1 RETURNING id, sent_at`, [Number(id)]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listParentDigests({ parentEmail, limit = 12 }) {
+  const r = await q(
+    `SELECT id, child_email, week_start, summary, how_to_help, tone, language, sent_at, opened_at, created_at
+       FROM parent_digests WHERE parent_email = $1 ORDER BY week_start DESC LIMIT $2`,
+    [String(parentEmail).toLowerCase(), Math.min(Number(limit) || 12, 52)]
+  );
+  return r ? r.rows : null;
 }
 
 // --- Skill catalogue (Feature 2) ------------------------------------------
@@ -1545,6 +1765,7 @@ module.exports = {
   listTeacherOverrides,
   listChildrenForParent,
   isParentOfChild,
+  listParentsForChild,
   listTeacherQuestionsForLearnerReadOnly,
   listLearnerActivity,
   listLearnerHierarchyAssignments,
@@ -1562,6 +1783,20 @@ module.exports = {
   getConsentsForParent,
   upsertConsent,
   hasActiveConsentForLearner,
+  parentThreadId,
+  createParentMessage,
+  listParentThread,
+  listParentInbox,
+  countUnreadParentMessages,
+  markParentMessageRead,
+  listParentModerationQueue,
+  moderateParentMessage,
+  getParentPreferences,
+  setParentPreferences,
+  weeklyChildSummary,
+  upsertParentDigest,
+  markDigestSent,
+  listParentDigests,
   listSkillsCatalogue,
   getSkillById,
   logAskFeedback,
