@@ -5,6 +5,10 @@
 <title>LearnEU — Parent Portal · EdTech Group</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="/csrf.js"></script>
+<!-- Feature 6 client render modules (US1 dashboard, US2 messages, US4 digest) -->
+<script src="/models/dashboard.js"></script>
+<script src="/models/messages.js"></script>
+<script src="/models/digest-template.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
@@ -711,13 +715,13 @@ async function loadChildren() {
     const kids = j.children || [];
     childrenData = kids;
     if (!kids.length) { sel.innerHTML = '<option value="">(no children linked)</option>'; return; }
-    sel.innerHTML = kids.map(k => `<option value="${escapeHtml(k.childEmail)}">${escapeHtml(k.displayName || k.childEmail)}</option>`).join('');
+    const opts = DashboardModel.childOptions(kids);
+    sel.innerHTML = opts;
     const first = kids[0];
     document.getElementById('childRel').textContent = first.relationship ? '· ' + first.relationship : '';
     loadChildDashboard(first.childEmail);
     showConsentBanner();
     // Feature 6 US2/US4 — populate the message + digest child pickers too.
-    const opts = kids.map(k => `<option value="${escapeHtml(k.childEmail)}">${escapeHtml(k.displayName || k.childEmail)}</option>`).join('');
     const ms = document.getElementById('msgChildSel'); if (ms) { ms.innerHTML = opts; }
     const ds = document.getElementById('digestChildSel'); if (ds) { ds.innerHTML = opts; }
   } catch (e) { sel.innerHTML = '<option value="">(error)</option>'; }
@@ -739,65 +743,16 @@ async function loadChildDashboard(childEmail) {
   // KPIs
   const kpis = document.getElementById('childKpis');
   const rows = (mast && mast.rows) || [];
-  const avg = rows.length ? Math.round(100 * rows.reduce((a,b)=>a+(+b.level||0),0) / rows.length) : 0;
-  const mastered = rows.filter(r => (+r.level||0) >= 0.85).length;
-  const sk = streak || {};
-  const totals = sk.totalAttempts || 0;
-  const acc = totals ? Math.round(100 * (sk.accuracy || 0)) : 0;
-  kpis.innerHTML = [
-    `<div class="kpi"><div class="lbl">Avg mastery</div><div class="val">${avg}%</div><div class="sub">${rows.length} skills</div></div>`,
-    `<div class="kpi"><div class="lbl">Mastered</div><div class="val">${mastered}/${rows.length}</div><div class="sub">≥ 85% level</div></div>`,
-    `<div class="kpi"><div class="lbl">Current streak</div><div class="val">${sk.streak||0}d</div><div class="sub">${(sk.badges||[]).length} badges</div></div>`,
-    `<div class="kpi"><div class="lbl">Attempts (${sk.windowDays||30}d)</div><div class="val">${totals}</div><div class="sub">${acc}% accuracy</div></div>`
-  ].join('');
+  kpis.innerHTML = DashboardModel.renderKpis(rows, streak || {});
   // Chapters
   const ch = document.getElementById('childChapters');
-  if (!rows.length) { ch.innerHTML = '<div class="sheet-empty">No mastery records yet.</div>'; }
-  else {
-    const groups = {};
-    rows.forEach(r => { const c = r.chapter || 'other'; (groups[c] = groups[c] || []).push(r); });
-    const order = ['basics','operations','representations','word_problems'];
-    const keys = Object.keys(groups).sort((a,b) => { const ia=order.indexOf(a), ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
-    ch.innerHTML = keys.map(k => {
-      const items = groups[k];
-      const pct = Math.round(100 * items.reduce((a,b)=>a+(+b.level||0),0) / items.length);
-      const skills = items.map(r => `<div class="skill-row"><span class="badge-pill">${Math.round((+r.level||0)*100)}%</span><strong>${escapeHtml(r.label||r.skillId)}</strong>${r.attempts?` · <span style="color:var(--grey);font-size:.8rem;">${r.attempts} attempts</span>`:''}</div>`).join('');
-      return `<div class="chapter-card" onclick="this.classList.toggle('collapsed')">
-        <div class="chapter-head"><span class="chev">▼</span><span class="chap-title">${chapterTitle(k)}</span><span class="chap-pct">${pct}%</span></div>
-        <div class="chapter-bar"><div style="width:${pct}%;"></div></div>
-        <div class="chapter-body" onclick="event.stopPropagation()">${skills}</div>
-      </div>`;
-    }).join('');
-  }
+  ch.innerHTML = DashboardModel.renderChapters(rows);
   // Activity bar (last 30d, server returns rows ordered DESC)
   const actEl = document.getElementById('childActivity');
-  const days = ((act && act.rows) || []).slice().reverse();
-  if (!days.length) { actEl.innerHTML = '<div class="sheet-empty">No recent activity.</div>'; }
-  else {
-    const max = Math.max(1, ...days.map(d => +d.attempts||0));
-    actEl.innerHTML = '<div class="activity-bar" style="height:48px;gap:4px;">' + days.map(d => {
-      const h = Math.max(2, Math.round(46 * (+d.attempts||0) / max));
-      const has = (+d.attempts||0) > 0 ? 'has' : '';
-      return `<div class="day ${has}" style="height:${h}px;width:14px;" title="${escapeHtml(d.day||'')}: ${d.attempts||0} attempts (${d.correct||0} correct)"></div>`;
-    }).join('') + '</div>';
-  }
+  actEl.innerHTML = DashboardModel.renderActivity((act && act.rows) || []);
   // Teacher questions
   const tqEl = document.getElementById('childTeacherQ');
-  const items = (tq && tq.rows) || [];
-  if (!items.length) { tqEl.innerHTML = '<div class="sheet-empty">No teacher messages yet.</div>'; }
-  else {
-    tqEl.innerHTML = items.map(qq => {
-      const status = qq.status === 'answered' ? '<span class="answered">Answered</span>' : '<span class="pending">Pending</span>';
-      const when = qq.created_at ? new Date(qq.created_at).toLocaleString() : '';
-      const ans = qq.answered_at ? ' · answered ' + new Date(qq.answered_at).toLocaleString() : '';
-      const body = qq.answer ? qq.answer : qq.question;
-      return `<div class="tq-item" style="margin-bottom:.45rem;">
-        <div class="head"><span class="subj">${escapeHtml(qq.subject||'(no subject)')}</span>${status}</div>
-        <div style="font-size:.85rem;color:var(--navy);margin:.3rem 0;white-space:pre-wrap;">${escapeHtml(body||'').slice(0,400)}</div>
-        <div class="when">${when}${ans}</div>
-      </div>`;
-    }).join('');
-  }
+  tqEl.innerHTML = DashboardModel.renderTeacherQuestions((tq && tq.rows) || []);
   // Consent status for this child
   renderConsentStatusInDashboard(childEmail);
 }
@@ -816,15 +771,9 @@ async function loadThread(childEmail) {
     const r = await fetch('/api/parent/messages/thread/' + encodeURIComponent(threadId));
     const j = await r.json();
     const msgs = j.messages || [];
-    if (!msgs.length) { el.innerHTML = '<div class="sheet-empty">No messages yet.</div>'; return; }
-    el.innerHTML = msgs.map(m => {
-      const who = m.sender_role === 'parent' ? 'You' : 'Teacher';
-      const when = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-      const quarantined = m.delivery_state === 'quarantined' ? '<span class="state quarantined">awaiting review</span>' : '';
-      return `<div class="msg-row ${escapeHtml(m.sender_role)}"><div style="display:flex;justify-content:space-between;align-items:center;"><span class="who">${who} ${quarantined}</span><span class="when">${escapeHtml(when)}</span></div><div class="body">${escapeHtml(m.body||'')}</div></div>`;
-    }).join('');
-    msgs.filter(m => m.sender_role !== 'parent' && !m.read_at && m.delivery_state === 'delivered')
-        .forEach(m => fetch('/api/parent/messages/' + m.id + '/read', { method: 'POST' }).catch(() => {}));
+    el.innerHTML = MessagesModel.renderThread(msgs);
+    MessagesModel.unreadInboundIds(msgs)
+        .forEach(id => fetch('/api/parent/messages/' + id + '/read', { method: 'POST' }).catch(() => {}));
     loadInboxBadge();
   } catch (e) { el.innerHTML = '<div class="sheet-empty">(error loading conversation)</div>'; }
 }
@@ -837,9 +786,9 @@ async function sendParentMessage() {
   try {
     const r = await fetch('/api/parent/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ childEmail, body }) });
     const j = await r.json();
-    if (!r.ok) { note.textContent = j.error || 'Failed to send.'; return; }
+    if (!r.ok) { note.textContent = MessagesModel.sendStatus(false, j); return; }
     document.getElementById('msgBody').value = '';
-    note.textContent = j.moderation || 'Message sent.';
+    note.textContent = MessagesModel.sendStatus(true, j);
     loadThread(childEmail);
   } catch (e) { note.textContent = String(e); }
 }
@@ -861,15 +810,9 @@ async function loadWeeklySummary(childEmail) {
   try {
     const j = await (await fetch('/api/parent/child/' + encodeURIComponent(childEmail) + '/weekly-summary')).json();
     if (!j.enabled || !j.summary) { kpis.innerHTML = ''; help.textContent = 'No summary available yet.'; return; }
-    const s = j.summary;
-    const toneLabel = { celebration: '🎉 Great week', support: '🤝 Needs a little support', neutral: '📘 Steady progress' }[s.tone] || '📘';
-    kpis.innerHTML = [
-      `<div class="kpi"><div class="lbl">Items completed</div><div class="val">${s.itemsCompleted}</div><div class="sub">this week</div></div>`,
-      `<div class="kpi"><div class="lbl">Accuracy</div><div class="val">${Math.round((s.accuracy||0)*100)}%</div><div class="sub">${s.correct} correct</div></div>`,
-      `<div class="kpi"><div class="lbl">Active days</div><div class="val">${s.activeDays}</div><div class="sub">out of 7</div></div>`,
-      `<div class="kpi"><div class="lbl">Focus</div><div class="val" style="font-size:1rem;">${toneLabel}</div><div class="sub">${escapeHtml(s.weakestDomain ? s.weakestDomain.domain : '—')}</div></div>`
-    ].join('');
-    help.innerHTML = '<strong>How to help this week:</strong> ' + escapeHtml(j.howToHelp || '');
+    const out = DigestTemplate.renderSummary(j.summary, j.howToHelp);
+    kpis.innerHTML = out.kpisHtml;
+    help.innerHTML = out.helpHtml;
   } catch (e) { help.textContent = '(error loading summary)'; }
 }
 async function loadPreferences() {
@@ -913,12 +856,7 @@ async function loadPastDigests() {
   try {
     const j = await (await fetch('/api/parent/digests')).json();
     const rows = j.rows || [];
-    if (!rows.length) { el.innerHTML = '<div class="sheet-empty">No digests sent yet.</div>'; return; }
-    el.innerHTML = rows.map(d => {
-      const week = d.week_start ? new Date(d.week_start).toLocaleDateString() : '';
-      const sent = d.sent_at ? 'sent ' + new Date(d.sent_at).toLocaleDateString() : 'not yet sent';
-      return `<div class="msg-row"><div class="who">Week of ${escapeHtml(week)} · ${escapeHtml(d.child_email||'')}</div><div class="body">${escapeHtml(d.how_to_help||'')}</div><div class="when">${escapeHtml(sent)}</div></div>`;
-    }).join('');
+    el.innerHTML = DigestTemplate.renderPastDigests(rows);
   } catch (e) { el.innerHTML = '<div class="sheet-empty">(error)</div>'; }
 }
 

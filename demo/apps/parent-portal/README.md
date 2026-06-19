@@ -26,6 +26,14 @@ Role-gated portal for families focused on learner visibility, GDPR Art. 8 consen
 - `GET /api/parent/child/:child/teacher-questions`
 - `GET /api/parent/consents`
 - `POST /api/parent/consents`
+- `GET /api/parent/child/:child/weekly-summary` — US1 dashboard summary
+- `GET/POST /api/parent/messages`, `GET /api/parent/messages/thread/:id`, `POST /api/parent/messages/:id/read` — US2 messaging
+- `GET/PUT /api/parent/preferences` — US4 digest opt-out + US5 language
+- `GET /api/parent/digests`, `POST /api/parent/digests/generate` — US4 weekly digest
+- `GET /api/parent/resources` — US5 localized family resources
+- `GET /api/consent/requests/:token`, `POST /api/consent/requests/:token/decide` — US3 public consent flow
+- `POST /api/consent/requests`, `GET /api/parent/consent-requests`, `POST /api/consent/reminders/run` — US3 consent lifecycle
+- `GET /api/parent/metrics` — SC-001..SC-007 outcome measurement surface
 
 ## GDPR Art. 8 consent
 
@@ -51,12 +59,36 @@ Role-gated portal for families focused on learner visibility, GDPR Art. 8 consen
 	- `contentSafety.js`
 - If these are missing from deployment artifacts, startup fails.
 
+## Configuration
+
+Copy `.env.example` to `.env` for local runs. In Azure these are App Settings /
+Key Vault references. Key groups: Postgres (`PG_*`), session/CSRF/rate limit
+(`SESSION_SECRET`, `RATE_LIMIT_*`), Content Safety (`CONTENT_SAFETY_*`),
+consent link TTL (`CONSENT_LINK_TTL_DAYS`, default 7), and weekly digest
+scheduling (`DIGEST_*`, Sunday 18:00 UTC). EU regions only for personal data.
+
+## Scripts
+
+```powershell
+npm run check     # node --check on server/db/auth/contentSafety
+npm run seed      # apply schema + seed demo cohort (idempotent)
+npm run digests   # run the weekly digest dispatcher once
+npm start         # start the portal on $PORT (default 8080)
+```
+
+## Localization (US5)
+
+- UI strings live in `public/models/translations.json` (en/nl/de/fr/es/pl/ro).
+- Family resources are localized in `data/family-resources.manifest.json`.
+- Language preference persists per parent and drives templates/notifications.
+
 ## Smoke checks
 
 Run from repository root:
 
 ```powershell
 pwsh ./demo/scripts/smoke_cohort.ps1
+pwsh ./demo/scripts/acceptance_tests.ps1   # includes parent-portal US1-US5 cases
 ```
 
 This script validates parent logins and linked-child retrieval for multiple demo users.

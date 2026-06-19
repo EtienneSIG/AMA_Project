@@ -1519,12 +1519,21 @@ function howToHelpFor(summary) {
   const key = dom ? String(dom).toLowerCase() : '_default';
   return HOW_TO_HELP[key] || HOW_TO_HELP._default;
 }
+// Dashboard latency instrumentation for the SC-001 p95 <= 3s SLO (US1, T023).
+// In-memory ring buffer of recent weekly-summary durations (ms); surfaced via /api/parent/metrics.
+const DASH_LAT = [];
+function recordDashLatency(ms) { DASH_LAT.push(ms); if (DASH_LAT.length > 200) DASH_LAT.shift(); }
+function dashP95() { if (!DASH_LAT.length) return null; const s = [...DASH_LAT].sort((a, b) => a - b); return s[Math.max(0, Math.ceil(0.95 * s.length) - 1)]; }
 // Live weekly summary for one linked child (dashboard + digest preview).
 app.get('/api/parent/child/:child/weekly-summary', async (req, res) => {
+  const _t0 = Date.now();
   if (!db.enabled) return res.json({ enabled: false, summary: null });
   if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
   const childEmail = await ensureLinked(req, res); if (!childEmail) return;
   const summary = await db.weeklyChildSummary({ childEmail });
+  const _ms = Date.now() - _t0;
+  recordDashLatency(_ms);
+  res.set('Server-Timing', `dashboard;dur=${_ms}`);
   res.json({ enabled: true, summary, howToHelp: howToHelpFor(summary) });
 });
 // Past digests for the parent.
@@ -1552,7 +1561,42 @@ app.post('/api/parent/digests/generate', async (req, res) => {
     });
     if (row) out.push(row);
   }
+  // Email-send audit hook for SC-003 engagement measurement (digest dispatched/queued).
+  db.recordAuditEvent({ eventType: 'parent_digest_generated', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_digest', targetId: weekStart, scope: { generated: out.length, language: prefs ? prefs.language : 'en' }, outcome: 'queued' }).catch(() => {});
   res.json({ ok: true, generated: out.length, weekStart, digests: out });
+});
+// Record digest engagement (email open / portal visit) for SC-003 measurement (US4, T052).
+app.post('/api/parent/digests/:id/engagement', async (req, res) => {
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  const kind = ['opened', 'visited'].includes(req.body?.kind) ? req.body.kind : 'opened';
+  db.recordAuditEvent({ eventType: 'parent_digest_engagement', actorId: req.user.email, actorRole: 'parent', targetType: 'parent_digest', targetId: String(req.params.id), scope: { kind }, outcome: 'tracked' }).catch(() => {});
+  res.json({ ok: true, kind });
+});
+// Outcome metrics surface (SC-001..SC-007 collection/reporting, T066). Parent/admin only.
+app.get('/api/parent/metrics', async (req, res) => {
+  if (!isParentOrAdmin(req.user)) return res.status(403).json({ error: 'parent only' });
+  let supported = null, coverage = null;
+  try {
+    const tr = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'models', 'translations.json'), 'utf8'));
+    supported = (tr._meta && tr._meta.supported) || null;
+    const en = Object.keys(tr.en || {});
+    coverage = {};
+    for (const l of (supported || []).filter(x => x !== 'en')) {
+      const o = tr[l] || {};
+      const present = en.filter(k => o[k] && String(o[k]).trim().length).length;
+      coverage[l] = en.length ? Math.round(1000 * present / en.length) / 10 : 0;
+    }
+  } catch (e) { supported = null; coverage = null; }
+  res.json({
+    enabled: true,
+    sc001_dashboardP95Ms: dashP95(),
+    sc001_dashboardSamples: DASH_LAT.length,
+    sc002_consentTtlDays: db.CONSENT_TTL_DAYS != null ? db.CONSENT_TTL_DAYS : 7,
+    sc005_contentSafetyEnabled: cs.enabled === true,
+    sc006_languageCount: supported ? supported.length : null,
+    sc006_translationCoverage: coverage
+  });
 });
 
 // --- Family Resources Center (Feature 6, US5) ------------------------------

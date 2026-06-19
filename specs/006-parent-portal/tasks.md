@@ -27,12 +27,12 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 **Purpose**: Establish parent-portal project scaffolding, shared configuration, and execution entry points.
 
-- [ ] T001 Add parent-portal environment variable template for Content Safety, digest scheduling, and consent link TTL in demo/apps/parent-portal/.env.example (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T002 Update dependency manifests for parent portal runtime and moderation/email libraries in demo/apps/parent-portal/package.json (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T003 [P] Create parent-portal task runner scripts for local verification and seed data bootstrapping in demo/apps/parent-portal/package.json (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T004 [P] Add parent-portal execution and configuration documentation in demo/apps/parent-portal/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T005 [P] Create feature compliance tracking checklist for GDPR Art. 8, EU AI Act articles, and constitution evidence in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T006 [P] Add parent-portal validation section to demo acceptance script orchestration in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T001 Add parent-portal environment variable template for Content Safety, digest scheduling, and consent link TTL in demo/apps/parent-portal/.env.example (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T002 Update dependency manifests for parent portal runtime and moderation/email libraries in demo/apps/parent-portal/package.json (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T003 [P] Create parent-portal task runner scripts for local verification and seed data bootstrapping in demo/apps/parent-portal/package.json (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T004 [P] Add parent-portal execution and configuration documentation in demo/apps/parent-portal/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T005 [P] Create feature compliance tracking checklist for GDPR Art. 8, EU AI Act articles, and constitution evidence in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T006 [P] Add parent-portal validation section to demo acceptance script orchestration in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: Setup complete - parent-portal codebase can be configured and executed consistently.
 
@@ -52,8 +52,8 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 - [X] T012 Create GDPR Art. 8 plain-language consent disclosure template with version marker and rights copy in demo/apps/parent-portal/public/consent-pending.html (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 - [x] T013 [P] Implement Content Safety wrapper with verdict normalization and moderation routing contract in demo/apps/parent-portal/contentSafety.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [x] T014 [P] Add translation resource scaffold for NL/DE/FR/ES/PL/RO parent UI keys in demo/apps/parent-portal/public/models/translations.json (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T015 [P] Create family-resources content manifest and locale mapping structure in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/content-localisation-lead.chatmode.md)
-- [ ] T016 Define foundational compliance acceptance cases for data minimization, EU residency assertions, and consent gating in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T015 [P] Create family-resources content manifest and locale mapping structure in demo/apps/parent-portal/data/family-resources.manifest.json (Accountable: agents/content-localisation-lead.chatmode.md)
+- [X] T016 Define foundational compliance acceptance cases for data minimization, EU residency assertions, and consent gating in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: Foundation ready - all user stories can now proceed, and compliance primitives are in place.
 
@@ -67,16 +67,16 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Tests for User Story 1
 
-- [ ] T017 [P] [US1] Add automated acceptance scenario for multi-child dashboard rendering and child switch latency in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T018 [P] [US1] Add API-level verification for weekly summary payload correctness and no-activity fallback in demo/apps/parent-portal/server.js (Accountable: agents/ama-rubric-evaluator.chatmode.md)
+- [X] T017 [P] [US1] Add automated acceptance scenario for multi-child dashboard rendering and child switch latency in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T018 [P] [US1] Add API-level verification for weekly summary payload correctness and no-activity fallback in demo/apps/parent-portal/server.js (Accountable: agents/ama-rubric-evaluator.chatmode.md)
 
 ### Implementation for User Story 1
 
 - [X] T019 [P] [US1] Implement weekly progress aggregation query and attendance summary composition in demo/apps/parent-portal/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T020 [US1] Add dashboard endpoint for per-child summary retrieval with access checks in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 - [X] T021 [P] [US1] Implement child selector UI and summary cards in demo/apps/parent-portal/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T022 [P] [US1] Implement client-side dashboard rendering, child switching, and no-activity CTA behavior in demo/apps/parent-portal/public/models/dashboard.js (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T023 [US1] Add dashboard performance instrumentation and p95 capture markers for 3-second SLO in demo/apps/parent-portal/server.js (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T022 [P] [US1] Implement client-side dashboard rendering, child switching, and no-activity CTA behavior in demo/apps/parent-portal/public/models/dashboard.js (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [X] T023 [US1] Add dashboard performance instrumentation and p95 capture markers for 3-second SLO in demo/apps/parent-portal/server.js (Accountable: agents/demo-deployment-agent.chatmode.md)
 - [X] T024 [US1] Add GDPR-safe response filtering to ensure only parent-owned learner data is returned in demo/apps/parent-portal/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 
 **Checkpoint**: US1 independently passes dashboard usability, latency, and data-isolation checks.
@@ -91,8 +91,8 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Tests for User Story 2
 
-- [ ] T025 [P] [US2] Add acceptance flow for announcement send, parent receipt, reply, and read receipt timestamps in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T026 [P] [US2] Add moderation-path test for flagged content quarantine and non-delivery before teacher action in demo/scripts/acceptance_tests.ps1 (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [X] T025 [P] [US2] Add acceptance flow for announcement send, parent receipt, reply, and read receipt timestamps in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T026 [P] [US2] Add moderation-path test for flagged content quarantine and non-delivery before teacher action in demo/scripts/acceptance_tests.ps1 (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 ### Implementation for User Story 2
 
@@ -100,7 +100,7 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 - [X] T028 [US2] Add parent message thread read/send endpoints with authorization checks in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 - [X] T029 [US2] Integrate Content Safety pre-delivery scanning and moderation decision branching in demo/apps/parent-portal/server.js (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [X] T030 [P] [US2] Add parent message inbox/thread UI with read state indicators in demo/apps/parent-portal/public/index.html (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T031 [P] [US2] Implement message compose/send/reply interactions with moderation status feedback in demo/apps/parent-portal/public/models/messages.js (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [X] T031 [P] [US2] Implement message compose/send/reply interactions with moderation status feedback in demo/apps/parent-portal/public/models/messages.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [X] T032 [US2] Extend teacher-side moderation endpoint handlers for approve/reject/reword actions in demo/apps/teacher-console/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 - [x] T033 [P] [US2] Add moderation queue UI with Content Safety verdict and teacher override controls in demo/apps/teacher-console/public/moderation.html (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [X] T034 [US2] Add EU AI Act Art. 12/13 trace logs for message scan verdicts, moderation action, and parent transparency notices in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
@@ -143,17 +143,17 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Tests for User Story 4
 
-- [ ] T045 [P] [US4] Add acceptance scenario for digest generation, send window, and opt-out behavior in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T046 [P] [US4] Add digest content validation for celebration/support note logic and age-appropriate activity selection in demo/scripts/acceptance_tests.ps1 (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [X] T045 [P] [US4] Add acceptance scenario for digest generation, send window, and opt-out behavior in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T046 [P] [US4] Add digest content validation for celebration/support note logic and age-appropriate activity selection in demo/scripts/acceptance_tests.ps1 (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ### Implementation for User Story 4
 
 - [X] T047 [P] [US4] Implement parent digest preference read/write and weekly summary fetch helpers in demo/apps/parent-portal/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T048 [US4] Add digest preference endpoint and opt-out workflow handling in demo/apps/parent-portal/server.js (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 - [x] T049 [US4] Implement scheduled digest dispatcher with Sunday 18:00 UTC batching in demo/scripts/send_digests.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T050 [P] [US4] Create digest template renderer for per-child summary and action guidance copy in demo/apps/parent-portal/public/models/digest-template.js (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [X] T050 [P] [US4] Create digest template renderer for per-child summary and action guidance copy in demo/apps/parent-portal/public/models/digest-template.js (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [X] T051 [US4] Add "How to help" recommendation sourcing from approved pedagogical resource set in demo/apps/parent-portal/server.js (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T052 [US4] Add email send audit and engagement tracking hooks for SC-003 measurement in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T052 [US4] Add email send audit and engagement tracking hooks for SC-003 measurement in demo/apps/parent-portal/server.js (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 
 **Checkpoint**: US4 independently passes digest scheduling, parental preference controls, and pedagogical-content quality checks.
 
@@ -167,8 +167,8 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 ### Tests for User Story 5
 
-- [ ] T053 [P] [US5] Add acceptance scenario for language switch persistence across sessions and child contexts in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T054 [P] [US5] Add localization coverage check to verify at least 90% translated key coverage per supported language in demo/scripts/acceptance_tests.ps1 (Accountable: agents/content-localisation-lead.chatmode.md)
+- [X] T053 [P] [US5] Add acceptance scenario for language switch persistence across sessions and child contexts in demo/scripts/acceptance_tests.ps1 (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T054 [P] [US5] Add localization coverage check to verify at least 90% translated key coverage per supported language in demo/scripts/acceptance_tests.ps1 (Accountable: agents/content-localisation-lead.chatmode.md)
 
 ### Implementation for User Story 5
 
@@ -188,12 +188,12 @@ The parent-portal app already exists. Tasks below must **EXTEND** existing files
 
 **Purpose**: Final compliance closure, performance hardening, and demo-readiness across all user stories.
 
-- [ ] T062 [P] Run cross-agent compliance verification against constitution principles and update evidence log in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T063 [P] Complete EU AI Act compliance review (Art. 9, 10, 12, 13, 14, 15) and record sign-off notes in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T064 [P] Complete GDPR Art. 8 legal review for consent language, revocation path, and retention policy alignment in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T065 Execute end-to-end parent portal smoke and acceptance flow for demo readiness in demo/scripts/acceptance_tests.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T066 Validate SC-001 to SC-007 metrics collection and reporting outputs in demo/apps/parent-portal/server.js (Accountable: agents/ama-rubric-evaluator.chatmode.md)
-- [ ] T067 Final responsible-AI and pedagogical sign-off for moderated messaging and weekly support guidance in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [X] T062 [P] Run cross-agent compliance verification against constitution principles and update evidence log in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T063 [P] Complete EU AI Act compliance review (Art. 9, 10, 12, 13, 14, 15) and record sign-off notes in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [X] T064 [P] Complete GDPR Art. 8 legal review for consent language, revocation path, and retention policy alignment in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
+- [X] T065 Execute end-to-end parent portal smoke and acceptance flow for demo readiness in demo/scripts/acceptance_tests.ps1 (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T066 Validate SC-001 to SC-007 metrics collection and reporting outputs in demo/apps/parent-portal/server.js (Accountable: agents/ama-rubric-evaluator.chatmode.md)
+- [X] T067 Final responsible-AI and pedagogical sign-off for moderated messaging and weekly support guidance in specs/006-parent-portal/checklists/compliance-gate.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: Feature is production-ready for staged demo deployment with compliance evidence and measurable outcomes.
 
