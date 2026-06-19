@@ -464,3 +464,115 @@ CREATE TRIGGER trg_prevent_audit_event_delete
 BEFORE DELETE ON audit_event
 FOR EACH ROW
 EXECUTE FUNCTION prevent_audit_event_mutation();
+
+-- ---------------------------------------------------------------------------
+-- Learner gamification UX (Feature 003)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learner_badges (
+  email       TEXT         NOT NULL,
+  badge_key   TEXT         NOT NULL,
+  badge_label TEXT         NOT NULL,
+  source      TEXT         NOT NULL,
+  earned_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, badge_key)
+);
+CREATE INDEX IF NOT EXISTS idx_learner_badges_earned ON learner_badges (email, earned_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_daily_chests (
+  email             TEXT         NOT NULL,
+  day               DATE         NOT NULL,
+  reward_badge_key  TEXT         NOT NULL,
+  reward_label      TEXT         NOT NULL,
+  claimed_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  PRIMARY KEY (email, day)
+);
+
+CREATE TABLE IF NOT EXISTS learner_motivation_messages (
+  id            BIGSERIAL    PRIMARY KEY,
+  class_key     TEXT         NOT NULL,
+  email         TEXT         NOT NULL,
+  display_name  TEXT         NOT NULL,
+  message       TEXT         NOT NULL,
+  status        TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'hidden')),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_motivation_class_created ON learner_motivation_messages (class_key, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_gamification_overrides (
+  id            BIGSERIAL    PRIMARY KEY,
+  teacher_email TEXT         NOT NULL,
+  action_type   TEXT         NOT NULL,
+  target_type   TEXT         NOT NULL,
+  target_id     TEXT         NOT NULL,
+  reason        TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_gamification_overrides_created ON learner_gamification_overrides (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_champion_challenges (
+  id            BIGSERIAL    PRIMARY KEY,
+  class_key     TEXT         NOT NULL,
+  author_email  TEXT         NOT NULL,
+  author_name   TEXT         NOT NULL,
+  question      TEXT         NOT NULL,
+  options       JSONB        NOT NULL,
+  correct_index INTEGER      NOT NULL,
+  explanation   TEXT,
+  status        TEXT         NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  winner_email  TEXT,
+  winner_name   TEXT,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  closed_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_champion_challenges_class_created ON learner_champion_challenges (class_key, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_champion_answers (
+  id               BIGSERIAL    PRIMARY KEY,
+  challenge_id     BIGINT       NOT NULL REFERENCES learner_champion_challenges(id) ON DELETE CASCADE,
+  challenger_email TEXT         NOT NULL,
+  challenger_name  TEXT         NOT NULL,
+  selected_index   INTEGER      NOT NULL,
+  is_correct       BOOLEAN      NOT NULL,
+  points_awarded   INTEGER      NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (challenge_id, challenger_email)
+);
+CREATE INDEX IF NOT EXISTS idx_champion_answers_challenge ON learner_champion_answers (challenge_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_champion_answers_email ON learner_champion_answers (challenger_email, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_duels (
+  id              BIGSERIAL    PRIMARY KEY,
+  class_key       TEXT         NOT NULL,
+  challenger_email TEXT        NOT NULL,
+  challenger_name TEXT         NOT NULL,
+  opponent_email  TEXT         NOT NULL,
+  opponent_name   TEXT         NOT NULL,
+  question        TEXT         NOT NULL,
+  options         JSONB        NOT NULL,
+  correct_index   INTEGER      NOT NULL,
+  time_limit_sec  INTEGER      NOT NULL DEFAULT 90,
+  status          TEXT         NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'expired')),
+  winner_email    TEXT,
+  winner_name     TEXT,
+  points_awarded  INTEGER      NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  answered_at     TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_duels_class_created ON learner_duels (class_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_duels_users ON learner_duels (challenger_email, opponent_email, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS learner_duel_answers (
+  id              BIGSERIAL    PRIMARY KEY,
+  duel_id         BIGINT       NOT NULL REFERENCES learner_duels(id) ON DELETE CASCADE,
+  player_email    TEXT         NOT NULL,
+  player_name     TEXT         NOT NULL,
+  selected_index  INTEGER      NOT NULL,
+  is_correct      BOOLEAN      NOT NULL,
+  elapsed_ms      INTEGER      NOT NULL,
+  bonus_points    INTEGER      NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (duel_id, player_email)
+);
+CREATE INDEX IF NOT EXISTS idx_duel_answers_duel ON learner_duel_answers (duel_id, created_at DESC);
+
+-- Teacher overrides (Feature 5a ΓÇö EU AI Act Article 14 audit trail).

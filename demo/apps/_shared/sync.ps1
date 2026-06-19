@@ -7,8 +7,9 @@ foreach ($a in $apps) {
     $appDir = Join-Path (Split-Path $here -Parent) $a
     if (-not (Test-Path $appDir)) { Write-Host "skip $a (not found)" -ForegroundColor Yellow; continue }
     Copy-Item -Force -Path (Join-Path $here 'auth.js')    -Destination (Join-Path $appDir 'auth.js')
-    # admin/server.js is bespoke (ARM endpoints) — do not overwrite from _shared
-    if ($a -ne 'admin') {
+    # admin/server.js (ARM endpoints) and director-portal/server.js (reporting / Power BI embed)
+    # are bespoke — do not overwrite them from _shared/server.js.
+    if ($a -ne 'admin' -and $a -ne 'director-portal') {
         Copy-Item -Force -Path (Join-Path $here 'server.js')  -Destination (Join-Path $appDir 'server.js')
     }
     $publicDir = Join-Path $appDir 'public'
