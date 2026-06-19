@@ -198,8 +198,11 @@
   .tq-item .answered { background:#D1FAE5; color:#065F46; padding:.1rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; }
   .ask-wrap { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; }
   /* --- Consent banner & modal (GDPR Art. 8) --- */
-  .consent-banner { background:#FEF3C7; border:1px solid #FCD34D; border-radius:12px; padding:1.1rem 1.4rem; margin:-1rem auto 1.2rem; max-width:1320px; display:none; }
+  /* Outer is a transparent, centered 1320px track (matches .tabbar / .ask-wrap) so the
+     yellow card lines up exactly with the tabs and cards below. */
+  .consent-banner { max-width:1320px; margin:-1rem auto 1.2rem; padding:0 1.5rem; display:none; }
   .consent-banner.show { display:block; }
+  .consent-banner .inner { background:#FEF3C7; border:1px solid #FCD34D; border-radius:12px; padding:1.1rem 1.4rem; }
   .consent-banner h3 { color:#92400E; margin:0 0 .4rem; font-size:1rem; }
   .consent-banner p { color:#78350F; margin:0 0 .6rem; font-size:.88rem; }
   .consent-banner .child-list { display:flex; flex-wrap:wrap; gap:.5rem; }
@@ -253,10 +256,12 @@
     <p data-i18n="hero.subtitle">Manage parental consent (GDPR Art. 8), submit data access requests, and follow your child's progress — fully EU-hosted and aligned with EU AI Act Annex III §3 (education).</p>
   </div>
 </section>
-<div class="consent-banner" id="consentBanner" style="margin-left:1.5rem;margin-right:1.5rem;">
-  <h3>⚠️ Parental Consent Required (GDPR Art. 8)</h3>
-  <p>One or more of your children under 16 still need your consent before they can use LearnEU. Without consent, they cannot access the learning platform.</p>
-  <div class="child-list" id="consentBannerList"></div>
+<div class="consent-banner" id="consentBanner">
+  <div class="inner">
+    <h3>⚠️ Parental Consent Required (GDPR Art. 8)</h3>
+    <p>One or more of your children under 16 still need your consent before they can use LearnEU. Without consent, they cannot access the learning platform.</p>
+    <div class="child-list" id="consentBannerList"></div>
+  </div>
 </div>
 <nav class="tabbar" role="tablist">
   <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab"><span data-i18n="tab.ask">💬 Ask the assistant</span></button>
