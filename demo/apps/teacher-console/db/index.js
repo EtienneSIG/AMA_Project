@@ -1342,6 +1342,37 @@ async function getLearnerStreak({ email, windowDays = 30 }) {
   return { streak, totalAttempts, totalCorrect, accuracy, mastered, skillsSeen, badges, windowDays };
 }
 
+// Class-wide badge roster for the teacher gamification view (Feature 4 visibility).
+// Returns one row per learner with their earned badges. Learners are pseudonymised
+// (no raw email leaves the server) so the teacher UI shows opaque identifiers only.
+async function listClassBadges({ limit = 30 } = {}) {
+  const lr = await q(
+    `SELECT m.email,
+            COALESCE(MAX(NULLIF(ia.pseudonym, '')), 'L-' || substr(md5(m.email), 1, 6)) AS pseudonym,
+            SUM(m.attempts)::int AS attempts
+       FROM skill_mastery m
+       LEFT JOIN item_attempts ia ON ia.email = m.email
+      GROUP BY m.email
+      ORDER BY SUM(m.attempts) DESC
+      LIMIT $1`,
+    [limit]
+  );
+  if (!lr) return null;
+  const out = [];
+  for (const row of lr.rows) {
+    const s = await getLearnerStreak({ email: row.email });
+    const badges = s ? s.badges : [];
+    out.push({
+      email: row.pseudonym,
+      displayName: row.pseudonym,
+      badges,
+      badgeCount: badges.length,
+      lastEarnedAt: null
+    });
+  }
+  return out;
+}
+
 // --- Parental consent (GDPR Art. 8) ----------------------------------------
 
 async function getConsentsForParent({ parentEmail }) {
@@ -1795,6 +1826,7 @@ module.exports = {
   listEmbeddedReportReferences,
   recomputeAllMastery,
   getLearnerStreak,
+  listClassBadges,
   getConsentsForParent,
   upsertConsent,
   hasActiveConsentForLearner,

@@ -1021,6 +1021,14 @@ app.get('/api/teacher/class/mastery', async (req, res) => {
   const rows = await db.listClassMastery({ limit: 50 });
   res.json({ enabled: true, rows: rows || [] });
 });
+// Class-wide badge roster (Feature 4 gamification visibility). Teacher / admin only.
+app.get('/api/teacher/class/badges', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listClassBadges({ limit: 30 });
+  res.json({ enabled: true, rows: rows || [] });
+});
 // Heat-map: pseudonym × skill matrix (Feature 5a). Teacher / admin only.
 app.get('/api/teacher/class/heatmap', async (req, res) => {
   const u = req.user;
