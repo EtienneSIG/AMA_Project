@@ -969,6 +969,21 @@ app.post('/api/learner/gamification/motivation', async (req, res) => {
   res.status(201).json({ row: r && r.rows[0] ? r.rows[0] : null });
 });
 
+app.get('/api/teacher/gamification/motivation', async (req, res) => {
+  const u = req.user;
+  if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db._query(
+    `SELECT id, class_key AS "classKey", email, display_name AS "displayName", message, status, created_at AS "createdAt"
+       FROM learner_motivation_messages
+      WHERE class_key = 'class-y7-fractions'
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    []
+  );
+  res.json({ enabled: true, rows: rows ? rows.rows : [] });
+});
+
 app.post('/api/teacher/gamification/motivation/:id/hide', async (req, res) => {
   const u = req.user;
   if (!['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher only' });
