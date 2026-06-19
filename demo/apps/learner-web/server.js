@@ -1684,5 +1684,407 @@ app.post('/api/teacher-questions/:id/answer', async (req, res) => {
   res.json({ row });
 });
 
+// ===========================================================================
+// Teacher Assessment, AI Rubric Assist & At-Risk Dashboards (Feature 008)
+// High-risk AI surface — EU AI Act Articles 5/9/10/13/14/15.
+// Invariants enforced here:
+//  * Art.5  prohibited-practice validator rejects emotion/biometric/autonomous-grading asks.
+//  * Art.14 every AI artifact is teacher-gated; nothing is assignable without approval.
+//  * Art.15 fail-closed: if Content Safety cannot run, generated text is held for review.
+//  * Art.13 transparency metadata attached to every AI response.
+//  * Art.10 data-minimisation: only objective hashes + bounded context are persisted.
+// All actions write an immutable audit_event row with a shared correlation id.
+// ===========================================================================
+
+function teacherOnly(u) { return u && ['teacher', 'admin'].includes(u.role); }
+
+// Art.5 prohibited-practice guard. Returns {ok:true} or {ok:false, reason}.
+const PROHIBITED_PATTERNS = [
+  { rx: /\b(emotion|affect|mood)\s+(recognition|detection|analysis)\b/i, reason: 'emotion_recognition' },
+  { rx: /\b(facial|face)\s+recognition\b/i, reason: 'facial_recognition' },
+  { rx: /\bbiometric\s+(categor|identif)/i, reason: 'biometric_categorisation' },
+  { rx: /\b(automatic|autonomous)\s+grad/i, reason: 'autonomous_grading' },
+  { rx: /\bgrade\s+(them|the\s+students?|learners?)\s+(automatically|without\s+(a\s+)?teacher)/i, reason: 'autonomous_grading' },
+  { rx: /\b(social\s+scoring|rank\s+children\s+by\s+behaviou?r)\b/i, reason: 'social_scoring' },
+  { rx: /\b(behaviou?ral\s+advertis|target\s+ads?\s+at\s+(children|students|learners))\b/i, reason: 'behavioural_advertising' }
+];
+function checkProhibitedPractice(text) {
+  const hit = PROHIBITED_PATTERNS.find(p => p.rx.test(String(text || '')));
+  return hit ? { ok: false, reason: hit.reason } : { ok: true };
+}
+
+// Art.13 transparency metadata attached to every AI-generated response.
+function transparencyMeta(extra) {
+  return Object.assign({
+    aiGenerated: true,
+    system: 'LearnEU Assessment Assist (high-risk per EU AI Act Annex III)',
+    humanOversight: 'A teacher must review and approve before any AI draft can be assigned to learners.',
+    notAutonomous: 'This system does not grade autonomously and performs no biometric or emotion analysis.',
+    dataResidency: 'Processing occurs in the EU (Azure West Europe). Objective prompts are stored only as hashes.',
+    modelDeployment: DEP
+  }, extra || {});
+}
+
+// Art.15 robustness: call APIM/AOAI with bounded context. Fail-closed on transport errors.
+async function callAssessmentModel(systemPrompt, userPrompt, maxTokens) {
+  if (!APIM || !KEY || KEY.startsWith('@Microsoft.KeyVault')) {
+    return { ok: false, reason: 'model_unavailable' };
+  }
+  const body = {
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: String(userPrompt || '').slice(0, 4000) }
+    ],
+    max_completion_tokens: Math.min(Number(maxTokens) || 700, 1500)
+  };
+  const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
+  try {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': KEY }, body: JSON.stringify(body) });
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('application/json')) {
+      return { ok: false, reason: 'model_error', status: r.status };
+    }
+    const data = await r.json();
+    return { ok: true, text: data?.choices?.[0]?.message?.content ?? '', model: data?.model || DEP };
+  } catch (e) {
+    return { ok: false, reason: 'model_error', detail: String(e && e.message || e) };
+  }
+}
+
+// Content Safety orchestration with fail-closed posture. Returns a normalised verdict.
+async function scanAssessmentText(text) {
+  const scan = await cs.analyze(text);
+  // Fail-closed: when CS is enabled but did not run, hold the content for manual review.
+  if (cs.enabled && !scan.ran) {
+    return { verdictStatus: 'flagged', requiresManualReview: true, blocked: false, severities: scan.severities || {}, ran: false };
+  }
+  return {
+    verdictStatus: scan.blocked ? 'blocked' : (scan.ran ? 'pass' : 'pass'),
+    requiresManualReview: Boolean(scan.blocked),
+    blocked: Boolean(scan.blocked),
+    severities: scan.severities || {},
+    raw: scan.raw,
+    ran: scan.ran
+  };
+}
+
+// ---- US1: Rubric authoring & scoring (T019-T029) --------------------------
+app.post('/api/teacher/assessments/rubrics', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const title = String(req.body?.title || '').trim();
+  const criteria = Array.isArray(req.body?.criteria) ? req.body.criteria : [];
+  if (!title) return res.status(400).json({ error: 'title required' });
+  if (criteria.length < 2 || criteria.length > 5) return res.status(400).json({ error: 'rubric requires 2-5 criteria' });
+  const row = await db.createRubric({
+    title, creatorTeacherId: u.email,
+    levelCount: req.body?.levelCount, criterionCount: criteria.length, criteria,
+    weightingMode: req.body?.weightingMode, sharedVisibility: req.body?.sharedVisibility
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  await db.recordAssessmentAudit({ eventType: 'rubric_created', actorId: u.email, actorRole: u.role, targetType: 'rubric', targetId: row.id, scope: { criterionCount: criteria.length, levelCount: row.level_count } });
+  res.status(201).json({ rubric: row });
+});
+
+app.get('/api/teacher/assessments/rubrics', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listRubrics({ creatorTeacherId: req.query.mine === '1' ? u.email : null, status: req.query.status || null, limit: 100 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+app.post('/api/teacher/assessments/rubrics/:id/publish', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const row = await db.publishRubric({ id: req.params.id });
+  if (!row) return res.status(404).json({ error: 'not found' });
+  await db.recordAssessmentAudit({ eventType: 'rubric_published', actorId: u.email, actorRole: u.role, targetType: 'rubric', targetId: row.id, scope: {} });
+  res.json({ rubric: row });
+});
+
+app.post('/api/teacher/assessments/rubrics/:id/score', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const learnerId = String(req.body?.learnerId || '').trim().toLowerCase();
+  if (!learnerId) return res.status(400).json({ error: 'learnerId required' });
+  const feedback = req.body?.teacherFeedbackText ? String(req.body.teacherFeedbackText) : null;
+  // All teacher feedback shown to learners is Content-Safety scanned.
+  let feedbackSafetyStatus = 'not_scanned';
+  if (feedback) {
+    const verdict = await scanAssessmentText(feedback);
+    feedbackSafetyStatus = verdict.verdictStatus;
+    await db.recordSafetyVerdict({ artifactId: null, contentType: 'teacher_feedback', categoryScores: verdict.severities, flaggedCategories: verdict.blocked ? ['blocked'] : [], verdictStatus: verdict.verdictStatus, requiresManualReview: verdict.requiresManualReview });
+    if (verdict.blocked) return res.status(400).json({ error: 'feedback_blocked', detail: 'Your feedback was flagged by Azure AI Content Safety.', severities: verdict.severities });
+  }
+  const row = await db.recordRubricScore({
+    rubricId: req.params.id, learnerId, assessmentId: req.body?.assessmentId || null,
+    criterionScores: req.body?.criterionScores, overallLevel: req.body?.overallLevel,
+    masteryPercent: req.body?.masteryPercent, teacherFeedbackText: feedback,
+    feedbackSafetyStatus, scoredByTeacherId: u.email
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  await db.recordAssessmentAudit({ eventType: 'rubric_scored', actorId: u.email, actorRole: u.role, targetType: 'rubric_score', targetId: row.id, scope: { rubricId: req.params.id, learnerId, masteryPercent: row.mastery_percent } });
+  res.status(201).json({ score: row });
+});
+
+app.get('/api/teacher/assessments/rubrics/:id/scores', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listRubricScores({ rubricId: req.params.id, limit: 200 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+// ---- US4: AI generation + mandatory teacher approval gate (T057-T068) -----
+app.post('/api/teacher/assessments/generate', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const artifactType = String(req.body?.artifactType || 'rubric');
+  const objective = String(req.body?.objective || '').trim();
+  if (!objective) return res.status(400).json({ error: 'objective required' });
+
+  // Art.5 prohibited-practice deterministic refusal (fail-closed, audited).
+  const guard = checkProhibitedPractice(objective);
+  if (!guard.ok) {
+    await db.recordAssessmentAudit({ eventType: 'ai_generation_refused', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: 'n/a', scope: { reason: guard.reason }, outcome: 'refused' });
+    return res.status(422).json({ error: 'prohibited_practice', reason: guard.reason, detail: 'This request describes a prohibited AI practice and cannot be generated.', transparency: transparencyMeta() });
+  }
+
+  // Input scan of the objective text.
+  const inputVerdict = await scanAssessmentText(objective);
+  if (inputVerdict.blocked) {
+    await db.recordAssessmentAudit({ eventType: 'ai_generation_refused', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: 'n/a', scope: { reason: 'input_blocked' }, outcome: 'refused' });
+    return res.status(400).json({ error: 'input_blocked', detail: 'Your objective was flagged by Azure AI Content Safety.', severities: inputVerdict.severities });
+  }
+
+  // Governed template selection (cache-aware).
+  const family = artifactType === 'question_set' ? 'question_set' : (artifactType === 'remediation_suggestion' ? 'remediation' : 'rubric');
+  const tpl = await db.getTemplateCacheEntry({ cacheKey: `${family}:default:en` });
+  const templateVersion = tpl ? tpl.template_version : 'builtin-v1';
+  const sysPrompt = (tpl && tpl.template_text) || (
+    family === 'rubric'
+      ? 'You are a pedagogy assistant helping a teacher draft an assessment rubric. Produce a clear rubric with 3-5 mastery levels and 2-5 criteria as a JSON object. Use age-appropriate, neutral, inclusive language. Never grade students; only draft. Output must be reviewed by a teacher.'
+      : family === 'question_set'
+        ? 'You are a pedagogy assistant drafting a short set of practice questions for a teacher to review. Use age-appropriate, neutral, inclusive language. Provide questions with model answers. The teacher will review before any use.'
+        : 'You are a pedagogy assistant suggesting remediation activities for learners below a mastery threshold. Provide concrete, age-appropriate scaffolding steps for a teacher to review.'
+  );
+
+  const gen = await callAssessmentModel(sysPrompt, objective, req.body?.maxTokens);
+  if (!gen.ok) {
+    // Art.15 fail-closed: surface unavailability, do not fabricate.
+    await db.recordAssessmentAudit({ eventType: 'ai_generation_failed', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: 'n/a', scope: { reason: gen.reason }, outcome: 'error' });
+    return res.status(503).json({ error: gen.reason, detail: 'The generation model is unavailable. No draft was produced.', transparency: transparencyMeta() });
+  }
+
+  // Output scan of the generated text.
+  const outVerdict = await scanAssessmentText(gen.text);
+  const safetyStatus = outVerdict.blocked ? 'blocked' : (outVerdict.requiresManualReview ? 'flagged' : 'pass');
+
+  // Persist as a NON-assignable draft (data-minimised: objective stored as a hash only).
+  const artifact = await db.createAIArtifact({
+    artifactType: family === 'remediation' ? 'remediation_suggestion' : (family === 'question_set' ? 'question_set' : 'rubric'),
+    objectiveText: objective,
+    boundedPromptContext: { gradeTag: req.body?.gradeTag || null, subjectTag: req.body?.subjectTag || null, locale: req.body?.locale || 'en' },
+    modelDeployment: DEP, modelVersion: gen.model,
+    generatedText: outVerdict.blocked ? '' : gen.text,
+    templateVersion, createdByTeacherId: u.email,
+    safetyStatus, generationStatus: 'safety_reviewed'
+  });
+  await db.recordSafetyVerdict({
+    artifactId: artifact ? artifact.id : null,
+    contentType: family === 'rubric' ? 'generated_rubric' : (family === 'question_set' ? 'generated_question_set' : 'remediation_suggestion'),
+    categoryScores: outVerdict.severities, flaggedCategories: outVerdict.blocked ? ['blocked'] : (outVerdict.requiresManualReview ? ['manual_review'] : []),
+    verdictStatus: outVerdict.verdictStatus, requiresManualReview: outVerdict.requiresManualReview
+  });
+  const cid = await db.recordAssessmentAudit({ eventType: 'ai_generated', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: artifact ? artifact.id : 'n/a', scope: { artifactType: family, safetyStatus, templateVersion } });
+
+  // Optionally log to the central content-safety telemetry table too.
+  db.logContentSafety({ email: u.email, app: APP_NAME, direction: 'output', blocked: outVerdict.blocked, severities: outVerdict.severities, raw: outVerdict.raw }).catch(() => {});
+
+  res.status(201).json({
+    artifact: artifact ? { id: artifact.id, artifactType: artifact.artifact_type, generationStatus: artifact.generation_status, safetyStatus: artifact.safety_status, approvedForAssignment: artifact.approved_for_assignment, generatedText: outVerdict.blocked ? null : gen.text } : null,
+    correlationId: cid,
+    transparency: transparencyMeta({ requiresApproval: true }),
+    notice: 'This is an unapproved AI draft. Review and approve it before assigning to learners.'
+  });
+});
+
+app.get('/api/teacher/assessments/generated', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listAIArtifacts({ createdByTeacherId: req.query.mine === '1' ? u.email : null, generationStatus: req.query.status || null, limit: 100 });
+  res.json({ enabled: true, rows: rows || [], transparency: transparencyMeta() });
+});
+
+app.get('/api/teacher/assessments/generated/:id', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const a = await db.getAIArtifact({ id: req.params.id });
+  if (!a) return res.status(404).json({ error: 'not found' });
+  const approvals = await db.listTeacherApprovals({ artifactId: a.id });
+  res.json({ artifact: a, approvals: approvals || [], assignable: await db.isArtifactAssignable({ artifactId: a.id }), transparency: transparencyMeta() });
+});
+
+app.post('/api/teacher/assessments/generated/:id/decision', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const a = await db.getAIArtifact({ id: req.params.id });
+  if (!a) return res.status(404).json({ error: 'not found' });
+  const decision = String(req.body?.decision || '').toLowerCase();
+  if (!['approve', 'reject', 'needs_edit'].includes(decision)) return res.status(400).json({ error: 'decision must be approve|reject|needs_edit' });
+  // Mandatory teacher-approval gate: blocked content can never be approved for assignment.
+  const approvedForAssignment = decision === 'approve' && a.safety_status !== 'blocked' && req.body?.approvedForAssignment !== false;
+  if (decision === 'approve' && a.safety_status === 'blocked') {
+    return res.status(409).json({ error: 'cannot_approve_blocked', detail: 'Content Safety blocked this artifact; it cannot be approved for assignment.' });
+  }
+  const row = await db.recordTeacherApproval({
+    artifactId: a.id, teacherId: u.email, decision,
+    decisionReason: req.body?.decisionReason, editedText: req.body?.editedText,
+    approvedForAssignment
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  await db.recordAssessmentAudit({ eventType: 'ai_artifact_decision', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: a.id, scope: { decision, approvedForAssignment }, outcome: decision });
+  res.status(201).json({ approval: row, assignable: await db.isArtifactAssignable({ artifactId: a.id }) });
+});
+
+app.post('/api/teacher/assessments/generated/:id/assign', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const assignable = await db.isArtifactAssignable({ artifactId: req.params.id });
+  if (!assignable) return res.status(409).json({ error: 'not_assignable', detail: 'This artifact has not been approved by a teacher for assignment.' });
+  await db.updateAIArtifactStatus({ id: req.params.id, generationStatus: 'assigned' });
+  await db.recordAssessmentAudit({ eventType: 'ai_artifact_assigned', actorId: u.email, actorRole: u.role, targetType: 'ai_artifact', targetId: req.params.id, scope: { classId: req.body?.classId || null } });
+  res.json({ ok: true, transparency: transparencyMeta() });
+});
+
+// ---- US2: Shared assessment library & copy isolation (T038-T047) ----------
+app.get('/api/teacher/library', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listSharedAssessments({
+    gradeTag: req.query.grade || null, subjectTag: req.query.subject || null,
+    skillTag: req.query.skill || null, difficultyLevel: req.query.difficulty || null,
+    search: req.query.q || null, limit: 100
+  });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+app.post('/api/teacher/library', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const title = String(req.body?.title || '').trim();
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const row = await db.createSharedAssessment({
+    sourceAssessmentId: req.body?.sourceAssessmentId || null, ownerTeacherId: u.email, title,
+    description: req.body?.description, gradeTag: req.body?.gradeTag, subjectTag: req.body?.subjectTag,
+    skillTags: req.body?.skillTags, difficultyLevel: req.body?.difficultyLevel,
+    governanceOwnerId: req.body?.governanceOwnerId, payload: req.body?.payload
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  await db.recordAssessmentAudit({ eventType: 'assessment_published', actorId: u.email, actorRole: u.role, targetType: 'shared_assessment', targetId: row.id, scope: { difficulty: row.difficulty_level } });
+  res.status(201).json({ sharedAssessment: row });
+});
+
+app.post('/api/teacher/library/:id/copy', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const classId = String(req.body?.destinationClassId || '').trim();
+  if (!classId) return res.status(400).json({ error: 'destinationClassId required' });
+  const copy = await db.copySharedAssessment({
+    sharedAssessmentId: req.params.id, destinationClassId: classId, copiedByTeacherId: u.email,
+    dueDate: req.body?.dueDate || null, localizedEdits: req.body?.localizedEdits, curriculumMapping: req.body?.curriculumMapping
+  });
+  if (!copy) return res.status(404).json({ error: 'shared assessment not found' });
+  await db.recordAssessmentAudit({ eventType: 'assessment_copied', actorId: u.email, actorRole: u.role, targetType: 'assessment_copy', targetId: copy.id, scope: { sharedAssessmentId: req.params.id, destinationClassId: classId } });
+  res.status(201).json({ copy, notice: 'This is an isolated copy. Edits here do not affect the shared library source.' });
+});
+
+// ---- US3: Remediation groups & progress (T048-T056) -----------------------
+app.post('/api/teacher/remediation/groups', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const classId = String(req.body?.classId || '').trim();
+  if (!classId) return res.status(400).json({ error: 'classId required' });
+  const row = await db.createRemediationGroup({
+    classId, createdByTeacherId: u.email, title: req.body?.title,
+    thresholdRule: req.body?.thresholdRule, learnerMembers: req.body?.learnerMembers, sequenceDefinition: req.body?.sequenceDefinition
+  });
+  if (!row) return res.status(500).json({ error: 'insert failed' });
+  await db.recordAssessmentAudit({ eventType: 'remediation_group_created', actorId: u.email, actorRole: u.role, targetType: 'remediation_group', targetId: row.id, scope: { classId, memberCount: Array.isArray(req.body?.learnerMembers) ? req.body.learnerMembers.length : 0 } });
+  res.status(201).json({ group: row });
+});
+
+app.get('/api/teacher/remediation/groups', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listRemediationGroups({ classId: req.query.classId || null, limit: 100 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+app.post('/api/teacher/remediation/groups/:id/progress', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.status(503).json({ error: 'database not configured' });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const learnerId = String(req.body?.learnerId || '').trim().toLowerCase();
+  const stepId = String(req.body?.stepId || '').trim();
+  if (!learnerId || !stepId) return res.status(400).json({ error: 'learnerId and stepId required' });
+  const row = await db.upsertRemediationProgress({
+    remediationGroupId: req.params.id, learnerId, stepId,
+    stepStatus: req.body?.stepStatus, reassessmentScore: req.body?.reassessmentScore, clearedFlag: req.body?.clearedFlag
+  });
+  if (!row) return res.status(500).json({ error: 'upsert failed' });
+  await db.recordAssessmentAudit({ eventType: 'remediation_progress_updated', actorId: u.email, actorRole: u.role, targetType: 'remediation_progress', targetId: row.id, scope: { learnerId, stepId, stepStatus: row.step_status, cleared: row.cleared_flag } });
+  res.json({ progress: row });
+});
+
+app.get('/api/teacher/remediation/groups/:id/progress', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const rows = await db.listRemediationProgress({ remediationGroupId: req.params.id, limit: 500 });
+  res.json({ enabled: true, rows: rows || [] });
+});
+
+// ---- US5: At-risk dashboard (advisory only) (T030-T037) -------------------
+app.get('/api/teacher/analytics/at-risk', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled) return res.json({ enabled: false });
+  if (!teacherOnly(u)) return res.status(403).json({ error: 'teacher only' });
+  const classId = String(req.query.classId || 'demo-class').trim();
+  // Derive an advisory snapshot from class mastery. The dashboard NEVER mutates learner
+  // records — it is decision-support for the teacher (EU AI Act Art.14 human oversight).
+  const mastery = await db.listClassMastery({ limit: 60 }) || [];
+  const atRisk = mastery.filter(m => Number(m.level != null ? m.level : (m.mastery || 0)) < 0.5);
+  const avg = mastery.length ? Math.round(mastery.reduce((s, m) => s + Number(m.level != null ? m.level : (m.mastery || 0)), 0) / mastery.length * 100) : 0;
+  const snapshot = await db.upsertDashboardSnapshot({
+    classId, topicId: req.query.topicId || null, masteryPercent: avg, completionRate: avg,
+    atRiskCount: atRisk.length, ungradedCount: 0,
+    recommendationSummary: atRisk.length ? `${atRisk.length} learner(s) below 50% mastery — consider a remediation group.` : 'No learners currently flagged at-risk.'
+  });
+  await db.recordAssessmentAudit({ eventType: 'at_risk_dashboard_viewed', actorId: u.email, actorRole: u.role, targetType: 'dashboard', targetId: classId, scope: { atRiskCount: atRisk.length, advisory: true } });
+  res.json({
+    enabled: true,
+    classId,
+    snapshot,
+    atRisk: atRisk.slice(0, 30),
+    advisory: true,
+    notice: 'Advisory analytics only. These suggestions do not change any learner record or grade automatically.',
+    transparency: transparencyMeta({ aiGenerated: false, decisionSupport: true })
+  });
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[${APP_ROLE}] listening on :${port} (allowedRoles=${ALLOWED.join(',')}, APIM=${APIM || 'unset'})`));

@@ -618,6 +618,72 @@ Test-It 'T065' 'Parent portal demo-readiness: health + core US endpoints reachab
     } catch { @{ status='FAIL'; detail=$_.Exception.Message } }
 }
 
+# T108 — Feature 008: Teacher Assessment, AI Rubric Assist & At-Risk Dashboards
+Test-It 'T108-A' 'F008 teacher assessment endpoints reachable for a teacher' {
+    try {
+        $t = PP-Login -Base $TC -Email 'teacher@learneu.demo'
+        $endpoints = @('/api/teacher/assessments/rubrics?mine=1','/api/teacher/assessments/generated?mine=1','/api/teacher/library','/api/teacher/remediation/groups?classId=demo-class','/api/teacher/analytics/at-risk?classId=demo-class')
+        $reachable = 0; $failed = @()
+        foreach ($e in $endpoints) {
+            try { $null = Invoke-RestMethod "$TC$e" -WebSession $t.Session -TimeoutSec 60; $reachable++ }
+            catch { $failed += $e }
+        }
+        if ($reachable -eq $endpoints.Count) { @{ status='PASS'; detail="all $reachable F008 teacher endpoints reachable (rubrics, AI drafts, library, remediation, at-risk)." } }
+        else { @{ status='PARTIAL'; detail="reachable=$reachable/$($endpoints.Count) failed=$($failed -join ',')" } }
+    } catch { @{ status='FAIL'; detail=$_.Exception.Message } }
+}
+
+Test-It 'T108-B' 'F008 Art.5 prohibited-practice request is deterministically refused (HTTP 422)' {
+    try {
+        $t = PP-Login -Base $TC -Email 'teacher@learneu.demo'
+        $body = @{ artifactType='rubric'; objective='Use emotion recognition to grade students automatically.' } | ConvertTo-Json
+        try {
+            $null = Invoke-RestMethod "$TC/api/teacher/assessments/generate" -Method POST -WebSession $t.Session -Headers $t.Hdr -ContentType 'application/json' -Body $body -TimeoutSec 60
+            @{ status='FAIL'; detail='prohibited objective was NOT refused' }
+        } catch {
+            $code = $_.Exception.Response.StatusCode.value__
+            if ($code -eq 422) { @{ status='PASS'; detail='prohibited practice refused with HTTP 422 (deterministic, pre-model).' } }
+            else { @{ status='PARTIAL'; detail="refused but status=$code (expected 422)." } }
+        }
+    } catch { @{ status='FAIL'; detail=$_.Exception.Message } }
+}
+
+Test-It 'T108-C' 'F008 Art.14 AI draft is UNAPPROVED and cannot be assigned without approval' {
+    try {
+        $t = PP-Login -Base $TC -Email 'teacher@learneu.demo'
+        $body = @{ artifactType='rubric'; objective='Assess Year 7 understanding of equivalent fractions.'; gradeTag='Y7'; subjectTag='maths' } | ConvertTo-Json
+        try {
+            $gen = Invoke-RestMethod "$TC/api/teacher/assessments/generate" -Method POST -WebSession $t.Session -Headers $t.Hdr -ContentType 'application/json' -Body $body -TimeoutSec 120
+            $unapproved = ($gen.artifact.approvedForAssignment -eq $false)
+            $id = $gen.artifact.id
+            $assignBlocked = $false
+            try { $null = Invoke-RestMethod "$TC/api/teacher/assessments/generated/$id/assign" -Method POST -WebSession $t.Session -Headers $t.Hdr -ContentType 'application/json' -Body (@{classId='demo-class'} | ConvertTo-Json) -TimeoutSec 60 }
+            catch { if ($_.Exception.Response.StatusCode.value__ -eq 409) { $assignBlocked = $true } }
+            if ($unapproved -and $assignBlocked) { @{ status='PASS'; detail='draft created UNAPPROVED; /assign returned 409 until a teacher approves (human-oversight gate enforced).' } }
+            else { @{ status='PARTIAL'; detail="unapproved=$unapproved assignBlocked=$assignBlocked" } }
+        } catch {
+            $code = $_.Exception.Response.StatusCode.value__
+            if ($code -eq 503) { @{ status='PARTIAL'; detail='generation model unavailable (503) — fail-closed posture verified; approval gate untested this run.' } }
+            else { @{ status='FAIL'; detail="generate failed status=$code $($_.Exception.Message)" } }
+        }
+    } catch { @{ status='FAIL'; detail=$_.Exception.Message } }
+}
+
+Test-It 'T108-D' 'F008 US1 rubric create + publish; US5 dashboard is advisory-only' {
+    try {
+        $t = PP-Login -Base $TC -Email 'teacher@learneu.demo'
+        $rb = @{ title='Fractions rubric (acceptance)'; levelCount=4; criteria=@(@{name='Concept'},@{name='Method'},@{name='Communication'}) } | ConvertTo-Json -Depth 5
+        $created = Invoke-RestMethod "$TC/api/teacher/assessments/rubrics" -Method POST -WebSession $t.Session -Headers $t.Hdr -ContentType 'application/json' -Body $rb -TimeoutSec 60
+        $rid = $created.rubric.id
+        $pub = Invoke-RestMethod "$TC/api/teacher/assessments/rubrics/$rid/publish" -Method POST -WebSession $t.Session -Headers $t.Hdr -ContentType 'application/json' -Body '{}' -TimeoutSec 60
+        $publishedOk = ($pub.rubric.status -eq 'published')
+        $dash = Invoke-RestMethod "$TC/api/teacher/analytics/at-risk?classId=demo-class" -WebSession $t.Session -TimeoutSec 60
+        $advisoryOk = ($dash.advisory -eq $true -and $dash.notice)
+        if ($publishedOk -and $advisoryOk) { @{ status='PASS'; detail="rubric created+published; at-risk dashboard flagged advisory-only (no auto-changes)." } }
+        else { @{ status='PARTIAL'; detail="publishedOk=$publishedOk advisoryOk=$advisoryOk" } }
+    } catch { @{ status='FAIL'; detail=$_.Exception.Message } }
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Acceptance summary ===" -ForegroundColor Cyan

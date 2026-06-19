@@ -198,6 +198,7 @@
   <button class="tab-btn active" data-tab-btn="ask" onclick="setTab('ask')" role="tab">💬 Ask the assistant</button>
   <button class="tab-btn" data-tab-btn="inbox" onclick="setTab('inbox')" role="tab">📥 Learner inbox <span class="badge-count" id="inboxBadge">0</span></button>
   <button class="tab-btn" data-tab-btn="class" onclick="setTab('class')" role="tab">🧑‍🏫 Class dashboard</button>
+  <button class="tab-btn" data-tab-btn="assessment" onclick="setTab('assessment')" role="tab">📝 Assessment</button>
   <button class="tab-btn" data-tab-btn="audit" onclick="setTab('audit')" role="tab">🛡️ Oversight & audit</button>
 </nav>
 <div data-tab="ask" class="active">
@@ -320,6 +321,79 @@
   </div>
 </section>
 </div>
+<div data-tab="assessment">
+<section style="max-width:1320px;margin:0 auto 2rem;padding:0 1.5rem;">
+  <div class="card" style="margin-bottom:1rem;border-left:4px solid var(--orange);">
+    <h2>AI Assessment Assist <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">high-risk AI · EU AI Act Annex III §3</span></h2>
+    <p class="sub" style="font-size:.85rem;margin:.25rem 0 .6rem;opacity:.85;">Every AI draft below is <strong>unapproved</strong> until you review it. Nothing reaches a learner without your explicit approval. This system never grades autonomously and performs no emotion or biometric analysis.</p>
+  </div>
+
+  <!-- US4: AI generation + approval gate -->
+  <div class="card" id="genCard" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>Generate a draft</h2></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0;">
+      <select id="genType" style="max-width:200px;">
+        <option value="rubric">Rubric</option>
+        <option value="question_set">Question set</option>
+        <option value="remediation_suggestion">Remediation suggestion</option>
+      </select>
+      <input id="genGrade" placeholder="Grade (e.g. Y7)" style="max-width:130px;" />
+      <input id="genSubject" placeholder="Subject (e.g. maths)" style="max-width:150px;" />
+    </div>
+    <textarea id="genObjective" rows="3" placeholder="Learning objective, e.g. 'Assess Year 7 understanding of equivalent fractions.'" style="width:100%;padding:.55rem .65rem;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:.88rem;">Assess Year 7 understanding of equivalent fractions.</textarea>
+    <div class="row" style="margin-top:.5rem;"><button class="btn" onclick="generateArtifact()">Generate draft</button></div>
+    <div id="genStatus" class="sub" style="font-size:.82rem;min-height:1rem;margin:.4rem 0;"></div>
+    <div id="genResult"></div>
+  </div>
+
+  <div class="card" id="artifactsCard" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>My AI drafts <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">approve before assigning</span></h2><button class="btn btn-sm secondary" onclick="loadArtifacts()">Refresh</button></div>
+    <div id="artifactsList" style="display:flex;flex-direction:column;gap:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+
+  <!-- US1: Rubric authoring -->
+  <div class="card" id="rubricCard" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>Rubrics</h2><button class="btn btn-sm secondary" onclick="loadRubrics()">Refresh</button></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0;">
+      <input id="rubTitle" placeholder="Rubric title" style="flex:1;min-width:220px;" />
+      <select id="rubLevels" style="max-width:120px;"><option value="3">3 levels</option><option value="4" selected>4 levels</option><option value="5">5 levels</option></select>
+      <input id="rubCriteria" placeholder="Criteria, comma-separated" style="flex:2;min-width:260px;" value="Conceptual understanding, Method, Communication" />
+      <button class="btn" onclick="createRubric()">Create rubric</button>
+    </div>
+    <div id="rubStatus" class="sub" style="font-size:.82rem;min-height:1rem;"></div>
+    <div id="rubricsList" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+
+  <!-- US5: At-risk dashboard (advisory) -->
+  <div class="card" id="atRiskCard" style="margin-bottom:1rem;border-left:4px solid var(--teal);">
+    <div class="explhead"><h2>At-risk dashboard <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">advisory only · no auto-changes</span></h2><button class="btn btn-sm secondary" onclick="loadAtRisk()">Refresh</button></div>
+    <p class="sub" style="font-size:.82rem;opacity:.8;margin:.2rem 0 .5rem;">Decision-support for you. Nothing here changes a learner's record or grade automatically.</p>
+    <div id="atRiskBody"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+
+  <!-- US2: Shared library -->
+  <div class="card" id="libraryCard" style="margin-bottom:1rem;">
+    <div class="explhead"><h2>Shared assessment library</h2><button class="btn btn-sm secondary" onclick="loadLibrary()">Refresh</button></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0;">
+      <input id="libSearch" placeholder="Search title/description…" style="flex:1;min-width:220px;" oninput="loadLibrary()" />
+      <select id="libDifficulty" onchange="loadLibrary()" style="max-width:150px;"><option value="">all levels</option><option value="support">support</option><option value="core">core</option><option value="stretch">stretch</option></select>
+    </div>
+    <div id="libraryList" style="display:flex;flex-direction:column;gap:.45rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+
+  <!-- US3: Remediation groups -->
+  <div class="card" id="remediationCard">
+    <div class="explhead"><h2>Remediation groups</h2><button class="btn btn-sm secondary" onclick="loadRemediation()">Refresh</button></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.4rem 0;">
+      <input id="remTitle" placeholder="Group title" style="flex:1;min-width:200px;" value="Fractions catch-up" />
+      <input id="remClass" placeholder="Class id" style="max-width:150px;" value="demo-class" />
+      <button class="btn" onclick="createRemediationGroup()">Create group</button>
+    </div>
+    <div id="remStatus" class="sub" style="font-size:.82rem;min-height:1rem;"></div>
+    <div id="remediationList" style="display:flex;flex-direction:column;gap:.45rem;margin-top:.5rem;"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+</section>
+</div>
 <div class="modal-bg" id="overrideModal" onclick="if(event.target.id==='overrideModal')closeOverrideModal()">
   <div class="modal" role="dialog" aria-label="Override mastery level">
     <h2>Override mastery <span class="sub" id="ovrCtx" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -410,6 +484,7 @@ function setTab(name) {
   document.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('active', b.dataset.tabBtn === name));
   document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
   try { history.replaceState(null, '', '#' + name); } catch (_) {}
+  if (name === 'assessment' && typeof loadAssessmentTab === 'function') loadAssessmentTab();
 }
 
 async function refreshStatus() {
@@ -608,7 +683,7 @@ window.addEventListener('load', () => {
   loadGamificationOverrides();
   // Optional deep-link: #ask|#inbox|#class|#audit
   const h = (location.hash || '').replace('#','');
-  if (['ask','inbox','class','audit'].includes(h)) setTab(h);
+  if (['ask','inbox','class','audit','assessment'].includes(h)) setTab(h);
 });
 
 // --- Learner Q&A inbox (teacher view) -----------------------------------
@@ -967,6 +1042,198 @@ async function showSkillDetail(idEnc) {
       + '</div>';
   } catch (e) { box.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
 }
+
+// ===========================================================================
+// Feature 008 — Teacher Assessment, AI Rubric Assist & At-Risk Dashboards
+// ===========================================================================
+let assessmentLoaded = false;
+function loadAssessmentTab() {
+  if (assessmentLoaded) return;
+  assessmentLoaded = true;
+  loadArtifacts(); loadRubrics(); loadAtRisk(); loadLibrary(); loadRemediation();
+}
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  let d = {}; try { d = await r.json(); } catch (_) {}
+  return { ok: r.ok, status: r.status, data: d };
+}
+function transparencyBanner(t) {
+  if (!t) return '';
+  return '<div style="margin:.4rem 0;padding:.5rem .7rem;background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;font-size:.78rem;color:#9A3412;">🤖 <strong>AI transparency:</strong> '
+    + escapeHtml(t.humanOversight || 'A teacher must review before assigning.') + ' ' + escapeHtml(t.notAutonomous || '') + '</div>';
+}
+
+// --- US4: AI generation + approval gate ---
+async function generateArtifact() {
+  const st = document.getElementById('genStatus');
+  const res = document.getElementById('genResult');
+  st.textContent = 'Generating draft…'; res.innerHTML = '';
+  const body = {
+    artifactType: document.getElementById('genType').value,
+    objective: document.getElementById('genObjective').value,
+    gradeTag: document.getElementById('genGrade').value || null,
+    subjectTag: document.getElementById('genSubject').value || null
+  };
+  const { ok, status, data } = await postJSON('/api/teacher/assessments/generate', body);
+  if (!ok) {
+    if (status === 422) { st.innerHTML = '<span style="color:#b00020;">⛔ Refused (prohibited AI practice: ' + escapeHtml(data.reason || '') + '). ' + escapeHtml(data.detail || '') + '</span>'; }
+    else { st.innerHTML = '<span style="color:#b00020;">' + escapeHtml(data.detail || data.error || 'Generation failed') + '</span>'; }
+    return;
+  }
+  st.textContent = '';
+  const a = data.artifact || {};
+  res.innerHTML = transparencyBanner(data.transparency)
+    + '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.7rem;background:#F8FAFC;">'
+    + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + escapeHtml(a.artifactType || '') + ' · safety: ' + escapeHtml(a.safetyStatus || '') + ' · <strong style="color:#9A3412;">UNAPPROVED</strong></div>'
+    + '<pre style="white-space:pre-wrap;font-size:.82rem;margin:.4rem 0;">' + escapeHtml(a.generatedText || '(content withheld by Content Safety)') + '</pre>'
+    + '<div class="sub" style="font-size:.8rem;color:#9A3412;">' + escapeHtml(data.notice || '') + '</div></div>';
+  loadArtifacts();
+}
+async function loadArtifacts() {
+  const list = document.getElementById('artifactsList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/assessments/generated?mine=1', { cache: 'no-store' });
+    const d = await r.json();
+    const rows = d.rows || [];
+    if (!rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No AI drafts yet.</div>'; return; }
+    list.innerHTML = rows.map(a => {
+      const approved = a.approved_for_assignment;
+      const status = a.generation_status;
+      const blocked = a.safety_status === 'blocked';
+      const btns = approved
+        ? '<button class="btn btn-sm" onclick="assignArtifact(\'' + a.id + '\')">Assign to class</button>'
+        : (blocked
+            ? '<span class="sub" style="color:#b00020;font-size:.78rem;">Blocked by Content Safety — cannot approve</span>'
+            : '<button class="btn btn-sm" onclick="decideArtifact(\'' + a.id + '\',\'approve\')">Approve</button>'
+              + ' <button class="btn btn-sm secondary" onclick="decideArtifact(\'' + a.id + '\',\'needs_edit\')">Needs edit</button>'
+              + ' <button class="btn btn-sm ghost" onclick="decideArtifact(\'' + a.id + '\',\'reject\')">Reject</button>');
+      const badge = approved ? '<span style="color:#15803D;font-weight:700;">✓ Approved</span>'
+        : '<span style="color:#9A3412;font-weight:700;">⏳ Unapproved</span>';
+      return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.6rem;">'
+        + '<div class="sub" style="font-size:.8rem;">' + escapeHtml(a.artifact_type) + ' · safety ' + escapeHtml(a.safety_status) + ' · ' + escapeHtml(status) + ' · ' + badge + '</div>'
+        + '<pre style="white-space:pre-wrap;font-size:.8rem;margin:.4rem 0;max-height:120px;overflow:auto;">' + escapeHtml((a.generated_text || '').slice(0, 600)) + '</pre>'
+        + '<div style="display:flex;gap:.4rem;flex-wrap:wrap;">' + btns + '</div></div>';
+    }).join('');
+  } catch (e) { list.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+async function decideArtifact(id, decision) {
+  let reason = null;
+  if (decision !== 'approve') { reason = prompt('Reason for "' + decision + '":', ''); }
+  const { ok, data } = await postJSON('/api/teacher/assessments/generated/' + id + '/decision', { decision, decisionReason: reason });
+  if (!ok) { alert(data.detail || data.error || 'Decision failed'); return; }
+  loadArtifacts();
+}
+async function assignArtifact(id) {
+  const { ok, data } = await postJSON('/api/teacher/assessments/generated/' + id + '/assign', { classId: 'demo-class' });
+  if (!ok) { alert(data.detail || data.error || 'Cannot assign — not approved'); return; }
+  loadArtifacts();
+}
+
+// --- US1: Rubrics ---
+async function createRubric() {
+  const st = document.getElementById('rubStatus');
+  const criteria = (document.getElementById('rubCriteria').value || '').split(',').map(s => s.trim()).filter(Boolean);
+  st.textContent = 'Saving…';
+  const { ok, data } = await postJSON('/api/teacher/assessments/rubrics', {
+    title: document.getElementById('rubTitle').value,
+    levelCount: Number(document.getElementById('rubLevels').value),
+    criteria: criteria.map(name => ({ name }))
+  });
+  if (!ok) { st.innerHTML = '<span style="color:#b00020;">' + escapeHtml(data.error || 'Failed') + '</span>'; return; }
+  st.textContent = ''; loadRubrics();
+}
+async function loadRubrics() {
+  const list = document.getElementById('rubricsList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/assessments/rubrics?mine=1', { cache: 'no-store' });
+    const d = await r.json();
+    const rows = d.rows || [];
+    if (!rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No rubrics yet.</div>'; return; }
+    list.innerHTML = rows.map(x => '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.55rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;">'
+      + '<div><strong>' + escapeHtml(x.title) + '</strong> <span class="sub" style="font-size:.76rem;color:var(--grey);">' + x.level_count + ' levels · ' + x.criterion_count + ' criteria · ' + escapeHtml(x.status) + '</span></div>'
+      + (x.status !== 'published' ? '<button class="btn btn-sm secondary" onclick="publishRubric(\'' + x.id + '\')">Publish</button>' : '<span style="color:#15803D;font-size:.78rem;">✓ published</span>')
+      + '</div>').join('');
+  } catch (e) { list.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+async function publishRubric(id) {
+  const { ok } = await postJSON('/api/teacher/assessments/rubrics/' + id + '/publish', {});
+  if (ok) loadRubrics();
+}
+
+// --- US5: At-risk dashboard (advisory) ---
+async function loadAtRisk() {
+  const box = document.getElementById('atRiskBody');
+  if (!box) return;
+  try {
+    const r = await fetch('/api/teacher/analytics/at-risk?classId=demo-class', { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.enabled) { box.innerHTML = '<div class="sub" style="opacity:.7;">Database not configured.</div>'; return; }
+    const s = d.snapshot || {};
+    box.innerHTML = '<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;">'
+      + '<div><div style="font-size:1.6rem;font-weight:800;color:var(--navy);">' + (s.mastery_percent != null ? s.mastery_percent : '—') + '%</div><div class="sub" style="font-size:.74rem;">avg mastery</div></div>'
+      + '<div><div style="font-size:1.6rem;font-weight:800;color:#b00020;">' + (s.at_risk_count != null ? s.at_risk_count : '—') + '</div><div class="sub" style="font-size:.74rem;">at-risk learners</div></div>'
+      + '</div>'
+      + '<div class="sub" style="font-size:.84rem;color:#9A3412;">' + escapeHtml(s.recommendation_summary || '') + '</div>'
+      + '<div class="sub" style="font-size:.78rem;opacity:.7;margin-top:.4rem;">' + escapeHtml(d.notice || '') + '</div>';
+  } catch (e) { box.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+
+// --- US2: Shared library ---
+async function loadLibrary() {
+  const list = document.getElementById('libraryList');
+  if (!list) return;
+  try {
+    const params = new URLSearchParams();
+    const q = document.getElementById('libSearch').value; if (q) params.set('q', q);
+    const diff = document.getElementById('libDifficulty').value; if (diff) params.set('difficulty', diff);
+    const r = await fetch('/api/teacher/library?' + params.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    const rows = d.rows || [];
+    if (!rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No shared assessments. <button class="btn btn-sm secondary" onclick="seedLibrary()">Publish a sample</button></div>'; return; }
+    list.innerHTML = rows.map(x => '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.55rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;">'
+      + '<div><strong>' + escapeHtml(x.title) + '</strong> <span class="sub" style="font-size:.76rem;color:var(--grey);">' + escapeHtml(x.difficulty_level) + ' · used ' + x.usage_count + '×</span><div class="sub" style="font-size:.78rem;opacity:.8;">' + escapeHtml(x.description || '') + '</div></div>'
+      + '<button class="btn btn-sm" onclick="copyLibrary(\'' + x.id + '\')">Copy to class</button>'
+      + '</div>').join('');
+  } catch (e) { list.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+async function seedLibrary() {
+  await postJSON('/api/teacher/library', { title: 'Fractions check — Year 7', description: 'Short formative check on equivalent fractions.', gradeTag: 'Y7', subjectTag: 'maths', difficultyLevel: 'core', skillTags: ['fractions'] });
+  loadLibrary();
+}
+async function copyLibrary(id) {
+  const { ok, data } = await postJSON('/api/teacher/library/' + id + '/copy', { destinationClassId: 'demo-class' });
+  if (!ok) { alert(data.error || 'Copy failed'); return; }
+  alert(data.notice || 'Copied (isolated).');
+  loadLibrary();
+}
+
+// --- US3: Remediation ---
+async function createRemediationGroup() {
+  const st = document.getElementById('remStatus');
+  st.textContent = 'Saving…';
+  const { ok, data } = await postJSON('/api/teacher/remediation/groups', {
+    classId: document.getElementById('remClass').value,
+    title: document.getElementById('remTitle').value,
+    thresholdRule: { masteryBelow: 0.5 }, learnerMembers: [], sequenceDefinition: []
+  });
+  if (!ok) { st.innerHTML = '<span style="color:#b00020;">' + escapeHtml(data.error || 'Failed') + '</span>'; return; }
+  st.textContent = ''; loadRemediation();
+}
+async function loadRemediation() {
+  const list = document.getElementById('remediationList');
+  if (!list) return;
+  try {
+    const r = await fetch('/api/teacher/remediation/groups?classId=demo-class', { cache: 'no-store' });
+    const d = await r.json();
+    const rows = d.rows || [];
+    if (!rows.length) { list.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No remediation groups yet.</div>'; return; }
+    list.innerHTML = rows.map(x => '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.55rem;">'
+      + '<strong>' + escapeHtml(x.title) + '</strong> <span class="sub" style="font-size:.76rem;color:var(--grey);">class ' + escapeHtml(x.class_id) + ' · ' + escapeHtml(x.status) + '</span></div>').join('');
+  } catch (e) { list.innerHTML = '<span style="color:#b00020;">' + escapeHtml(String(e)) + '</span>'; }
+}
+
 </script>
 </body>
 </html>

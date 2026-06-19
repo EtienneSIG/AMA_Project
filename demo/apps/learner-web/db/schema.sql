@@ -657,4 +657,212 @@ CREATE TABLE IF NOT EXISTS learner_duel_answers (
 );
 CREATE INDEX IF NOT EXISTS idx_duel_answers_duel ON learner_duel_answers (duel_id, created_at DESC);
 
+-- ---------------------------------------------------------------------------
+-- Teacher Assessment, AI Rubric Assist & At-Risk Dashboards (Feature 008)
+-- High-risk AI discipline: every AI-generated artifact is teacher-gated before it
+-- can become assignable; all generated/feedback text is Content-Safety scanned;
+-- generation/safety/approval/assignment actions are written to the immutable
+-- audit_event table. EU-resident storage only; data-minimised (prompt hashes).
+-- ---------------------------------------------------------------------------
+
+-- Rubric: structured grading rubric (3-5 levels, 2-5 criteria).
+CREATE TABLE IF NOT EXISTS rubrics (
+  id                 UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  title              TEXT         NOT NULL,
+  creator_teacher_id TEXT         NOT NULL,
+  level_count        INTEGER      NOT NULL CHECK (level_count BETWEEN 3 AND 5),
+  criterion_count    INTEGER      NOT NULL CHECK (criterion_count BETWEEN 2 AND 5),
+  criteria_json      JSONB        NOT NULL DEFAULT '[]'::jsonb,
+  weighting_mode     TEXT         NOT NULL DEFAULT 'equal' CHECK (weighting_mode IN ('equal','weighted')),
+  status             TEXT         NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+  shared_visibility  TEXT         NOT NULL DEFAULT 'private' CHECK (shared_visibility IN ('private','class','school')),
+  created_at         TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_rubrics_creator ON rubrics (creator_teacher_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rubrics_status  ON rubrics (status, created_at DESC);
+
+-- RubricScore: teacher scoring of a learner submission against a rubric.
+CREATE TABLE IF NOT EXISTS rubric_scores (
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  rubric_id             UUID         NOT NULL REFERENCES rubrics(id) ON DELETE CASCADE,
+  learner_id            TEXT         NOT NULL,
+  assessment_id         TEXT,
+  criterion_scores_json JSONB        NOT NULL DEFAULT '[]'::jsonb,
+  overall_level         INTEGER,
+  mastery_percent       INTEGER      NOT NULL DEFAULT 0 CHECK (mastery_percent BETWEEN 0 AND 100),
+  teacher_feedback_text TEXT,
+  feedback_safety_status TEXT        NOT NULL DEFAULT 'not_scanned' CHECK (feedback_safety_status IN ('not_scanned','pass','flagged','blocked')),
+  scored_by_teacher_id  TEXT         NOT NULL,
+  scored_at             TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_rubric_scores_rubric  ON rubric_scores (rubric_id, scored_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rubric_scores_learner ON rubric_scores (learner_id, scored_at DESC);
+
+-- SharedAssessment: library-managed reusable assessment with discoverability metadata.
+CREATE TABLE IF NOT EXISTS shared_assessments (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_assessment_id TEXT,
+  source_version      INTEGER      NOT NULL DEFAULT 1,
+  owner_teacher_id    TEXT         NOT NULL,
+  title               TEXT         NOT NULL,
+  description         TEXT,
+  grade_tag           TEXT,
+  subject_tag         TEXT,
+  skill_tags          TEXT[]       NOT NULL DEFAULT ARRAY[]::TEXT[],
+  difficulty_level    TEXT         NOT NULL DEFAULT 'core' CHECK (difficulty_level IN ('support','core','stretch')),
+  publish_status      TEXT         NOT NULL DEFAULT 'published' CHECK (publish_status IN ('draft','published','deprecated')),
+  usage_count         INTEGER      NOT NULL DEFAULT 0,
+  average_performance INTEGER,
+  governance_owner_id TEXT,
+  reviewed_at         TIMESTAMPTZ,
+  payload_json        JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_shared_assessments_owner   ON shared_assessments (owner_teacher_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_shared_assessments_status  ON shared_assessments (publish_status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_shared_assessments_tags    ON shared_assessments USING GIN (skill_tags);
+
+-- AssessmentCopy: class-specific copy derived from a shared assessment (isolated edits).
+CREATE TABLE IF NOT EXISTS assessment_copies (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  shared_assessment_id UUID        NOT NULL REFERENCES shared_assessments(id) ON DELETE CASCADE,
+  source_version      INTEGER      NOT NULL DEFAULT 1,
+  destination_class_id TEXT        NOT NULL,
+  copied_by_teacher_id TEXT        NOT NULL,
+  due_date            DATE,
+  localized_edits_json JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  curriculum_mapping_json JSONB    NOT NULL DEFAULT '{}'::jsonb,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_assessment_copies_source ON assessment_copies (shared_assessment_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_assessment_copies_class  ON assessment_copies (destination_class_id, created_at DESC);
+
+-- RemediationGroup: teacher-managed learner group for targeted catch-up.
+CREATE TABLE IF NOT EXISTS remediation_groups (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id            TEXT         NOT NULL,
+  created_by_teacher_id TEXT       NOT NULL,
+  title               TEXT         NOT NULL DEFAULT 'Catch-up group',
+  threshold_rule      JSONB        NOT NULL DEFAULT '{}'::jsonb,
+  learner_members_json JSONB       NOT NULL DEFAULT '[]'::jsonb,
+  sequence_definition_json JSONB   NOT NULL DEFAULT '[]'::jsonb,
+  status              TEXT         NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed','archived')),
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_remediation_groups_class ON remediation_groups (class_id, created_at DESC);
+
+-- RemediationProgress: per-learner progress through remediation sequence steps.
+CREATE TABLE IF NOT EXISTS remediation_progress (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  remediation_group_id UUID        NOT NULL REFERENCES remediation_groups(id) ON DELETE CASCADE,
+  learner_id          TEXT         NOT NULL,
+  step_id             TEXT         NOT NULL,
+  step_status         TEXT         NOT NULL DEFAULT 'assigned' CHECK (step_status IN ('assigned','in_progress','completed')),
+  completion_timestamp TIMESTAMPTZ,
+  reassessment_score  INTEGER,
+  cleared_flag        BOOLEAN      NOT NULL DEFAULT false,
+  updated_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  UNIQUE (remediation_group_id, learner_id, step_id)
+);
+CREATE INDEX IF NOT EXISTS idx_remediation_progress_group   ON remediation_progress (remediation_group_id, learner_id);
+CREATE INDEX IF NOT EXISTS idx_remediation_progress_cleared ON remediation_progress (cleared_flag, updated_at DESC);
+
+-- AIGeneratedArtifact: generated rubric/question drafts + lifecycle state.
+CREATE TABLE IF NOT EXISTS ai_generated_artifacts (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  artifact_type       TEXT         NOT NULL CHECK (artifact_type IN ('rubric','question_set','remediation_suggestion')),
+  objective_text_hash TEXT         NOT NULL,
+  bounded_prompt_context JSONB     NOT NULL DEFAULT '{}'::jsonb,
+  model_deployment    TEXT,
+  model_version       TEXT,
+  generated_text      TEXT,
+  generation_status   TEXT         NOT NULL DEFAULT 'draft' CHECK (generation_status IN ('draft','safety_reviewed','needs_edit','approved','rejected','assigned')),
+  safety_status       TEXT         NOT NULL DEFAULT 'not_scanned' CHECK (safety_status IN ('not_scanned','pass','flagged','blocked')),
+  approved_for_assignment BOOLEAN  NOT NULL DEFAULT false,
+  template_version    TEXT,
+  created_by_teacher_id TEXT       NOT NULL,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_artifacts_teacher ON ai_generated_artifacts (created_by_teacher_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_artifacts_status  ON ai_generated_artifacts (generation_status, created_at DESC);
+
+-- ContentSafetyVerdict: artifact/feedback-linked Content Safety result (purpose-built;
+-- the global content_safety_results table still receives a central log entry too).
+CREATE TABLE IF NOT EXISTS assessment_safety_verdicts (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  artifact_id         UUID         REFERENCES ai_generated_artifacts(id) ON DELETE CASCADE,
+  content_type        TEXT         NOT NULL CHECK (content_type IN ('generated_rubric','generated_question_set','remediation_suggestion','teacher_feedback')),
+  category_scores_json JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  flagged_categories_json JSONB    NOT NULL DEFAULT '[]'::jsonb,
+  verdict_status      TEXT         NOT NULL DEFAULT 'pass' CHECK (verdict_status IN ('pass','flagged','blocked','accepted_with_review')),
+  requires_manual_review BOOLEAN   NOT NULL DEFAULT false,
+  acknowledged_by_teacher_id TEXT,
+  acknowledged_at     TIMESTAMPTZ,
+  scanned_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_safety_verdicts_artifact ON assessment_safety_verdicts (artifact_id, scanned_at DESC);
+
+-- TeacherApproval: immutable approve/reject/needs_edit record for AI artifacts.
+CREATE TABLE IF NOT EXISTS teacher_approvals (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  artifact_id         UUID         NOT NULL REFERENCES ai_generated_artifacts(id) ON DELETE CASCADE,
+  teacher_id          TEXT         NOT NULL,
+  decision            TEXT         NOT NULL CHECK (decision IN ('approve','reject','needs_edit')),
+  decision_reason     TEXT,
+  edited_text_hash    TEXT,
+  approved_for_assignment BOOLEAN  NOT NULL DEFAULT false,
+  decided_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_teacher_approvals_artifact ON teacher_approvals (artifact_id, decided_at DESC);
+-- TeacherApproval records are append-only (immutability mirrors audit_event posture).
+CREATE OR REPLACE FUNCTION prevent_teacher_approval_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'teacher_approvals is append-only';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_teacher_approval_update ON teacher_approvals;
+CREATE TRIGGER trg_prevent_teacher_approval_update
+BEFORE UPDATE ON teacher_approvals FOR EACH ROW
+EXECUTE FUNCTION prevent_teacher_approval_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_teacher_approval_delete ON teacher_approvals;
+CREATE TRIGGER trg_prevent_teacher_approval_delete
+BEFORE DELETE ON teacher_approvals FOR EACH ROW
+EXECUTE FUNCTION prevent_teacher_approval_mutation();
+
+-- AtRiskDashboardSnapshot: aggregated, advisory-only class analytics.
+CREATE TABLE IF NOT EXISTS at_risk_dashboard_snapshots (
+  id                  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id            TEXT         NOT NULL,
+  topic_id            TEXT,
+  mastery_percent     INTEGER      NOT NULL DEFAULT 0,
+  completion_rate     INTEGER      NOT NULL DEFAULT 0,
+  at_risk_count       INTEGER      NOT NULL DEFAULT 0,
+  ungraded_count      INTEGER      NOT NULL DEFAULT 0,
+  recommendation_summary TEXT,
+  computed_at         TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_atrisk_snapshots_class ON at_risk_dashboard_snapshots (class_id, computed_at DESC);
+
+-- TemplateCacheEntry: governed prompt-template fragment cache for generation consistency.
+CREATE TABLE IF NOT EXISTS template_cache_entries (
+  cache_key           TEXT         PRIMARY KEY,
+  template_family     TEXT         NOT NULL,
+  template_version    TEXT         NOT NULL DEFAULT 'v1',
+  pedagogical_tags_json JSONB      NOT NULL DEFAULT '[]'::jsonb,
+  locale              TEXT         NOT NULL DEFAULT 'en',
+  template_text       TEXT         NOT NULL,
+  hash                TEXT,
+  owner_role          TEXT         NOT NULL DEFAULT 'learning-sciences',
+  review_status       TEXT         NOT NULL DEFAULT 'approved' CHECK (review_status IN ('draft','approved','deprecated')),
+  hit_count           INTEGER      NOT NULL DEFAULT 0,
+  expires_at          TIMESTAMPTZ,
+  last_used_at        TIMESTAMPTZ,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_template_cache_family ON template_cache_entries (template_family, review_status);
+
 -- Teacher overrides (Feature 5a ΓÇö EU AI Act Article 14 audit trail).

@@ -1908,12 +1908,359 @@ async function getQualityFeedback({ limit = 50 } = {}) {
   return r ? r.rows : null;
 }
 
+// ---------------------------------------------------------------------------
+// Teacher Assessment, AI Rubric Assist & At-Risk Dashboards (Feature 008)
+// All helpers fail-soft (return null when DB disabled). Generation/safety/approval
+// actions are paired with an immutable audit_event write by the route layer.
+// ---------------------------------------------------------------------------
+
+// Correlation id for chaining generate → scan → approve → assign across audit rows.
+function newCorrelationId() {
+  try { return crypto.randomUUID(); } catch (_) { return crypto.randomBytes(16).toString('hex'); }
+}
+
+// Data-minimisation: never persist raw objective prompts — only a stable hash.
+function hashText(text) {
+  return crypto.createHash('sha256').update(String(text || '')).digest('hex');
+}
+
+// Convenience wrapper around recordAuditEvent that always attaches a correlation id.
+async function recordAssessmentAudit({ eventType, actorId, actorRole = 'teacher', targetType, targetId, scope, outcome = 'ok', correlationId }) {
+  const cid = correlationId || newCorrelationId();
+  await recordAuditEvent({ eventType, actorId, actorRole, targetType, targetId, scope, outcome, correlationId: cid });
+  return cid;
+}
+
+// --- US1 Rubrics & scoring -------------------------------------------------
+
+async function createRubric({ title, creatorTeacherId, levelCount, criterionCount, criteria, weightingMode, sharedVisibility }) {
+  const lc = Math.min(Math.max(Number(levelCount) || 4, 3), 5);
+  const cc = Math.min(Math.max(Number(criterionCount) || (Array.isArray(criteria) ? criteria.length : 3), 2), 5);
+  const r = await q(
+    `INSERT INTO rubrics (title, creator_teacher_id, level_count, criterion_count, criteria_json, weighting_mode, shared_visibility)
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7) RETURNING *`,
+    [String(title || 'Untitled rubric').slice(0, 200), String(creatorTeacherId || 'anonymous').toLowerCase(),
+     lc, cc, JSON.stringify(Array.isArray(criteria) ? criteria : []),
+     weightingMode === 'weighted' ? 'weighted' : 'equal',
+     ['private', 'class', 'school'].includes(sharedVisibility) ? sharedVisibility : 'private']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listRubrics({ creatorTeacherId, status, limit = 100 } = {}) {
+  const conds = []; const params = [];
+  if (creatorTeacherId) { params.push(String(creatorTeacherId).toLowerCase()); conds.push(`creator_teacher_id = $${params.length}`); }
+  if (status) { params.push(status); conds.push(`status = $${params.length}`); }
+  params.push(Math.min(Number(limit) || 100, 500));
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const r = await q(`SELECT * FROM rubrics ${where} ORDER BY created_at DESC LIMIT $${params.length}`, params);
+  return r ? r.rows : null;
+}
+
+async function getRubric({ id }) {
+  const r = await q(`SELECT * FROM rubrics WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function publishRubric({ id }) {
+  const r = await q(`UPDATE rubrics SET status = 'published', updated_at = now() WHERE id = $1 RETURNING *`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function recordRubricScore({ rubricId, learnerId, assessmentId, criterionScores, overallLevel, masteryPercent, teacherFeedbackText, feedbackSafetyStatus, scoredByTeacherId }) {
+  const mp = Math.min(Math.max(Number(masteryPercent) || 0, 0), 100);
+  const r = await q(
+    `INSERT INTO rubric_scores (rubric_id, learner_id, assessment_id, criterion_scores_json, overall_level, mastery_percent, teacher_feedback_text, feedback_safety_status, scored_by_teacher_id)
+     VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9) RETURNING *`,
+    [rubricId, String(learnerId || '').toLowerCase(), assessmentId || null,
+     JSON.stringify(Array.isArray(criterionScores) ? criterionScores : []),
+     overallLevel != null ? Number(overallLevel) : null, mp,
+     teacherFeedbackText ? String(teacherFeedbackText).slice(0, 2000) : null,
+     ['not_scanned', 'pass', 'flagged', 'blocked'].includes(feedbackSafetyStatus) ? feedbackSafetyStatus : 'not_scanned',
+     String(scoredByTeacherId || 'anonymous').toLowerCase()]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listRubricScores({ rubricId, learnerId, limit = 200 } = {}) {
+  const conds = []; const params = [];
+  if (rubricId) { params.push(rubricId); conds.push(`rubric_id = $${params.length}`); }
+  if (learnerId) { params.push(String(learnerId).toLowerCase()); conds.push(`learner_id = $${params.length}`); }
+  params.push(Math.min(Number(limit) || 200, 1000));
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const r = await q(`SELECT * FROM rubric_scores ${where} ORDER BY scored_at DESC LIMIT $${params.length}`, params);
+  return r ? r.rows : null;
+}
+
+// --- US2 Shared assessment library & copy lineage --------------------------
+
+async function createSharedAssessment({ sourceAssessmentId, ownerTeacherId, title, description, gradeTag, subjectTag, skillTags, difficultyLevel, governanceOwnerId, payload }) {
+  const r = await q(
+    `INSERT INTO shared_assessments (source_assessment_id, owner_teacher_id, title, description, grade_tag, subject_tag, skill_tags, difficulty_level, governance_owner_id, payload_json)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb) RETURNING *`,
+    [sourceAssessmentId || null, String(ownerTeacherId || 'anonymous').toLowerCase(),
+     String(title || 'Untitled assessment').slice(0, 200), description ? String(description).slice(0, 1000) : null,
+     gradeTag || null, subjectTag || null,
+     Array.isArray(skillTags) ? skillTags.map(s => String(s).slice(0, 60)).slice(0, 20) : [],
+     ['support', 'core', 'stretch'].includes(difficultyLevel) ? difficultyLevel : 'core',
+     governanceOwnerId || null, JSON.stringify(payload || {})]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listSharedAssessments({ gradeTag, subjectTag, skillTag, difficultyLevel, search, limit = 100 } = {}) {
+  const conds = [`publish_status = 'published'`]; const params = [];
+  if (gradeTag) { params.push(gradeTag); conds.push(`grade_tag = $${params.length}`); }
+  if (subjectTag) { params.push(subjectTag); conds.push(`subject_tag = $${params.length}`); }
+  if (difficultyLevel) { params.push(difficultyLevel); conds.push(`difficulty_level = $${params.length}`); }
+  if (skillTag) { params.push(skillTag); conds.push(`$${params.length} = ANY(skill_tags)`); }
+  if (search) { params.push(`%${String(search).slice(0, 80)}%`); conds.push(`(title ILIKE $${params.length} OR description ILIKE $${params.length})`); }
+  params.push(Math.min(Number(limit) || 100, 500));
+  const r = await q(`SELECT * FROM shared_assessments WHERE ${conds.join(' AND ')} ORDER BY usage_count DESC, created_at DESC LIMIT $${params.length}`, params);
+  return r ? r.rows : null;
+}
+
+async function getSharedAssessment({ id }) {
+  const r = await q(`SELECT * FROM shared_assessments WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Copy isolation: a new assessment_copies row; source edits never mutate copies.
+async function copySharedAssessment({ sharedAssessmentId, destinationClassId, copiedByTeacherId, dueDate, localizedEdits, curriculumMapping }) {
+  const src = await getSharedAssessment({ id: sharedAssessmentId });
+  if (!src) return null;
+  const r = await q(
+    `INSERT INTO assessment_copies (shared_assessment_id, source_version, destination_class_id, copied_by_teacher_id, due_date, localized_edits_json, curriculum_mapping_json)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb) RETURNING *`,
+    [sharedAssessmentId, src.source_version || 1, String(destinationClassId || '').slice(0, 80),
+     String(copiedByTeacherId || 'anonymous').toLowerCase(), dueDate || null,
+     JSON.stringify(localizedEdits || {}), JSON.stringify(curriculumMapping || {})]
+  );
+  if (r && r.rows[0]) {
+    await q(`UPDATE shared_assessments SET usage_count = usage_count + 1 WHERE id = $1`, [sharedAssessmentId]);
+  }
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- US3 Remediation groups & progress -------------------------------------
+
+async function createRemediationGroup({ classId, createdByTeacherId, title, thresholdRule, learnerMembers, sequenceDefinition }) {
+  const r = await q(
+    `INSERT INTO remediation_groups (class_id, created_by_teacher_id, title, threshold_rule, learner_members_json, sequence_definition_json)
+     VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6::jsonb) RETURNING *`,
+    [String(classId || '').slice(0, 80), String(createdByTeacherId || 'anonymous').toLowerCase(),
+     String(title || 'Catch-up group').slice(0, 200), JSON.stringify(thresholdRule || {}),
+     JSON.stringify(Array.isArray(learnerMembers) ? learnerMembers : []),
+     JSON.stringify(Array.isArray(sequenceDefinition) ? sequenceDefinition : [])]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listRemediationGroups({ classId, limit = 100 } = {}) {
+  const conds = []; const params = [];
+  if (classId) { params.push(String(classId).slice(0, 80)); conds.push(`class_id = $${params.length}`); }
+  params.push(Math.min(Number(limit) || 100, 500));
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const r = await q(`SELECT * FROM remediation_groups ${where} ORDER BY created_at DESC LIMIT $${params.length}`, params);
+  return r ? r.rows : null;
+}
+
+async function upsertRemediationProgress({ remediationGroupId, learnerId, stepId, stepStatus, reassessmentScore, clearedFlag }) {
+  const r = await q(
+    `INSERT INTO remediation_progress (remediation_group_id, learner_id, step_id, step_status, completion_timestamp, reassessment_score, cleared_flag, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7, now())
+     ON CONFLICT (remediation_group_id, learner_id, step_id) DO UPDATE SET
+       step_status = EXCLUDED.step_status,
+       completion_timestamp = EXCLUDED.completion_timestamp,
+       reassessment_score = EXCLUDED.reassessment_score,
+       cleared_flag = EXCLUDED.cleared_flag,
+       updated_at = now()
+     RETURNING *`,
+    [remediationGroupId, String(learnerId || '').toLowerCase(), String(stepId || '').slice(0, 80),
+     ['assigned', 'in_progress', 'completed'].includes(stepStatus) ? stepStatus : 'assigned',
+     stepStatus === 'completed' ? new Date().toISOString() : null,
+     reassessmentScore != null ? Number(reassessmentScore) : null, Boolean(clearedFlag)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listRemediationProgress({ remediationGroupId, limit = 500 } = {}) {
+  const r = await q(
+    `SELECT * FROM remediation_progress WHERE remediation_group_id = $1 ORDER BY learner_id, step_id LIMIT $2`,
+    [remediationGroupId, Math.min(Number(limit) || 500, 2000)]
+  );
+  return r ? r.rows : null;
+}
+
+// --- US4 AI-generated artifacts, safety verdicts & teacher approvals --------
+
+async function createAIArtifact({ artifactType, objectiveText, boundedPromptContext, modelDeployment, modelVersion, generatedText, templateVersion, createdByTeacherId, safetyStatus, generationStatus }) {
+  const r = await q(
+    `INSERT INTO ai_generated_artifacts (artifact_type, objective_text_hash, bounded_prompt_context, model_deployment, model_version, generated_text, generation_status, safety_status, template_version, created_by_teacher_id)
+     VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [['rubric', 'question_set', 'remediation_suggestion'].includes(artifactType) ? artifactType : 'rubric',
+     hashText(objectiveText), JSON.stringify(boundedPromptContext || {}),
+     modelDeployment || null, modelVersion || null, generatedText ? String(generatedText).slice(0, 8000) : null,
+     ['draft', 'safety_reviewed', 'needs_edit', 'approved', 'rejected', 'assigned'].includes(generationStatus) ? generationStatus : 'draft',
+     ['not_scanned', 'pass', 'flagged', 'blocked'].includes(safetyStatus) ? safetyStatus : 'not_scanned',
+     templateVersion || null, String(createdByTeacherId || 'anonymous').toLowerCase()]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getAIArtifact({ id }) {
+  const r = await q(`SELECT * FROM ai_generated_artifacts WHERE id = $1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function updateAIArtifactStatus({ id, generationStatus, safetyStatus, approvedForAssignment }) {
+  const sets = ['updated_at = now()']; const params = [];
+  if (generationStatus) { params.push(generationStatus); sets.push(`generation_status = $${params.length}`); }
+  if (safetyStatus) { params.push(safetyStatus); sets.push(`safety_status = $${params.length}`); }
+  if (approvedForAssignment != null) { params.push(Boolean(approvedForAssignment)); sets.push(`approved_for_assignment = $${params.length}`); }
+  params.push(id);
+  const r = await q(`UPDATE ai_generated_artifacts SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listAIArtifacts({ createdByTeacherId, generationStatus, limit = 100 } = {}) {
+  const conds = []; const params = [];
+  if (createdByTeacherId) { params.push(String(createdByTeacherId).toLowerCase()); conds.push(`created_by_teacher_id = $${params.length}`); }
+  if (generationStatus) { params.push(generationStatus); conds.push(`generation_status = $${params.length}`); }
+  params.push(Math.min(Number(limit) || 100, 500));
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+  const r = await q(`SELECT * FROM ai_generated_artifacts ${where} ORDER BY created_at DESC LIMIT $${params.length}`, params);
+  return r ? r.rows : null;
+}
+
+async function recordSafetyVerdict({ artifactId, contentType, categoryScores, flaggedCategories, verdictStatus, requiresManualReview }) {
+  const r = await q(
+    `INSERT INTO assessment_safety_verdicts (artifact_id, content_type, category_scores_json, flagged_categories_json, verdict_status, requires_manual_review)
+     VALUES ($1,$2,$3::jsonb,$4::jsonb,$5,$6) RETURNING *`,
+    [artifactId || null,
+     ['generated_rubric', 'generated_question_set', 'remediation_suggestion', 'teacher_feedback'].includes(contentType) ? contentType : 'teacher_feedback',
+     JSON.stringify(categoryScores || {}), JSON.stringify(Array.isArray(flaggedCategories) ? flaggedCategories : []),
+     ['pass', 'flagged', 'blocked', 'accepted_with_review'].includes(verdictStatus) ? verdictStatus : 'pass',
+     Boolean(requiresManualReview)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Mandatory teacher-approval gate: an artifact is only assignable when an
+// approve decision with approved_for_assignment=true exists. Append-only.
+async function recordTeacherApproval({ artifactId, teacherId, decision, decisionReason, editedText, approvedForAssignment }) {
+  const dec = ['approve', 'reject', 'needs_edit'].includes(decision) ? decision : 'needs_edit';
+  const approve = dec === 'approve' && Boolean(approvedForAssignment);
+  const r = await q(
+    `INSERT INTO teacher_approvals (artifact_id, teacher_id, decision, decision_reason, edited_text_hash, approved_for_assignment)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [artifactId, String(teacherId || 'anonymous').toLowerCase(), dec,
+     decisionReason ? String(decisionReason).slice(0, 1000) : null,
+     editedText ? hashText(editedText) : null, approve]
+  );
+  if (r && r.rows[0]) {
+    const nextStatus = dec === 'approve' ? 'approved' : (dec === 'reject' ? 'rejected' : 'needs_edit');
+    await updateAIArtifactStatus({ id: artifactId, generationStatus: nextStatus, approvedForAssignment: approve });
+  }
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listTeacherApprovals({ artifactId, limit = 50 } = {}) {
+  const r = await q(`SELECT * FROM teacher_approvals WHERE artifact_id = $1 ORDER BY decided_at DESC LIMIT $2`,
+    [artifactId, Math.min(Number(limit) || 50, 200)]);
+  return r ? r.rows : null;
+}
+
+// Returns true only when the artifact has an approved + assignable decision.
+async function isArtifactAssignable({ artifactId }) {
+  const a = await getAIArtifact({ id: artifactId });
+  if (!a) return false;
+  return a.generation_status === 'approved' && a.approved_for_assignment === true && a.safety_status !== 'blocked';
+}
+
+// --- US5 At-risk dashboard snapshots (advisory only) -----------------------
+
+async function upsertDashboardSnapshot({ classId, topicId, masteryPercent, completionRate, atRiskCount, ungradedCount, recommendationSummary }) {
+  const r = await q(
+    `INSERT INTO at_risk_dashboard_snapshots (class_id, topic_id, mastery_percent, completion_rate, at_risk_count, ungraded_count, recommendation_summary)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [String(classId || '').slice(0, 80), topicId || null,
+     Math.min(Math.max(Number(masteryPercent) || 0, 0), 100), Math.min(Math.max(Number(completionRate) || 0, 0), 100),
+     Number(atRiskCount) || 0, Number(ungradedCount) || 0,
+     recommendationSummary ? String(recommendationSummary).slice(0, 1000) : null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getLatestDashboardSnapshot({ classId }) {
+  const r = await q(`SELECT * FROM at_risk_dashboard_snapshots WHERE class_id = $1 ORDER BY computed_at DESC LIMIT 1`,
+    [String(classId || '').slice(0, 80)]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// --- Template-cache governance ---------------------------------------------
+
+async function getTemplateCacheEntry({ cacheKey }) {
+  const r = await q(`SELECT * FROM template_cache_entries WHERE cache_key = $1 AND review_status = 'approved' AND (expires_at IS NULL OR expires_at > now())`,
+    [String(cacheKey || '').slice(0, 200)]);
+  if (r && r.rows[0]) {
+    await q(`UPDATE template_cache_entries SET hit_count = hit_count + 1, last_used_at = now() WHERE cache_key = $1`, [cacheKey]);
+  }
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function upsertTemplateCacheEntry({ cacheKey, templateFamily, templateVersion, pedagogicalTags, locale, templateText, ownerRole, reviewStatus, expiresAt }) {
+  const r = await q(
+    `INSERT INTO template_cache_entries (cache_key, template_family, template_version, pedagogical_tags_json, locale, template_text, hash, owner_role, review_status, expires_at)
+     VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10)
+     ON CONFLICT (cache_key) DO UPDATE SET
+       template_text = EXCLUDED.template_text, template_version = EXCLUDED.template_version,
+       hash = EXCLUDED.hash, review_status = EXCLUDED.review_status, expires_at = EXCLUDED.expires_at
+     RETURNING *`,
+    [String(cacheKey || '').slice(0, 200), String(templateFamily || 'generic').slice(0, 80),
+     templateVersion || 'v1', JSON.stringify(Array.isArray(pedagogicalTags) ? pedagogicalTags : []),
+     locale || 'en', String(templateText || '').slice(0, 4000), hashText(templateText),
+     ownerRole || 'learning-sciences', ['draft', 'approved', 'deprecated'].includes(reviewStatus) ? reviewStatus : 'approved',
+     expiresAt || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
 module.exports = {
   enabled,
   init,
   logConnection,
   logAsk,
   recordAuditEvent,
+  newCorrelationId,
+  hashText,
+  recordAssessmentAudit,
+  createRubric,
+  listRubrics,
+  getRubric,
+  publishRubric,
+  recordRubricScore,
+  listRubricScores,
+  createSharedAssessment,
+  listSharedAssessments,
+  getSharedAssessment,
+  copySharedAssessment,
+  createRemediationGroup,
+  listRemediationGroups,
+  upsertRemediationProgress,
+  listRemediationProgress,
+  createAIArtifact,
+  getAIArtifact,
+  updateAIArtifactStatus,
+  listAIArtifacts,
+  recordSafetyVerdict,
+  recordTeacherApproval,
+  listTeacherApprovals,
+  isArtifactAssignable,
+  upsertDashboardSnapshot,
+  getLatestDashboardSnapshot,
+  getTemplateCacheEntry,
+  upsertTemplateCacheEntry,
   logDirectorPortalAccessAudit,
   logDirectorReportUsageAudit,
   logHierarchyChangeAudit,
