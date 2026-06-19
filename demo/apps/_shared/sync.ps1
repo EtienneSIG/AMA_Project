@@ -27,6 +27,9 @@ foreach ($a in $apps) {
     # Feature 011 — Multi-school hierarchy router. Copied to ALL apps because the
     # bespoke admin/server.js and director-portal/server.js require it directly.
     Copy-Item -Force -Path (Join-Path $here 'server-hierarchy.js') -Destination (Join-Path $appDir 'server-hierarchy.js')
+    # Feature 012 — A/B testing framework router. Copied to ALL apps because the
+    # bespoke admin/server.js and director-portal/server.js require it directly.
+    Copy-Item -Force -Path (Join-Path $here 'server-experiments.js') -Destination (Join-Path $appDir 'server-experiments.js')
     # Feature 009 — integration adapters + security provider. Copied to ALL apps because the
     # bespoke admin/server.js also requires these modules (connector onboarding console).
     foreach ($mod in 'integrations','security') {
@@ -50,6 +53,16 @@ foreach ($a in $apps) {
     # Feature 011 — Hierarchy governance service engine. Copied to ALL apps because the
     # bespoke admin/server.js and director-portal/server.js require services/hierarchy.
     foreach ($mod in 'services/hierarchy') {
+        $modSrc = Join-Path $here $mod
+        if (Test-Path $modSrc) {
+            $modDest = Join-Path $appDir $mod
+            if (-not (Test-Path $modDest)) { New-Item -ItemType Directory -Force -Path $modDest | Out-Null }
+            Get-ChildItem $modSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $modDest $_.Name) }
+        }
+    }
+    # Feature 012 — A/B testing service modules + config. Copied to ALL apps because
+    # the bespoke admin/server.js and director-portal/server.js require ./experimentation.
+    foreach ($mod in 'experimentation','config') {
         $modSrc = Join-Path $here $mod
         if (Test-Path $modSrc) {
             $modDest = Join-Path $appDir $mod

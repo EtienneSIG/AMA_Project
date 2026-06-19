@@ -657,6 +657,13 @@ try {
 } catch (e) {
   console.warn('[hierarchy] routes not mounted:', e && e.message);
 }
+// Feature 012 — A/B testing framework routes (director oversight summary,
+// monitoring, significance, segmentation read views). Guarded require.
+try {
+  require('./server-experiments')(app, { db, APP_ROLE });
+} catch (e) {
+  console.warn('[experiments] routes not mounted:', e && e.message);
+}
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`[${APP_ROLE}] listening on :${port} (allowedRoles=${ALLOWED.join(',')}, APIM=${APIM || 'unset'})`));

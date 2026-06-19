@@ -3212,6 +3212,238 @@ async function listHierarchyAudit({ eventType = null, limit = 100 } = {}) {
   return r && r.rows ? r.rows : [];
 }
 
+// ===========================================================================
+// Feature 012 — A/B Testing Framework
+// ===========================================================================
+
+async function createExperiment({ name, hypothesis, owner, targetScope, successMetric, ratio, minDurationDays, seed }) {
+  const r = await q(
+    `INSERT INTO experiment (name, hypothesis, owner_user, target_scope_json, success_metric, randomization_ratio_json, min_duration_days, seed)
+     VALUES ($1,$2,$3,$4::jsonb,$5,$6::jsonb,$7,$8) RETURNING *`,
+    [name, hypothesis || null, owner || null, JSON.stringify(targetScope || {}), successMetric,
+     JSON.stringify(ratio || {}), minDurationDays || 7, seed || null]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function getExperiment(id) {
+  const r = await q('SELECT * FROM experiment WHERE experiment_id=$1', [id]);
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listExperiments({ status = null } = {}) {
+  const r = await q(
+    `SELECT e.*, (SELECT COUNT(*)::int FROM variant_assignment a WHERE a.experiment_id=e.experiment_id) AS assignment_count
+       FROM experiment e
+      WHERE ($1::text IS NULL OR e.status=$1)
+      ORDER BY e.created_at DESC`, [status]);
+  return r && r.rows ? r.rows : [];
+}
+async function updateExperimentStatus({ id, status, startAt = null, endAt = null }) {
+  const r = await q(
+    `UPDATE experiment SET status=$2,
+        start_at = COALESCE($3, start_at),
+        end_at   = COALESCE($4, end_at),
+        updated_at = now()
+      WHERE experiment_id=$1 RETURNING *`,
+    [id, status, startAt, endAt]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function createVariant({ experimentId, variantKey, config, trafficWeight, isControl }) {
+  const r = await q(
+    `INSERT INTO experiment_variant (experiment_id, variant_key, variant_config_json, traffic_weight, is_control)
+     VALUES ($1,$2,$3::jsonb,$4,$5) RETURNING *`,
+    [experimentId, variantKey, JSON.stringify(config || {}), trafficWeight, Boolean(isControl)]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listVariants(experimentId) {
+  const r = await q('SELECT * FROM experiment_variant WHERE experiment_id=$1 ORDER BY variant_key', [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function upsertAssignment({ experimentId, variantId, learnerPseudonym, strata, method, seedVersion }) {
+  const r = await q(
+    `INSERT INTO variant_assignment (experiment_id, variant_id, learner_pseudonym, strata_json, assignment_method, assignment_seed_version)
+     VALUES ($1,$2,$3,$4::jsonb,$5,$6)
+     ON CONFLICT (experiment_id, learner_pseudonym) DO NOTHING
+     RETURNING *`,
+    [experimentId, variantId, learnerPseudonym, JSON.stringify(strata || {}), method || 'stratified_hash', seedVersion || null]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function getAssignment({ experimentId, learnerPseudonym }) {
+  const r = await q(
+    `SELECT a.*, v.variant_key, v.is_control
+       FROM variant_assignment a JOIN experiment_variant v ON v.variant_id=a.variant_id
+      WHERE a.experiment_id=$1 AND a.learner_pseudonym=$2`,
+    [experimentId, learnerPseudonym]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listAssignments(experimentId) {
+  const r = await q(
+    `SELECT a.*, v.variant_key, v.is_control
+       FROM variant_assignment a JOIN experiment_variant v ON v.variant_id=a.variant_id
+      WHERE a.experiment_id=$1`, [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function assignmentCounts(experimentId) {
+  const r = await q('SELECT * FROM v_experiment_assignment_counts WHERE experiment_id=$1', [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function markAssignmentExcluded({ experimentId, learnerPseudonym, reason }) {
+  const r = await q(
+    `UPDATE variant_assignment SET is_excluded_from_analysis=true, exclusion_reason=$3
+      WHERE experiment_id=$1 AND learner_pseudonym=$2 RETURNING *`,
+    [experimentId, learnerPseudonym, reason || 'other']
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function insertMetricSnapshot(s) {
+  const r = await q(
+    `INSERT INTO experiment_metric_snapshot
+       (experiment_id, variant_id, window_start, window_end, metric_name, sample_size_n, mean_value, median_value, std_dev, ci95_low, ci95_high)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [s.experimentId, s.variantId, s.windowStart || null, s.windowEnd || null, s.metricName,
+     s.sampleSizeN || 0, s.meanValue, s.medianValue, s.stdDev, s.ci95Low, s.ci95High]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function latestSnapshots(experimentId) {
+  const r = await q(
+    `SELECT DISTINCT ON (variant_id) s.*, v.variant_key, v.is_control
+       FROM experiment_metric_snapshot s JOIN experiment_variant v ON v.variant_id=s.variant_id
+      WHERE s.experiment_id=$1
+      ORDER BY variant_id, computed_at DESC`, [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function insertSignificance(x) {
+  const r = await q(
+    `INSERT INTO significance_result
+      (experiment_id, control_variant_id, treatment_variant_id, p_value, effect_size, effect_interpretation,
+       absolute_delta, relative_delta_pct, is_statistically_significant, is_practically_significant, recommended_action)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [x.experimentId, x.controlVariantId, x.treatmentVariantId, x.pValue, x.effectSize, x.effectInterpretation,
+     x.absoluteDelta, x.relativeDeltaPct, x.isStatisticallySignificant, x.isPracticallySignificant, x.recommendedAction]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function latestSignificance(experimentId) {
+  const r = await q('SELECT * FROM significance_result WHERE experiment_id=$1 ORDER BY computed_at DESC LIMIT 1', [experimentId]);
+  return r && r.rows ? r.rows[0] : null;
+}
+async function insertSegmentResult(x) {
+  const r = await q(
+    `INSERT INTO segment_analysis_result
+      (experiment_id, dimension_key, dimension_value, control_mean, treatment_mean, delta_pct, p_value, sample_size_n, is_opposite_effect, fairness_flag)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [x.experimentId, x.dimensionKey, x.dimensionValue, x.controlMean, x.treatmentMean, x.deltaPct, x.pValue, x.sampleSizeN, Boolean(x.isOppositeEffect), x.fairnessFlag || 'none']
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listSegmentResults(experimentId) {
+  const r = await q('SELECT * FROM segment_analysis_result WHERE experiment_id=$1 ORDER BY computed_at DESC, dimension_key, dimension_value', [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function insertAlert(a) {
+  const r = await q(
+    `INSERT INTO experiment_alert (experiment_id, alert_type, severity, message)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [a.experimentId, a.alertType, a.severity || 'warning', a.message || null]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listAlerts({ experimentId, status = null } = {}) {
+  const r = await q(
+    `SELECT * FROM experiment_alert
+      WHERE experiment_id=$1 AND ($2::text IS NULL OR resolution_status=$2)
+      ORDER BY triggered_at DESC`, [experimentId, status]);
+  return r && r.rows ? r.rows : [];
+}
+async function acknowledgeAlert({ alertId, by }) {
+  const r = await q(
+    `UPDATE experiment_alert SET resolution_status='acknowledged', acknowledged_by=$2, acknowledged_at=now()
+      WHERE alert_id=$1 AND resolution_status='open' RETURNING *`, [alertId, by || null]);
+  return r && r.rows ? r.rows[0] : null;
+}
+async function activeAlertSummary() {
+  const r = await q(
+    `SELECT e.experiment_id, e.name, e.status,
+            COUNT(al.*) FILTER (WHERE al.resolution_status='open')::int AS open_alerts,
+            COUNT(al.*) FILTER (WHERE al.alert_type='fairness_skew' AND al.resolution_status='open')::int AS open_fairness_alerts
+       FROM experiment e LEFT JOIN experiment_alert al ON al.experiment_id=e.experiment_id
+      WHERE e.status IN ('running','paused')
+      GROUP BY e.experiment_id, e.name, e.status
+      ORDER BY open_alerts DESC`);
+  return r && r.rows ? r.rows : [];
+}
+async function insertDecision(d) {
+  const r = await q(
+    `INSERT INTO experiment_decision (experiment_id, decision_type, decision_by, decision_role, rationale, requires_followup)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [d.experimentId, d.decisionType, d.decisionBy || null, d.decisionRole || null, d.rationale || null, Boolean(d.requiresFollowup)]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listDecisions(experimentId) {
+  const r = await q('SELECT * FROM experiment_decision WHERE experiment_id=$1 ORDER BY decided_at DESC', [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function recordSignoff(s) {
+  const r = await q(
+    `INSERT INTO experiment_signoff (experiment_id, signoff_role, signed_by, note)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (experiment_id, signoff_role) DO UPDATE SET signed_by=EXCLUDED.signed_by, note=EXCLUDED.note, signed_at=now()
+     RETURNING *`,
+    [s.experimentId, s.signoffRole, s.signedBy || null, s.note || null]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listSignoffs(experimentId) {
+  const r = await q('SELECT * FROM experiment_signoff WHERE experiment_id=$1', [experimentId]);
+  return r && r.rows ? r.rows : [];
+}
+async function upsertArchive(a) {
+  const r = await q(
+    `INSERT INTO experiment_archive (experiment_id, summary_json, lessons_learned, keywords, final_outcome, archived_by)
+     VALUES ($1,$2::jsonb,$3,$4,$5,$6)
+     ON CONFLICT (experiment_id) DO UPDATE SET summary_json=EXCLUDED.summary_json, lessons_learned=EXCLUDED.lessons_learned,
+        keywords=EXCLUDED.keywords, final_outcome=EXCLUDED.final_outcome, archived_by=EXCLUDED.archived_by, archived_at=now()
+     RETURNING *`,
+    [a.experimentId, JSON.stringify(a.summary || {}), a.lessonsLearned || null, a.keywords || [], a.finalOutcome || null, a.archivedBy || null]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function searchArchives({ keyword = null, outcome = null, metric = null, limit = 50 } = {}) {
+  const r = await q(
+    `SELECT ar.*, e.name, e.success_metric
+       FROM experiment_archive ar JOIN experiment e ON e.experiment_id=ar.experiment_id
+      WHERE ($1::text IS NULL OR EXISTS (SELECT 1 FROM unnest(ar.keywords) k WHERE k ILIKE '%'||$1||'%') OR e.name ILIKE '%'||$1||'%')
+        AND ($2::text IS NULL OR ar.final_outcome=$2)
+        AND ($3::text IS NULL OR e.success_metric=$3)
+      ORDER BY ar.archived_at DESC LIMIT $4`,
+    [keyword, outcome, metric, limit]
+  );
+  return r && r.rows ? r.rows : [];
+}
+async function logExperimentAudit(e) {
+  const r = await q(
+    `INSERT INTO experiment_audit_event (experiment_id, event_type, event_actor, event_actor_role, event_payload_hash, event_payload_json)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb) RETURNING audit_event_id`,
+    [e.experimentId || null, e.eventType, e.actor || null, e.actorRole || null, e.payloadHash || null, JSON.stringify(e.payload || {})]
+  );
+  return r && r.rows ? r.rows[0] : null;
+}
+async function listExperimentAudit({ experimentId = null, eventType = null, limit = 200 } = {}) {
+  const r = await q(
+    `SELECT * FROM experiment_audit_event
+      WHERE ($1::uuid IS NULL OR experiment_id=$1)
+        AND ($2::text IS NULL OR event_type=$2)
+      ORDER BY created_at DESC LIMIT $3`,
+    [experimentId, eventType, limit]
+  );
+  return r && r.rows ? r.rows : [];
+}
+
 
 module.exports = {
   enabled,
@@ -3436,6 +3668,36 @@ module.exports = {
   setBenchmarkRequestStatus,
   logHierarchyAudit,
   listHierarchyAudit,
+  // Feature 012 — A/B Testing Framework
+  createExperiment,
+  getExperiment,
+  listExperiments,
+  updateExperimentStatus,
+  createVariant,
+  listVariants,
+  upsertAssignment,
+  getAssignment,
+  listAssignments,
+  assignmentCounts,
+  markAssignmentExcluded,
+  insertMetricSnapshot,
+  latestSnapshots,
+  insertSignificance,
+  latestSignificance,
+  insertSegmentResult,
+  listSegmentResults,
+  insertAlert,
+  listAlerts,
+  acknowledgeAlert,
+  activeAlertSummary,
+  insertDecision,
+  listDecisions,
+  recordSignoff,
+  listSignoffs,
+  upsertArchive,
+  searchArchives,
+  logExperimentAudit,
+  listExperimentAudit,
   // Generic read-only query helper for admin dashboards. Returns null on failure.
   _query: q
 };

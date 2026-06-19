@@ -103,6 +103,7 @@
   <button data-tab="integrations" onclick="setTab('integrations')">Integrations</button>
   <button data-tab="governance" onclick="setTab('governance')">Content Governance</button>
   <button data-tab="hierarchy" onclick="setTab('hierarchy')">Hierarchy</button>
+  <button data-tab="experiments" onclick="setTab('experiments')">A/B Experiments</button>
 </div><main>
   <div class="grid" id="cards" data-group="overview">
     <div class="card"><em>Loading…</em></div>
@@ -363,6 +364,87 @@
     <div id="hierAudit" style="margin-top:.6rem;">Loading…</div>
   </div>
 
+  <!-- ===================== Feature 012 — A/B testing framework ===================== -->
+  <div class="panel" data-group="experiments" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Experiments <span style="font-weight:400;color:var(--grey);font-size:.85rem;">governed A/B · advisory stats · teacher + pedagogy sign-off to adopt (Art. 14)</span></h2>
+      <button class="btn secondary" onclick="expLoadList()">Refresh</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-top:.6rem;">
+      <input id="expName" placeholder="Experiment name" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+      <select id="expMetric" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+        <option value="mastery">mastery</option><option value="engagement">engagement</option>
+        <option value="completion">completion</option><option value="time_on_task">time_on_task</option>
+      </select>
+      <input id="expHypothesis" placeholder="Hypothesis" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;grid-column:1 / span 2;">
+      <input id="expDuration" type="number" min="7" value="14" placeholder="Min duration (days)" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;">
+      <div style="display:flex;align-items:center;color:var(--grey);font-size:.85rem;">Two equal variants (control + treatment) are created.</div>
+    </div>
+    <div style="margin-top:.55rem;"><button class="btn" onclick="expCreate()">+ Create experiment (draft)</button></div>
+    <div id="expList" style="margin-top:.7rem;">Loading…</div>
+  </div>
+
+  <div class="panel" data-group="experiments" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Selected experiment <span id="expSelName" style="font-weight:400;color:var(--grey);font-size:.85rem;">— none —</span></h2>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="expValidate()">Validate</button>
+        <button class="btn" onclick="expStart()">Start (assign cohort)</button>
+        <button class="btn secondary" onclick="expRefreshDetail()">Refresh detail</button>
+      </div>
+    </div>
+    <div id="expDetail" style="margin-top:.6rem;color:var(--grey);">Select an experiment above.</div>
+  </div>
+
+  <div class="panel" data-group="experiments" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Monitoring &amp; alerts <span style="font-weight:400;color:var(--grey);font-size:.85rem;">freshness SLA · underperformance / fairness alerts</span></h2>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="expSeedMetrics()">Seed demo metrics</button>
+        <button class="btn secondary" onclick="expLoadMonitoring()">Refresh</button>
+      </div>
+    </div>
+    <div id="expMonitoring" style="margin-top:.6rem;">—</div>
+  </div>
+
+  <div class="panel" data-group="experiments" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Significance &amp; decision <span style="font-weight:400;color:var(--grey);font-size:.85rem;">Welch t-test · advisory only · adopt is sign-off gated</span></h2>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+        <button class="btn secondary" onclick="expRunSignificance()">Run significance (demo data)</button>
+        <button class="btn secondary" onclick="expRunSegments()">Run segment analysis</button>
+      </div>
+    </div>
+    <div id="expSignificance" style="margin-top:.6rem;">—</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem;align-items:center;">
+      <input id="expRationale" placeholder="Decision rationale (required)" style="padding:.45rem;border:1px solid var(--line);border-radius:6px;flex:1;min-width:220px;">
+      <button class="btn secondary" onclick="expDecide('stop')">Stop</button>
+      <button class="btn secondary" onclick="expDecide('investigate')">Investigate</button>
+      <button class="btn" onclick="expDecide('adopt_variant')">Adopt variant</button>
+    </div>
+    <div style="margin-top:.5rem;color:var(--grey);font-size:.82rem;">Sign-offs (teacher + pedagogy reviewer) are required before <strong>Adopt variant</strong> succeeds. Use the Teacher Console for the teaching sign-off; record the pedagogy sign-off below.</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.45rem;">
+      <button class="btn secondary" onclick="expSignoff('pedagogy_reviewer')">Record pedagogy sign-off</button>
+      <button class="btn secondary" onclick="expSignoff('teacher')">Record teacher sign-off (admin proxy)</button>
+      <button class="btn secondary" onclick="expLoadSignoffs()">Refresh sign-offs</button>
+    </div>
+    <div id="expSignoffs" style="margin-top:.5rem;">—</div>
+  </div>
+
+  <div class="panel" data-group="experiments" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <h2>Archive &amp; audit <span style="font-weight:400;color:var(--grey);font-size:.85rem;">institutional memory · immutable audit (Art. 12)</span></h2>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+        <input id="expArchiveKeyword" placeholder="search keyword" style="padding:.4rem;border:1px solid var(--line);border-radius:6px;">
+        <button class="btn secondary" onclick="expSearchArchive()">Search archive</button>
+        <button class="btn secondary" onclick="expArchive()">Archive selected</button>
+        <button class="btn secondary" onclick="expLoadHistory()">Refresh audit</button>
+      </div>
+    </div>
+    <div id="expArchive" style="margin-top:.6rem;">—</div>
+    <div id="expHistory" style="margin-top:.6rem;">—</div>
+  </div>
+
 </main><footer>
   © LearnEU · Hosted in West Europe · Data class: ChildPersonalData-Restricted
 </footer>
@@ -389,6 +471,7 @@ function setTab(g) {
   try { history.replaceState(null, '', '#' + g); } catch (_) {}
   if (g === 'governance') { loadCmsItems(); loadCmsApprovals(); loadCmsAudit(); }
   if (g === 'hierarchy') { hierLoadNodes(); hierLoadApprovals(); hierLoadAudit(); }
+  if (g === 'experiments') { expLoadList(); }
 }
 
 async function loadCards() {
@@ -778,6 +861,218 @@ async function hierLoadAudit() {
   } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
 }
 
+// ===================== Feature 012 — A/B experiments =====================
+let expSelectedId = null;
+let expSelectedVariants = [];
+async function expApi(path, opts) {
+  const r = await fetch('/api/experiments' + path, Object.assign({ cache:'no-store' }, opts || {}));
+  return { ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) };
+}
+function expPost(path, payload) {
+  return expApi(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload || {}) });
+}
+async function expLoadList() {
+  const el = document.getElementById('expList');
+  if (!el) return;
+  try {
+    const r = await expApi('');
+    const rows = (r.body && r.body.experiments) || [];
+    if (!rows.length) { el.innerHTML = '<em>No experiments yet. Create one above.</em>'; return; }
+    el.innerHTML = '<table class="adm"><thead><tr><th>Name</th><th>Metric</th><th>Status</th><th>Assigned</th><th></th></tr></thead><tbody>' +
+      rows.map(e => `<tr>
+        <td>${escapeHtml(e.name)}</td>
+        <td><span class="badge">${escapeHtml(e.success_metric)}</span></td>
+        <td><span class="badge ${e.status==='running'?'ok':(e.status==='archived'?'':'')}">${escapeHtml(e.status)}</span></td>
+        <td style="text-align:right;">${e.assignment_count ?? 0}</td>
+        <td><button class="btn secondary" onclick="expSelect('${e.experiment_id}','${escapeHtml(e.name).replace(/'/g,"&#39;")}')">Select</button></td>
+      </tr>`).join('') +
+      '</tbody></table>';
+  } catch (e) { el.innerHTML = '<span class="badge err">'+escapeHtml(String(e))+'</span>'; }
+}
+async function expCreate() {
+  const name = document.getElementById('expName').value.trim();
+  const hypothesis = document.getElementById('expHypothesis').value.trim();
+  const successMetric = document.getElementById('expMetric').value;
+  const plannedDurationDays = Number(document.getElementById('expDuration').value || 14);
+  if (!name || !hypothesis) { toast('Name and hypothesis required', 'err'); return; }
+  const r = await expPost('', { name, hypothesis, successMetric, plannedDurationDays, variants: [
+    { variantKey:'control', trafficWeight:0.5, isControl:true },
+    { variantKey:'treatment', trafficWeight:0.5, isControl:false }
+  ]});
+  if (r.ok && r.body.ok) { toast('Experiment created'); document.getElementById('expName').value=''; document.getElementById('expHypothesis').value=''; expLoadList(); expSelect(r.body.experiment.experiment_id, name); }
+  else toast(r.body.error || 'Create failed', 'err');
+}
+function expSelect(id, name) {
+  expSelectedId = id;
+  document.getElementById('expSelName').textContent = name || id;
+  expRefreshDetail();
+  expLoadMonitoring();
+  expLoadSignoffs();
+}
+async function expRefreshDetail() {
+  const el = document.getElementById('expDetail');
+  if (!expSelectedId) { el.textContent = 'Select an experiment above.'; return; }
+  const r = await expApi('/' + expSelectedId);
+  if (!r.ok || !r.body.ok) { el.innerHTML = '<span class="badge err">'+escapeHtml((r.body&&r.body.error)||'load failed')+'</span>'; return; }
+  expSelectedVariants = r.body.variants || [];
+  const e = r.body.experiment;
+  const sum = await expApi('/' + expSelectedId + '/assignments/summary');
+  const s = sum.body || {};
+  el.innerHTML = `<div style="display:flex;gap:1.4rem;flex-wrap:wrap;">
+      <div><strong>Status:</strong> <span class="badge ${e.status==='running'?'ok':''}">${escapeHtml(e.status)}</span></div>
+      <div><strong>Metric:</strong> ${escapeHtml(e.success_metric)}</div>
+      <div><strong>Min duration:</strong> ${e.min_duration_days}d</div>
+      <div><strong>Assigned:</strong> ${s.total ?? 0}</div>
+      <div><strong>Fairness:</strong> <span class="badge ${s.fairnessStatus==='high_risk'?'err':(s.fairnessStatus==='monitor'?'':'ok')}">${escapeHtml(s.fairnessStatus||'n/a')}</span></div>
+    </div>
+    <div style="margin-top:.5rem;font-size:.82rem;color:var(--grey);">${escapeHtml(e.hypothesis||'')}</div>
+    <table class="adm" style="margin-top:.5rem;"><thead><tr><th>Variant</th><th>Control</th><th>Weight</th><th>Assigned (by variant)</th></tr></thead><tbody>${
+      expSelectedVariants.map(v => `<tr><td>${escapeHtml(v.variant_key)}</td><td>${v.is_control?'✔':''}</td><td>${Number(v.traffic_weight)}</td><td style="text-align:right;">${(s.byVariant&&s.byVariant[v.variant_key])||0}</td></tr>`).join('')
+    }</tbody></table>`;
+}
+async function expValidate() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  const r = await expPost('/' + expSelectedId + '/validate', {});
+  if (r.ok && r.body.ok) { toast('Validated' + ((r.body.warnings&&r.body.warnings.length)?(' · '+r.body.warnings.join(', ')):'')); expRefreshDetail(); expLoadList(); }
+  else toast(((r.body.errors&&r.body.errors.join(', '))||r.body.error||'Validation failed'), 'err');
+}
+async function expStart() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  // Generate a balanced synthetic cohort so a legitimate start is not blocked by small-sample skew.
+  const grades = ['g5','g6','g7','g8'];
+  const cohort = Array.from({ length: 400 }, (_, i) => ({ pseudonym: 'demo-' + expSelectedId.slice(0,8) + '-' + i, strata: { grade: grades[i % grades.length] } }));
+  const r = await expPost('/' + expSelectedId + '/start', { cohort });
+  if (r.ok && r.body.ok) { toast('Running · fairness ' + (r.body.fairnessStatus||'ok')); expRefreshDetail(); expLoadList(); expLoadMonitoring(); }
+  else if (r.status === 409 && r.body.error === 'fairness_block') { toast('Start blocked: high-risk fairness skew', 'err'); expRefreshDetail(); }
+  else toast(((r.body.errors&&r.body.errors.join(', '))||r.body.error||'Start failed'), 'err');
+}
+function expSyntheticMetricEvents(treatmentMean) {
+  // Build per-learner metric events from current assignments via the summary's variant ids.
+  const events = [];
+  for (const v of expSelectedVariants) {
+    const base = v.is_control ? 0.55 : treatmentMean;
+    for (let i = 0; i < 120; i++) events.push({ variantId: v.variant_id, variantKey: v.variant_key, value: base + (Math.random()*0.06 - 0.03) });
+  }
+  return events;
+}
+async function expSeedMetrics() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  if (!expSelectedVariants.length) await expRefreshDetail();
+  // Seed an underperforming treatment to demonstrate the alert path.
+  const r = await expPost('/' + expSelectedId + '/snapshots', { metricName: 'mastery', events: expSyntheticMetricEvents(0.42) });
+  if (r.ok && r.body.ok) { toast('Metrics seeded · alerts: ' + (r.body.alerts?r.body.alerts.length:0)); expLoadMonitoring(); }
+  else toast(r.body.error || 'Seed failed', 'err');
+}
+async function expLoadMonitoring() {
+  const el = document.getElementById('expMonitoring');
+  if (!expSelectedId) { el.textContent = '—'; return; }
+  const r = await expApi('/' + expSelectedId + '/monitoring');
+  const b = r.body || {};
+  const snaps = b.snapshots || [];
+  const alerts = b.openAlerts || [];
+  const fresh = b.freshness || {};
+  el.innerHTML = `<div style="margin-bottom:.4rem;"><strong>Freshness:</strong> <span class="badge ${fresh.fresh?'ok':'err'}">${fresh.lagMinutes==null?'no data':(fresh.lagMinutes+' min ago · '+(fresh.fresh?'within SLA':'stale'))}</span></div>` +
+    (snaps.length ? '<table class="adm"><thead><tr><th>Variant</th><th>n</th><th>Mean</th><th>CI95</th></tr></thead><tbody>' +
+      snaps.map(s => `<tr><td>${escapeHtml(s.variant_key)}${s.is_control?' <span class="badge">control</span>':''}</td><td style="text-align:right;">${s.sample_size_n}</td><td style="text-align:right;">${s.mean_value}</td><td style="text-align:right;color:var(--grey);">[${s.ci95_low}, ${s.ci95_high}]</td></tr>`).join('') +
+      '</tbody></table>' : '<em>No snapshots yet. Seed demo metrics.</em>') +
+    (alerts.length ? '<div style="margin-top:.5rem;"><strong>Open alerts</strong><table class="adm"><thead><tr><th>Type</th><th>Severity</th><th>Message</th><th></th></tr></thead><tbody>' +
+      alerts.map(a => `<tr><td><span class="badge ${a.alert_type==='fairness_skew'?'err':''}">${escapeHtml(a.alert_type)}</span></td><td>${escapeHtml(a.severity)}</td><td>${escapeHtml(a.message||'')}</td><td><button class="btn secondary" onclick="expAck('${a.alert_id}')">Acknowledge</button></td></tr>`).join('') +
+      '</tbody></table></div>' : '<div style="margin-top:.4rem;color:var(--grey);font-size:.82rem;">No open alerts.</div>');
+}
+async function expAck(alertId) {
+  const r = await expPost('/' + expSelectedId + '/alerts/' + alertId + '/acknowledge', {});
+  if (r.ok && r.body.ok) { toast('Alert acknowledged'); expLoadMonitoring(); }
+  else toast('Acknowledge failed', 'err');
+}
+async function expRunSignificance() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  if (!expSelectedVariants.length) await expRefreshDetail();
+  const control = expSelectedVariants.find(v => v.is_control) || {};
+  const treatment = expSelectedVariants.find(v => !v.is_control) || {};
+  const controlValues = Array.from({ length: 120 }, () => 0.55 + (Math.random()*0.06 - 0.03));
+  const treatmentValues = Array.from({ length: 120 }, () => 0.66 + (Math.random()*0.06 - 0.03));
+  const r = await expPost('/' + expSelectedId + '/significance', { controlValues, treatmentValues, controlVariantId: control.variant_id, treatmentVariantId: treatment.variant_id });
+  const el = document.getElementById('expSignificance');
+  if (r.ok && r.body.ok) {
+    const c = r.body.comparison, rec = r.body.recommendation;
+    el.innerHTML = `<table class="adm"><tbody>
+      <tr><th>p-value</th><td>${c.pValue}</td><th>Statistically significant</th><td>${c.isStatisticallySignificant?'yes':'no'}</td></tr>
+      <tr><th>Effect (Cohen's d)</th><td>${c.effectSize} (${escapeHtml(c.effectInterpretation)})</td><th>Practically significant</th><td>${rec.isPracticallySignificant?'yes':'no'}</td></tr>
+      <tr><th>Relative delta</th><td>${c.relativeDeltaPct}%</td><th>Recommended (advisory)</th><td><span class="badge">${escapeHtml(rec.recommendedAction)}</span></td></tr>
+      </tbody></table>
+      <div style="margin-top:.4rem;color:var(--grey);font-size:.82rem;">${escapeHtml(rec.rationale)}</div>`;
+  } else {
+    el.innerHTML = '<span class="badge err">'+escapeHtml((r.body&&r.body.error)||'failed')+'</span>';
+  }
+}
+async function expRunSegments() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  // Demo: overall positive, but one segment shows an opposite (harmful) effect.
+  const mk = (m) => Array.from({ length: 30 }, () => m + (Math.random()*0.04 - 0.02));
+  const segments = [
+    { dimensionKey:'grade', dimensionValue:'g5', controlValues: mk(0.55), treatmentValues: mk(0.68) },
+    { dimensionKey:'grade', dimensionValue:'g6', controlValues: mk(0.60), treatmentValues: mk(0.44) }
+  ];
+  const r = await expPost('/' + expSelectedId + '/segments', { segments, overallDeltaPct: 12 });
+  const el = document.getElementById('expSignificance');
+  if (r.ok && r.body.ok) {
+    const segs = r.body.segments || [];
+    el.insertAdjacentHTML('beforeend', '<div style="margin-top:.6rem;"><strong>Segment analysis</strong>' +
+      (r.body.highRisk ? ' <span class="badge err">high-risk differential impact — rollout blocked pending review</span>' : '') +
+      '<table class="adm"><thead><tr><th>Dimension</th><th>Value</th><th>Δ%</th><th>p</th><th>Opposite?</th><th>Fairness</th></tr></thead><tbody>' +
+      segs.map(s => `<tr><td>${escapeHtml(s.dimension_key)}</td><td>${escapeHtml(s.dimension_value)}</td><td>${s.delta_pct}</td><td>${s.p_value}</td><td>${s.is_opposite_effect?'⚠ yes':'no'}</td><td><span class="badge ${s.fairness_flag==='high_risk'?'err':''}">${escapeHtml(s.fairness_flag)}</span></td></tr>`).join('') +
+      '</tbody></table></div>');
+    toast('Segment analysis complete' + (r.body.highRisk?' · high-risk flag':''));
+    expLoadMonitoring();
+  } else toast('Segment analysis failed', 'err');
+}
+async function expDecide(decisionType) {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  const rationale = document.getElementById('expRationale').value.trim();
+  if (!rationale) { toast('Rationale required', 'err'); return; }
+  const r = await expPost('/' + expSelectedId + '/decisions', { decisionType, rationale });
+  if (r.ok && r.body.ok) { toast('Decision recorded: ' + decisionType); document.getElementById('expRationale').value=''; expRefreshDetail(); expLoadList(); expLoadHistory(); }
+  else if (r.status === 409 && r.body.error === 'signoff_required') { toast('Adopt blocked — missing sign-off: ' + (r.body.missing||[]).join(', '), 'err'); }
+  else toast(r.body.error || 'Decision failed', 'err');
+}
+async function expSignoff(role) {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  const r = await expPost('/' + expSelectedId + '/signoff', { signoffRole: role, note: 'Recorded via admin console' });
+  if (r.ok && (r.body.ok || r.body.signoff)) { toast(role + ' sign-off recorded'); expLoadSignoffs(); }
+  else toast(r.body.error || 'Sign-off failed', 'err');
+}
+async function expLoadSignoffs() {
+  const el = document.getElementById('expSignoffs');
+  if (!expSelectedId) { el.textContent = '—'; return; }
+  const r = await expApi('/' + expSelectedId + '/signoffs');
+  const rows = (r.body && r.body.signoffs) || [];
+  el.innerHTML = '<strong>Sign-offs:</strong> ' + (rows.length ? rows.map(s => `<span class="badge ok">${escapeHtml(s.signoff_role)} · ${escapeHtml(s.signed_by||'')}</span>`).join(' ') : '<span class="badge err">none — adopt is blocked</span>');
+}
+async function expArchive() {
+  if (!expSelectedId) { toast('Select an experiment', 'err'); return; }
+  const r = await expPost('/' + expSelectedId + '/archive', { lessonsLearned: 'Archived from admin console', keywords: ['demo'], finalOutcome: 'launched' });
+  if (r.ok && r.body.ok) { toast('Experiment archived'); expRefreshDetail(); expLoadList(); }
+  else toast(r.body.error || 'Archive failed', 'err');
+}
+async function expSearchArchive() {
+  const el = document.getElementById('expArchive');
+  const keyword = document.getElementById('expArchiveKeyword').value.trim();
+  const r = await expApi('/archive/search' + (keyword ? ('?keyword=' + encodeURIComponent(keyword)) : ''));
+  const rows = (r.body && r.body.results) || [];
+  el.innerHTML = '<strong>Archive search</strong>' + (rows.length ? '<table class="adm"><thead><tr><th>Name</th><th>Metric</th><th>Outcome</th><th>Keywords</th></tr></thead><tbody>' +
+    rows.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.success_metric)}</td><td>${escapeHtml(a.final_outcome||'-')}</td><td>${escapeHtml((a.keywords||[]).join(', '))}</td></tr>`).join('') +
+    '</tbody></table>' : ' <em>no results</em>');
+}
+async function expLoadHistory() {
+  const el = document.getElementById('expHistory');
+  if (!expSelectedId) { el.textContent = '—'; return; }
+  const r = await expApi('/' + expSelectedId + '/history');
+  const rows = (r.body && r.body.events) || [];
+  el.innerHTML = '<strong>Immutable audit trail</strong>' + (rows.length ? '<table class="adm"><thead><tr><th>Time</th><th>Event</th><th>Actor</th></tr></thead><tbody>' +
+    rows.map(e => `<tr><td style="white-space:nowrap;font-size:.76rem;">${escapeHtml((e.created_at||'').replace('T',' ').slice(0,19))}</td><td><span class="badge">${escapeHtml(e.event_type)}</span></td><td>${escapeHtml(e.event_actor||'-')}</td></tr>`).join('') +
+    '</tbody></table>' : ' <em>no events</em>');
+}
+
 (async () => {
   try {
     const me = await (await fetch('/api/auth/me', { cache:'no-store' })).json();
@@ -800,7 +1095,7 @@ async function hierLoadAudit() {
   loadIntegrations();
   loadIntegrationAudit();
   const initial = (location.hash || '').replace(/^#/, '');
-  const valid = new Set(['overview','users','activity','safety','data','integrations','governance','hierarchy']);
+  const valid = new Set(['overview','users','activity','safety','data','integrations','governance','hierarchy','experiments']);
   setTab(valid.has(initial) ? initial : 'overview');
   setInterval(() => { loadCards(); loadItems(); loadConnLogs(); loadAskLogs(); loadCs(); loadOnnx(); loadQuality(); loadGamificationKpis(); loadPostgresOps(); loadFabricOps(); }, 30000);
 })();

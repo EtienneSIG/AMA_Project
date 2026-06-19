@@ -1586,3 +1586,192 @@ SELECT d.workflow_id,
        SUM(CASE WHEN d.decision = 'decline' THEN 1 ELSE 0 END)::int AS decline_count
 FROM school_adoption_decision d
 GROUP BY d.workflow_id;
+
+-- ============================================================================
+-- Feature 012 — A/B Testing Framework (governed experimentation)
+-- Experiment lifecycle, fair stratified assignment, monitoring snapshots,
+-- significance + segment analysis, alerts, human decisions, archive, and an
+-- append-only audit trail. All learner references are pseudonymous.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS experiment (
+  experiment_id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                    text NOT NULL,
+  hypothesis              text,
+  owner_user             text,
+  target_scope_json       jsonb DEFAULT '{}'::jsonb,
+  success_metric          text NOT NULL CHECK (success_metric IN ('engagement','mastery','completion','time_on_task','custom')),
+  randomization_ratio_json jsonb DEFAULT '{}'::jsonb,
+  status                  text NOT NULL DEFAULT 'draft'
+                            CHECK (status IN ('draft','validated','running','paused','completed','decided','archived')),
+  min_duration_days       int NOT NULL DEFAULT 7,
+  seed                    text,
+  start_at                timestamptz,
+  end_at                  timestamptz,
+  created_at              timestamptz NOT NULL DEFAULT now(),
+  updated_at              timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_experiment_name ON experiment(lower(name));
+CREATE INDEX IF NOT EXISTS ix_experiment_status ON experiment(status);
+
+CREATE TABLE IF NOT EXISTS experiment_variant (
+  variant_id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id       uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  variant_key         text NOT NULL,
+  variant_config_json jsonb DEFAULT '{}'::jsonb,
+  traffic_weight      numeric NOT NULL DEFAULT 0.5 CHECK (traffic_weight >= 0 AND traffic_weight <= 1),
+  is_control          boolean NOT NULL DEFAULT false,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (experiment_id, variant_key)
+);
+CREATE INDEX IF NOT EXISTS ix_variant_experiment ON experiment_variant(experiment_id);
+
+CREATE TABLE IF NOT EXISTS variant_assignment (
+  assignment_id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id           uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  variant_id              uuid NOT NULL REFERENCES experiment_variant(variant_id) ON DELETE CASCADE,
+  learner_pseudonym       text NOT NULL,
+  strata_json             jsonb DEFAULT '{}'::jsonb,
+  assignment_method       text NOT NULL DEFAULT 'stratified_hash'
+                            CHECK (assignment_method IN ('random_hash','stratified_hash','manual_exception')),
+  assignment_seed_version text,
+  assigned_at             timestamptz NOT NULL DEFAULT now(),
+  is_excluded_from_analysis boolean NOT NULL DEFAULT false,
+  exclusion_reason        text CHECK (exclusion_reason IN ('dsr_request','consent_revoked','data_quality','other')),
+  UNIQUE (experiment_id, learner_pseudonym)
+);
+CREATE INDEX IF NOT EXISTS ix_assignment_experiment ON variant_assignment(experiment_id);
+CREATE INDEX IF NOT EXISTS ix_assignment_variant ON variant_assignment(variant_id);
+
+CREATE TABLE IF NOT EXISTS experiment_metric_snapshot (
+  snapshot_id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  variant_id    uuid NOT NULL REFERENCES experiment_variant(variant_id) ON DELETE CASCADE,
+  window_start  timestamptz,
+  window_end    timestamptz,
+  metric_name   text NOT NULL,
+  sample_size_n int NOT NULL DEFAULT 0,
+  mean_value    numeric,
+  median_value  numeric,
+  std_dev       numeric,
+  ci95_low      numeric,
+  ci95_high     numeric,
+  computed_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_snapshot_experiment ON experiment_metric_snapshot(experiment_id, computed_at DESC);
+
+CREATE TABLE IF NOT EXISTS significance_result (
+  result_id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id              uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  control_variant_id         uuid REFERENCES experiment_variant(variant_id),
+  treatment_variant_id       uuid REFERENCES experiment_variant(variant_id),
+  p_value                    numeric,
+  effect_size                numeric,
+  effect_interpretation      text CHECK (effect_interpretation IN ('negligible','small','medium','large')),
+  absolute_delta             numeric,
+  relative_delta_pct         numeric,
+  is_statistically_significant boolean,
+  is_practically_significant   boolean,
+  recommended_action         text CHECK (recommended_action IN ('continue','stop','investigate','review_for_adoption')),
+  computed_at                timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_significance_experiment ON significance_result(experiment_id, computed_at DESC);
+
+CREATE TABLE IF NOT EXISTS segment_analysis_result (
+  segment_result_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id     uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  dimension_key     text NOT NULL,
+  dimension_value   text NOT NULL,
+  control_mean      numeric,
+  treatment_mean    numeric,
+  delta_pct         numeric,
+  p_value           numeric,
+  sample_size_n     int,
+  is_opposite_effect boolean DEFAULT false,
+  fairness_flag     text NOT NULL DEFAULT 'none' CHECK (fairness_flag IN ('none','monitor','high_risk')),
+  computed_at       timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_segment_experiment ON segment_analysis_result(experiment_id, computed_at DESC);
+
+CREATE TABLE IF NOT EXISTS experiment_alert (
+  alert_id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id     uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  alert_type        text NOT NULL CHECK (alert_type IN ('underperformance','fairness_skew','confound','sample_drift','outage')),
+  severity          text NOT NULL DEFAULT 'warning' CHECK (severity IN ('info','warning','critical')),
+  message           text,
+  triggered_at      timestamptz NOT NULL DEFAULT now(),
+  acknowledged_by   text,
+  acknowledged_at   timestamptz,
+  resolution_status text NOT NULL DEFAULT 'open' CHECK (resolution_status IN ('open','acknowledged','resolved'))
+);
+CREATE INDEX IF NOT EXISTS ix_alert_experiment ON experiment_alert(experiment_id, triggered_at DESC);
+
+CREATE TABLE IF NOT EXISTS experiment_decision (
+  decision_id     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id   uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  decision_type   text NOT NULL CHECK (decision_type IN ('continue','stop','investigate','adopt_variant','archive')),
+  decision_by     text,
+  decision_role   text CHECK (decision_role IN ('product_manager','teacher','pedagogy_reviewer','compliance_reviewer','admin')),
+  rationale       text,
+  requires_followup boolean DEFAULT false,
+  decided_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_decision_experiment ON experiment_decision(experiment_id, decided_at DESC);
+
+-- Adoption sign-offs (teacher + pedagogy) required before adopt_variant.
+CREATE TABLE IF NOT EXISTS experiment_signoff (
+  signoff_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id uuid NOT NULL REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  signoff_role  text NOT NULL CHECK (signoff_role IN ('teacher','pedagogy_reviewer')),
+  signed_by     text,
+  note          text,
+  signed_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (experiment_id, signoff_role)
+);
+
+CREATE TABLE IF NOT EXISTS experiment_archive (
+  archive_id     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id  uuid NOT NULL UNIQUE REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  summary_json   jsonb DEFAULT '{}'::jsonb,
+  lessons_learned text,
+  keywords       text[] DEFAULT '{}',
+  final_outcome  text CHECK (final_outcome IN ('launched','inconclusive','harmful','archived_without_launch')),
+  archived_by    text,
+  archived_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_archive_outcome ON experiment_archive(final_outcome);
+CREATE INDEX IF NOT EXISTS ix_archive_keywords ON experiment_archive USING gin (keywords);
+
+CREATE TABLE IF NOT EXISTS experiment_audit_event (
+  audit_event_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  experiment_id     uuid REFERENCES experiment(experiment_id) ON DELETE CASCADE,
+  event_type        text NOT NULL CHECK (event_type IN ('state_change','assignment_generated','alert_emitted','decision_recorded','archive_written','data_accessed','significance_computed','segment_analyzed','signoff_recorded')),
+  event_actor       text,
+  event_actor_role  text,
+  event_payload_hash text,
+  event_payload_json jsonb DEFAULT '{}'::jsonb,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_exp_audit_experiment ON experiment_audit_event(experiment_id, created_at DESC);
+
+-- Append-only: experiment audit events cannot be updated or deleted.
+CREATE OR REPLACE FUNCTION prevent_experiment_audit_mutation() RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'experiment_audit_event is append-only (Art. 12 traceability)';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trg_prevent_experiment_audit_update ON experiment_audit_event;
+CREATE TRIGGER trg_prevent_experiment_audit_update BEFORE UPDATE ON experiment_audit_event
+  FOR EACH ROW EXECUTE FUNCTION prevent_experiment_audit_mutation();
+DROP TRIGGER IF EXISTS trg_prevent_experiment_audit_delete ON experiment_audit_event;
+CREATE TRIGGER trg_prevent_experiment_audit_delete BEFORE DELETE ON experiment_audit_event
+  FOR EACH ROW EXECUTE FUNCTION prevent_experiment_audit_mutation();
+
+-- Variant assignment distribution (fairness diagnostics input).
+CREATE OR REPLACE VIEW v_experiment_assignment_counts AS
+SELECT a.experiment_id, a.variant_id, v.variant_key,
+       COUNT(*)::int AS assigned_n,
+       SUM(CASE WHEN a.is_excluded_from_analysis THEN 0 ELSE 1 END)::int AS active_n
+FROM variant_assignment a
+JOIN experiment_variant v ON v.variant_id = a.variant_id
+GROUP BY a.experiment_id, a.variant_id, v.variant_key;

@@ -190,6 +190,17 @@ try {
   console.warn('[hierarchy] routes not mounted:', e && e.message);
 }
 
+// Feature 012 — A/B testing framework routes (experiment lifecycle, governed
+// assignment, monitoring, significance, segmentation, sign-off, decisions,
+// archive). Guarded require: missing module => app still boots without
+// experimentation; statistical output is advisory, adopt_variant is sign-off
+// gated, all actions are audited.
+try {
+  require('./server-experiments')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[experiments] routes not mounted:', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
