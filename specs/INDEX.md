@@ -1,11 +1,11 @@
 # Spec Kit Feature Index — LearnEU Platform
 
-**Last Updated**: 2026-06-18  
-**Specs Maintained**: 12 (001–012)
+**Last Updated**: 2026-06-26  
+**Specs Maintained**: 19 (001–019)
 
 ## Overview
 
-This directory contains **12 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
+This directory contains **19 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
 
 ### Workflow
 
@@ -33,23 +33,35 @@ Each spec folder contains:
 
 | # | Feature | Branch | Status | P0/P1 | Backlog Match |
 |---|---------|--------|--------|-------|---------------|
-| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | Draft | P1 | Student experience (UI redesign) |
-| **002** | Admin Postgres Wake-Up | `002-admin-postgres-wakeup` | Draft | P1 | Platform transverse (ops reliability) |
-| **003** | Learner Gamification UX | `003-learner-gamification-ux` | Draft | P1 | Student gamification (progress/streak/quests) |
-| **004** | Learner Hierarchy Portal | `004-learner-hierarchy-portal` | Draft | P1 | Director portal (class/learner hierarchy) |
-| **005** | Director Reporting Benchmarks | `005-director-reporting-benchmarks` | Draft | P1 | Director dashboard (class trends, benchmarks) |
+| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | 📝 spec only | P1 | Student experience (UI redesign) |
+| **002** | Admin Postgres Wake-Up | `002-admin-postgres-wakeup` | ✅ spec+plan+tasks | P1 | Platform transverse (ops reliability) |
+| **003** | Learner Gamification UX | `003-learner-gamification-ux` | ✅ spec+plan+tasks | P1 | Student gamification (progress/streak/quests) |
+| **004** | Learner Hierarchy Portal | `004-learner-hierarchy-portal` | ✅ spec+plan+tasks | P1 | Director portal (class/learner hierarchy) |
+| **005** | Director Reporting Benchmarks | `005-director-reporting-benchmarks` | ✅ spec+plan+tasks | P1 | Director dashboard (class trends, benchmarks) |
 
-### 🆕 NEW SPECS (006–012) — Missing from Backlog Coverage
+### 🆕 NEW SPECS (006–012) — Planned + Tasked
 
 | # | Feature | Branch | Priority | Status | Backlog Feature Area |
 |---|---------|--------|----------|--------|---------------------|
-| **006** | Parent Portal | `006-parent-portal` | P0–P1 | ✅ spec.md | Parent Communications, Consent, Digest |
-| **007** | Adaptive Learning | `007-adaptive-learning` | P1 | ✅ spec.md | Student → Next-Best-Activity, Catch-Up, Stretch |
-| **008** | Teacher Assessment | `008-teacher-assessment` | P0–P1 | ✅ spec.md | Teacher → Authoring, Rubrics, Shared Library |
-| **009** | Interoperability | `009-interoperability-sis` | P1 | ✅ spec.md | Platform → SCORM, xAPI, SIS, Calendar, Export |
-| **010** | CMS Versioning | `010-cms-versioning` | P1 | ✅ spec.md | Platform → Content Versioning, Approval, Localization |
-| **011** | Multi-School Hierarchy | `011-multi-school-hierarchy` | P1 | ✅ spec.md | Director → District View, Benchmarking, Peer Learning |
-| **012** | A/B Testing | `012-ab-testing-framework` | P2 | ✅ spec.md | Platform → Experimentation, Product Iteration |
+| **006** | Parent Portal | `006-parent-portal` | P0–P1 | ✅ spec+plan+tasks | Parent Communications, Consent, Digest |
+| **007** | Adaptive Learning | `007-adaptive-learning` | P1 | ✅ spec+plan+tasks | Student → Next-Best-Activity, Catch-Up, Stretch |
+| **008** | Teacher Assessment | `008-teacher-assessment` | P0–P1 | ✅ spec+plan+tasks | Teacher → Authoring, Rubrics, Shared Library |
+| **009** | Interoperability | `009-interoperability-sis` | P1 | ✅ spec+plan+tasks | Platform → SCORM, xAPI, SIS, Calendar, Export |
+| **010** | CMS Versioning | `010-cms-versioning` | P1 | ✅ spec+plan+tasks | Platform → Content Versioning, Approval, Localization |
+| **011** | Multi-School Hierarchy | `011-multi-school-hierarchy` | P1 | ✅ spec+plan+tasks | Director → District View, Benchmarking, Peer Learning |
+| **012** | A/B Testing | `012-ab-testing-framework` | P2 | ✅ spec+plan+tasks | Platform → Experimentation, Product Iteration |
+
+### 🆕 NEW SPECS (013–019) — Experience, Tutor, Well-Being & Analytics
+
+| # | Feature | Branch | Priority | Status | Feature Area |
+|---|---------|--------|----------|--------|---------------------|
+| **013** | Learner Sheet & Item Sharing | `013-learner-sheet-sharing` | P1 | ✅ spec+plan+tasks | Student → Peer sharing of items/sheets (in-class, moderated) |
+| **014** | Age-Adaptive Theming | `014-age-adaptive-theming` | P1 | ✅ spec+plan+tasks | Student → Age-band look & feel (child-drawing / Lego-inspired / game-HUD) |
+| **015** | AI Tutor Video Links | `015-ai-tutor-video-links` | P1 | ✅ spec+plan+tasks | Student → Vetted external explainer videos in tutor answers |
+| **016** | AI Tutor Voice Mode | `016-ai-tutor-voice-mode` | P1 | ✅ spec+plan+tasks | Student → Write/explain + voice-to-voice discussion modes |
+| **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks | Student/Parent/Teacher → Self-reported mood + well-being routing |
+| **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks | Director → Native Fabric app replacing Power BI Embedded |
+| **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks | All apps → Left nav / center content / right profile redesign |
 
 ---
 
@@ -57,10 +69,14 @@ Each spec folder contains:
 
 ### By Role
 
-**Student** (5 specs)
+**Student** (8 specs)
 - ✅ 001 Tabbed Workspace
 - ✅ 003 Gamification
 - ✅ 007 **[NEW]** Adaptive Learning
+- ✅ 013 **[NEW]** Sheet & Item Sharing
+- ✅ 014 **[NEW]** Age-Adaptive Theming
+- ✅ 015 **[NEW]** AI Tutor Video Links
+- ✅ 016 **[NEW]** AI Tutor Voice Mode
 
 **Parent** (1 spec)
 - ✅ 006 **[NEW]** Portal + Digest
@@ -68,10 +84,14 @@ Each spec folder contains:
 **Teacher** (1 spec)
 - ✅ 008 **[NEW]** Assessment + Shared Library
 
-**Director** (3 specs)
+**Cross-Role / Well-Being** (1 spec)
+- ✅ 017 **[NEW]** Learner Mood Check-In (Student + Parent + Teacher)
+
+**Director** (4 specs)
 - ✅ 004 Hierarchy Portal
 - ✅ 005 Reporting Benchmarks
 - ✅ 011 **[NEW]** Multi-School Hierarchy
+- ✅ 018 **[NEW]** Fabric (Rayfin) Analytics App
 
 **Platform Transverse** (5 specs)
 - ✅ 002 Postgres Wake-Up
@@ -79,54 +99,43 @@ Each spec folder contains:
 - ✅ 010 **[NEW]** CMS Versioning
 - ✅ 012 **[NEW]** A/B Testing
 
+**All Apps / Cross-Cutting UX** (1 spec)
+- ✅ 019 **[NEW]** Unified Three-Column App Shell (learner + parent + teacher + admin + director)
+
 ---
 
 ## Constitution Compliance Summary
 
-All 12 specs are gated against the [Constitution](../.specify/memory/constitution.md):
+All 19 specs are gated against the [Constitution](../.specify/memory/constitution.md):
 
 | Principle | Coverage | Notes |
 |-----------|----------|-------|
-| I. EU-Resident, Data-Minimised | ✅ 12/12 | No cross-EU transfer, no profiling |
-| II. GDPR Art. 8 | ✅ 12/12 | Parental consent, data-subject rights, under-16 gating |
-| III. EU AI Act high-risk | ✅ 12/12 | Logging, human override, transparency, accuracy |
-| IV. Teacher-in-the-loop | ✅ 12/12 | No autonomous decisions affecting learners |
-| V. Pedagogical sign-off | ✅ 12/12 | ZPD alignment, formative assessment design |
-| VI. Outcome-contract driven | ✅ 12/12 | Maps to outcome KPIs (outcome gap −26%, admin time −45%, localization 12 → 6 weeks) |
-| VII. Reproducible, spec-driven | ✅ 12/12 | Specs first, then code; quickstart runbooks included |
+| I. EU-Resident, Data-Minimised | ✅ 19/19 | No cross-EU transfer, no profiling |
+| II. GDPR Art. 8 | ✅ 19/19 | Parental consent, data-subject rights, under-16 gating |
+| III. EU AI Act high-risk | ✅ 19/19 | Logging, human override, transparency, accuracy; no Art. 5 emotion/biometric inference |
+| IV. Teacher-in-the-loop | ✅ 19/19 | No autonomous decisions affecting learners |
+| V. Pedagogical sign-off | ✅ 19/19 | ZPD alignment, formative assessment design |
+| VI. Outcome-contract driven | ✅ 19/19 | Maps to outcome KPIs (outcome gap −26%, admin time −45%, localization 12 → 6 weeks) |
+| VII. Reproducible, spec-driven | ✅ 19/19 | Specs first, then code; quickstart runbooks included |
 
 ---
 
 ## Next Steps
 
-### Phase 0 — Clarification (optional)
-Run `/speckit.clarify` on new specs (006–012) to resolve any underspecified areas:
-```bash
-/speckit.clarify
-```
+**Pipeline status (2026-06-26)**: 19 specs · **18 planned + tasked** (002–019) · 001 is a legacy spec-only Draft.
 
-### Phase 1 — Planning
-Run `/speckit.plan` on new specs (006–012) to generate technical designs and compliance deltas:
-```bash
-/speckit.plan
-```
+### Ready for implementation
+- **018-director-fabric-rayfin** has spec + plan + tasks and is `/speckit.analyze`-clean. It is ready for `/speckit.implement`, gated only by the Phase 0 compliance sign-offs in its `tasks.md` (T000/T000a/T000b: EU residency, suppression-policy reuse, Fabric Apps preview enablement).
+- **002–017, 019** are planned + tasked (see each feature's `tasks.md`).
 
-### Phase 2 — Task Generation
-Run `/speckit.tasks` to generate actionable, dependency-ordered tasks for implementation:
-```bash
-/speckit.tasks
-```
+### Recommended implementation sequencing (cross-spec dependencies)
+- **014 (theming) before 019 (app shell)** — 019 consumes 014's design tokens.
+- **015 + 016 together** — both extend the AI tutor; one shared `TutorSession`/`TutorTurn` model.
+- **016 / 017** carry compliance gates (DPO sign-off on voice / mood DPIA deltas) before voice/parent-teacher surfacing.
+- **013 (sharing)** reuses 006 consent + Content Safety.
 
-### Phase 3 — Quality Analysis
-Run `/speckit.analyze` to validate spec/plan/tasks alignment and compliance:
 ```bash
-/speckit.analyze
-```
-
-### Phase 4 — Implementation
-Run `/speckit.implement` to execute tasks (once RAI Evaluator and Cross-Agent QA Verifier sign off):
-```bash
-/speckit.implement
+/speckit.implement   # per feature, after RAI Evaluator + Cross-Agent QA Verifier sign off + any DPO/compliance gates
 ```
 
 ---
@@ -161,6 +170,10 @@ See [agents/](../agents/) for role-specific instructions:
 |------|--------|-------------|
 | 2026-06-18 | Initial spec scaffold (001–005 from prior sessions) | — |
 | 2026-06-18 | **Add missing specs (006–012)** | **006–012 parent/adaptive/assessment/interop/cms/hierarchy/ab-test** |
+| 2026-06-26 | **Add experience/tutor/well-being/analytics specs (013–018)** | **013 sharing / 014 age-theming / 015 tutor-video / 016 tutor-voice / 017 mood / 018 fabric-rayfin** |
+| 2026-06-26 | **Add unified three-column app-shell redesign (019)** | **019 app-shell-three-column (all apps)** |
+| 2026-06-26 | **Refresh pipeline status**: 018 planned+tasked (analyze-clean); 002–012 marked planned+tasked; 013–017/019 marked spec-only; Next Steps corrected | — |
+| 2026-06-26 | **Track B planning**: plan + tasks generated for 013, 014, 015, 016, 017, 019 (now 002–019 all planned+tasked; only 001 spec-only) | — |
 
 ---
 
