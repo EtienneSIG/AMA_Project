@@ -502,6 +502,28 @@ app.get('/api/learner/activity', async (req, res) => {
   const rows = await db.listLearnerActivity({ email: u.email, days: 30 });
   res.json({ enabled: true, rows: rows || [] });
 });
+// --- Learner age-theme override (Feature 014) -----------------------------
+// Learner reads their own DB-backed age-theme override (cross-app). Falls back gracefully.
+app.get('/api/learner/theme-override', async (req, res) => {
+  const u = req.user;
+  if (!db.enabled || typeof db.getLearnerThemeOverride !== 'function') return res.json({ enabled: false, override: null });
+  const override = await db.getLearnerThemeOverride({ learnerEmail: u.email });
+  res.json({ enabled: true, override: override || null });
+});
+// Teacher/admin sets a learner's age-theme override (kids|brick|game|auto). Teacher-in-the-loop.
+app.post('/api/teacher/learner-theme', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled || typeof db.setLearnerThemeOverride !== 'function') return res.status(503).json({ error: 'db unavailable' });
+  const { learnerEmail, override } = req.body || {};
+  if (!learnerEmail || !['kids', 'brick', 'game', 'auto'].includes(String(override || '').toLowerCase())) {
+    return res.status(400).json({ error: 'learnerEmail and override (kids|brick|game|auto) required' });
+  }
+  try {
+    const row = await db.setLearnerThemeOverride({ learnerEmail, override, setBy: u.email, setRole: u.role });
+    res.json({ ok: true, override: row });
+  } catch (e) { res.status(400).json({ error: String(e && e.message || e) }); }
+});
 // --- Learner gamification UX (Feature 003) -------------------------------
 const GAM_BADGES = [
   { key: 'daily-flame', label: 'Daily Flame' },

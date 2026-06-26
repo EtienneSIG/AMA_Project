@@ -128,6 +128,11 @@
           apply();
         })
         .catch(function () {});
+      // DB-backed override (set by a teacher/parent, cross-app) takes precedence.
+      window.fetch('/api/learner/theme-override', { credentials: 'same-origin' })
+        .then(function (r) { return r && r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.override) { serverState.override = d.override; apply(); } })
+        .catch(function () {});
     } catch (e) {}
   }
 

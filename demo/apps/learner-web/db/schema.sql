@@ -1775,3 +1775,16 @@ SELECT a.experiment_id, a.variant_id, v.variant_key,
 FROM variant_assignment a
 JOIN experiment_variant v ON v.variant_id = a.variant_id
 GROUP BY a.experiment_id, a.variant_id, v.variant_key;
+
+-- ---------------------------------------------------------------------------
+-- Learner age-theme override (Feature 014). A teacher/parent/learner-set theme
+-- band that overrides the deterministic age-band resolution. Read cross-app by
+-- the learner web app. 'auto' (or absent) restores age-band resolution.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS learner_theme_override (
+  learner_email TEXT        PRIMARY KEY,
+  override      TEXT        NOT NULL CHECK (override IN ('kids','brick','game','auto')),
+  set_by        TEXT,
+  set_role      TEXT,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);

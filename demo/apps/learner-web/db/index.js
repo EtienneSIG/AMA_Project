@@ -3445,9 +3445,34 @@ async function listExperimentAudit({ experimentId = null, eventType = null, limi
 }
 
 
+// --- Learner age-theme override (Feature 014) ------------------------------
+async function getLearnerThemeOverride({ learnerEmail }) {
+  const r = await q(
+    `SELECT override FROM learner_theme_override WHERE learner_email = $1 LIMIT 1`,
+    [String(learnerEmail || '').toLowerCase()]
+  );
+  return r && r.rows && r.rows[0] ? r.rows[0].override : null;
+}
+
+async function setLearnerThemeOverride({ learnerEmail, override, setBy, setRole }) {
+  const ov = String(override || '').toLowerCase();
+  if (!['kids', 'brick', 'game', 'auto'].includes(ov)) throw new Error('override must be one of: kids, brick, game, auto');
+  const r = await q(
+    `INSERT INTO learner_theme_override (learner_email, override, set_by, set_role, updated_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (learner_email) DO UPDATE
+       SET override = EXCLUDED.override, set_by = EXCLUDED.set_by, set_role = EXCLUDED.set_role, updated_at = now()
+     RETURNING *`,
+    [String(learnerEmail || '').toLowerCase(), ov, setBy || null, setRole || null]
+  );
+  return r && r.rows && r.rows[0] ? r.rows[0] : null;
+}
+
 module.exports = {
   enabled,
   init,
+  getLearnerThemeOverride,
+  setLearnerThemeOverride,
   logConnection,
   logAsk,
   recordAuditEvent,
