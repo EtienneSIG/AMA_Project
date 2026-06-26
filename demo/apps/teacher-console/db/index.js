@@ -970,9 +970,10 @@ async function attemptStats() {
 
 async function logContentSafety({ askId, email, app, direction, blocked, severities, raw }) {
   const sev = severities || {};
-  await q(
+  const r = await q(
     `INSERT INTO content_safety_results (ask_id, email, app, direction, blocked, hate, self_harm, sexual, violence, raw)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+     RETURNING id`,
     [askId || null, email || 'anonymous', app || APP, direction, Boolean(blocked),
       Number.isFinite(sev.Hate) ? sev.Hate : null,
       Number.isFinite(sev.SelfHarm) ? sev.SelfHarm : null,
@@ -980,6 +981,7 @@ async function logContentSafety({ askId, email, app, direction, blocked, severit
       Number.isFinite(sev.Violence) ? sev.Violence : null,
       raw ? JSON.stringify(raw) : null]
   );
+  return r && r.rows && r.rows[0] ? r.rows[0].id : null;
 }
 
 async function listSheets({ email, app }) {
@@ -1014,6 +1016,141 @@ async function createSheet({ email, role, app, title, prompt, answer }) {
 
 async function deleteSheet({ id, email }) {
   const r = await q(`DELETE FROM sheets WHERE id = $1 AND email = $2`, [id, email]);
+  return Boolean(r && r.rowCount > 0);
+}
+
+// --- Feature 013 — Learner sheet & item sharing ----------------------------
+// In-class peer support. Recipients are always resolved server-side from the
+// class roster (learner_hierarchy_assignment); the client never supplies a raw
+// recipient that bypasses the roster check. Notes are Content-Safety scanned by
+// the caller; under-16 sharing is gated on active parental consent (both parties).
+
+// Active same-class peers for a learner (excludes self). Returns lowercased emails.
+async function listClassmateEmails({ learnerEmail }) {
+  const me = String(learnerEmail || '').toLowerCase();
+  const resolved = await resolveLearnerHierarchy({ learnerId: me });
+  if (!resolved || resolved.status !== 'resolved' || !resolved.assignment || !resolved.assignment.classId) return [];
+  const classId = resolved.assignment.classId;
+  const dateOnly = toDateOnly(new Date());
+  const r = await q(
+    `SELECT DISTINCT learner_id FROM learner_hierarchy_assignment
+      WHERE class_id = $1 AND status = 'active'
+        AND effective_from <= $2::date AND (effective_to IS NULL OR effective_to >= $2::date)
+        AND learner_id <> $3`,
+    [classId, dateOnly, me]
+  );
+  return { classId, emails: r ? r.rows.map(row => String(row.learner_id).toLowerCase()) : [] };
+}
+
+// Sharing is enabled unless a teacher explicitly disabled it for this learner or class.
+async function isSharingEnabled({ learnerEmail, classId }) {
+  const me = String(learnerEmail || '').toLowerCase();
+  const r = await q(
+    `SELECT scope, sharing_enabled FROM sharing_policy
+      WHERE (scope = 'learner' AND scope_id = $1) OR (scope = 'class' AND scope_id = $2)`,
+    [me, classId || '']
+  );
+  if (!r || !r.rows) return true;
+  // Any explicit disable (learner- or class-level) blocks sharing.
+  return !r.rows.some(row => row.sharing_enabled === false);
+}
+
+async function setSharingPolicy({ scope, scopeId, enabled, setBy }) {
+  const sc = scope === 'class' ? 'class' : 'learner';
+  const r = await q(
+    `INSERT INTO sharing_policy (scope, scope_id, sharing_enabled, set_by, set_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (scope, scope_id) DO UPDATE
+       SET sharing_enabled = EXCLUDED.sharing_enabled, set_by = EXCLUDED.set_by, set_at = now()
+     RETURNING *`,
+    [sc, String(scopeId || '').toLowerCase(), Boolean(enabled), setBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function isSenderBlocked({ recipientRef, senderRef }) {
+  const r = await q(
+    `SELECT 1 FROM recipient_block WHERE recipient_ref = $1 AND blocked_sender_ref = $2 LIMIT 1`,
+    [String(recipientRef || '').toLowerCase(), String(senderRef || '').toLowerCase()]
+  );
+  return !!(r && r.rows && r.rows.length);
+}
+
+async function blockSender({ recipientRef, blockedSenderRef }) {
+  await q(
+    `INSERT INTO recipient_block (recipient_ref, blocked_sender_ref)
+     VALUES ($1, $2) ON CONFLICT (recipient_ref, blocked_sender_ref) DO NOTHING`,
+    [String(recipientRef || '').toLowerCase(), String(blockedSenderRef || '').toLowerCase()]
+  );
+  return true;
+}
+
+async function createShareSnapshot({ artifactType, payload }) {
+  const r = await q(
+    `INSERT INTO shared_artifact_snapshot (artifact_type, payload)
+     VALUES ($1, $2::jsonb) RETURNING id`,
+    [artifactType === 'sheet' ? 'sheet' : 'item', JSON.stringify(payload || {})]
+  );
+  return r && r.rows[0] ? r.rows[0].id : null;
+}
+
+async function createShare({ senderRef, recipientRef, classId, artifactType, snapshotId, note, csResultId, status }) {
+  const r = await q(
+    `INSERT INTO share (sender_ref, recipient_ref, class_id, artifact_type, snapshot_id, note, cs_result_id, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, sender_ref, recipient_ref, class_id, artifact_type, snapshot_id, note, cs_result_id, status, created_at`,
+    [String(senderRef || '').toLowerCase(), String(recipientRef || '').toLowerCase(), classId || null,
+      artifactType === 'sheet' ? 'sheet' : 'item', snapshotId || null,
+      note ? String(note).slice(0, 1000) : null, csResultId || null, status || 'active']
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function getShareById({ id }) {
+  const r = await q(`SELECT * FROM share WHERE id = $1 LIMIT 1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function revokeShare({ id, senderRef }) {
+  const r = await q(
+    `UPDATE share SET status = 'revoked', revoked_at = now()
+      WHERE id = $1 AND sender_ref = $2 AND status <> 'revoked'`,
+    [id, String(senderRef || '').toLowerCase()]
+  );
+  return Boolean(r && r.rowCount > 0);
+}
+
+// Read-only shares a recipient has received (active only), newest first, with snapshot payload.
+async function listSharesReceived({ recipientRef, limit = 100 }) {
+  const r = await q(
+    `SELECT s.id, s.sender_ref, s.artifact_type, s.note, s.status, s.created_at,
+            snap.payload AS snapshot_payload
+       FROM share s
+       LEFT JOIN shared_artifact_snapshot snap ON snap.id = s.snapshot_id
+      WHERE s.recipient_ref = $1 AND s.status = 'active'
+      ORDER BY s.created_at DESC LIMIT $2`,
+    [String(recipientRef || '').toLowerCase(), limit]
+  );
+  return r ? r.rows : [];
+}
+
+// Full per-class sharing log for teachers (every status incl. flagged/revoked).
+async function listSharesForClass({ classId, limit = 200 }) {
+  const r = await q(
+    `SELECT id, sender_ref, recipient_ref, class_id, artifact_type, note, cs_result_id, status, created_at, revoked_at
+       FROM share WHERE class_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [classId || '', limit]
+  );
+  return r ? r.rows : [];
+}
+
+// Teacher moderation of a flagged note: approve → active, reject → revoked.
+async function moderateShare({ id, approve }) {
+  const r = await q(
+    `UPDATE share SET status = $2, revoked_at = CASE WHEN $2 = 'revoked' THEN now() ELSE revoked_at END
+      WHERE id = $1 AND status = 'flagged'`,
+    [id, approve ? 'active' : 'revoked']
+  );
   return Boolean(r && r.rowCount > 0);
 }
 
@@ -3512,6 +3649,18 @@ module.exports = {
   getSheet,
   createSheet,
   deleteSheet,
+  listClassmateEmails,
+  isSharingEnabled,
+  setSharingPolicy,
+  isSenderBlocked,
+  blockSender,
+  createShareSnapshot,
+  createShare,
+  getShareById,
+  revokeShare,
+  listSharesReceived,
+  listSharesForClass,
+  moderateShare,
   listCurricula,
   listGlossary,
   summariseLearners,

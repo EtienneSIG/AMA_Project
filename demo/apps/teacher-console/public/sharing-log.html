@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Sharing Log — LearnEU Teacher</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<script src="/csrf.js"></script>
+<script src="/theme-toggle.js" defer></script>
+<style>
+  :root { --navy:#1b2a4a; --orange:#ef6c2e; --teal:#2BB4B8; --line:#e3e7ee; --bg:#f6f8fb; --grey:#41506b; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--grey); margin:0; padding:2rem 1rem; }
+  .wrap { max-width:920px; margin:0 auto; }
+  h1 { font-family:'Poppins',sans-serif; color:var(--navy); font-size:1.4rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.3rem; box-shadow:0 8px 24px rgba(23,23,23,0.06); margin-bottom:1.2rem; }
+  label { display:block; font-weight:600; margin:.6rem 0 .35rem; color:var(--navy); font-size:.9rem; }
+  input, select { box-sizing:border-box; padding:.55rem .7rem; border:1px solid var(--line); border-radius:8px; font:inherit; }
+  button { background:var(--orange); color:#fff; border:0; border-radius:999px; padding:.5rem 1.1rem; font-weight:600; cursor:pointer; font:inherit; }
+  button.ghost { background:#fff; color:var(--navy); border:1px solid var(--line); }
+  button.small { padding:.3rem .7rem; font-size:.82rem; }
+  button:hover { filter:brightness(.96); }
+  .row { display:flex; gap:.6rem; align-items:flex-end; flex-wrap:wrap; }
+  table { width:100%; border-collapse:collapse; margin-top:.6rem; font-size:.88rem; }
+  th, td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--navy); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  .pill { display:inline-block; padding:.12rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+  .pill.active { background:rgba(43,180,184,.16); color:#1c7d80; }
+  .pill.flagged { background:rgba(239,108,46,.16); color:#b34715; }
+  .pill.revoked { background:rgba(15,27,45,.1); color:#41506b; }
+  .msg { margin-top:.8rem; padding:.55rem .8rem; border-radius:8px; font-size:.9rem; display:none; }
+  .msg.ok { display:block; background:#e7f6ec; color:#176b3a; }
+  .msg.err { display:block; background:#fdecec; color:#9a1a1a; }
+  .hint { font-size:.82rem; color:#6b7790; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Class sharing log (Feature 013)</h1>
+  <p class="hint">View peer-to-peer shares in a class, moderate flagged notes, and disable sharing for a learner or the whole class. Every action is recorded against your account (teacher-in-the-loop).</p>
+  <div id="msg" class="msg"></div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="classId">Class</label>
+        <select id="classId">
+          <option value="CLS-7A">CLS-7A</option>
+          <option value="CLS-7B">CLS-7B</option>
+          <option value="CLS-7C">CLS-7C</option>
+          <option value="CLS-8A">CLS-8A</option>
+          <option value="CLS-8B">CLS-8B</option>
+          <option value="CLS-9A">CLS-9A</option>
+        </select>
+      </div>
+      <button id="loadBtn">Load log</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-family:'Poppins',sans-serif;color:var(--navy);font-size:1.05rem;margin:.1rem 0 .2rem;">Disable / enable sharing</h2>
+    <div class="row">
+      <div>
+        <label for="scope">Scope</label>
+        <select id="scope">
+          <option value="class">Whole class</option>
+          <option value="learner">One learner</option>
+        </select>
+      </div>
+      <div>
+        <label for="scopeId">Class or learner email</label>
+        <input id="scopeId" type="text" placeholder="CLS-7A or student1@learneu.demo" style="min-width:260px">
+      </div>
+      <button class="ghost" id="disableBtn">Disable sharing</button>
+      <button class="ghost" id="enableBtn">Enable sharing</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-family:'Poppins',sans-serif;color:var(--navy);font-size:1.05rem;margin:.1rem 0 .2rem;">Shares</h2>
+    <div id="log"><span class="hint">Pick a class and load the log.</span></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function msg(t, kind) { const m = $('msg'); m.textContent = t; m.className = 'msg ' + (kind || 'ok'); setTimeout(() => { m.className = 'msg'; }, 6000); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+async function loadLog() {
+  const classId = $('classId').value;
+  try {
+    const r = await fetch('/api/share/teacher/log?classId=' + encodeURIComponent(classId));
+    const data = await r.json();
+    if (!r.ok) { $('log').innerHTML = '<span class="hint">' + esc(data.error || 'Could not load.') + '</span>'; return; }
+    const rows = (data && data.rows) || [];
+    if (!rows.length) { $('log').innerHTML = '<span class="hint">No shares in this class yet.</span>'; return; }
+    $('log').innerHTML = '<table><thead><tr><th>From</th><th>To</th><th>Type</th><th>Note</th><th>Status</th><th>When</th><th></th></tr></thead><tbody>' +
+      rows.map(s => `<tr>
+        <td>${esc(s.sender)}</td>
+        <td>${esc(s.recipient)}</td>
+        <td>${esc(s.artifactType)}</td>
+        <td>${s.note ? esc(s.note) : '<span class="hint">—</span>'}</td>
+        <td><span class="pill ${esc(s.status)}">${esc(s.status)}</span></td>
+        <td class="hint">${esc(new Date(s.createdAt).toLocaleString())}</td>
+        <td>${s.status === 'flagged' ? `<button class="small" data-approve="${esc(s.id)}">Approve</button> <button class="ghost small" data-reject="${esc(s.id)}">Reject</button>` : ''}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } catch (e) { $('log').innerHTML = '<span class="hint">Could not load log.</span>'; }
+}
+
+$('log').addEventListener('click', async (ev) => {
+  const a = ev.target.closest('button[data-approve]');
+  const rj = ev.target.closest('button[data-reject]');
+  const btn = a || rj;
+  if (!btn) return;
+  const id = btn.getAttribute('data-approve') || btn.getAttribute('data-reject');
+  const approve = !!a;
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/share/teacher/moderate/' + encodeURIComponent(id), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approve }) });
+    if (r.ok) { msg('Note ' + (approve ? 'approved and delivered' : 'rejected') + '.', 'ok'); loadLog(); }
+    else { msg('Could not moderate.', 'err'); btn.disabled = false; }
+  } catch (e) { msg('Could not moderate.', 'err'); btn.disabled = false; }
+});
+
+async function setPolicy(enabled) {
+  const scope = $('scope').value;
+  const scopeId = ($('scopeId').value || '').trim() || (scope === 'class' ? $('classId').value : '');
+  if (!scopeId) { msg('Enter a class id or learner email.', 'err'); return; }
+  try {
+    const r = await fetch('/api/share/teacher/disable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scope, scopeId, enabled }) });
+    if (r.ok) { msg('Sharing ' + (enabled ? 'enabled' : 'disabled') + ' for ' + scope + ' ' + scopeId + '.', 'ok'); }
+    else { const d = await r.json(); msg(d.error || 'Could not update policy.', 'err'); }
+  } catch (e) { msg('Could not update policy.', 'err'); }
+}
+
+$('loadBtn').addEventListener('click', loadLog);
+$('disableBtn').addEventListener('click', () => setPolicy(false));
+$('enableBtn').addEventListener('click', () => setPolicy(true));
+loadLog();
+</script>
+</body>
+</html>

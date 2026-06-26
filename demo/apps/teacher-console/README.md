@@ -66,3 +66,10 @@ For full acceptance checks (grading path and app reachability):
 ```powershell
 pwsh ./demo/scripts/acceptance_tests.ps1
 ```
+
+## Class sharing log & controls (spec 013)
+
+Teachers view per-class peer shares, approve/reject flagged notes, and disable/enable
+sharing for a learner or a whole class. UI: `public/sharing-log.html`. API (in
+`_shared/server.js`): `/api/share/teacher/log`, `/api/share/teacher/disable`,
+`/api/share/teacher/moderate/:id`.

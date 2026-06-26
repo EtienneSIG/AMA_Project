@@ -1788,3 +1788,50 @@ CREATE TABLE IF NOT EXISTS learner_theme_override (
   set_role      TEXT,
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Feature 013 — Learner sheet & item sharing (in-class peer support, EU-resident,
+-- teacher-supervised). Recipients are resolved server-side from the class roster only.
+-- An immutable snapshot guarantees the recipient view is stable and the sender's
+-- progress data stays isolated even if the original item/sheet later changes.
+CREATE TABLE IF NOT EXISTS shared_artifact_snapshot (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  artifact_type TEXT        NOT NULL CHECK (artifact_type IN ('item','sheet')),
+  payload       JSONB       NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS share (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_ref    TEXT        NOT NULL,
+  recipient_ref TEXT        NOT NULL,
+  class_id      TEXT,
+  artifact_type TEXT        NOT NULL CHECK (artifact_type IN ('item','sheet')),
+  snapshot_id   UUID        REFERENCES shared_artifact_snapshot(id),
+  note          TEXT,
+  cs_result_id  BIGINT,                              -- FK-ish to content_safety_results.id
+  status        TEXT        NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked','flagged')),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  revoked_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_share_recipient ON share (recipient_ref, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_share_sender    ON share (sender_ref, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_share_class     ON share (class_id, created_at DESC);
+
+-- Teacher-set sharing controls. Absence of a row = sharing enabled (default-on);
+-- a row with sharing_enabled=false disables sharing for that learner or whole class.
+CREATE TABLE IF NOT EXISTS sharing_policy (
+  scope           TEXT        NOT NULL CHECK (scope IN ('learner','class')),
+  scope_id        TEXT        NOT NULL,
+  sharing_enabled BOOLEAN     NOT NULL DEFAULT true,
+  set_by          TEXT,
+  set_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (scope, scope_id)
+);
+
+-- Learner agency: a recipient can suppress future shares from a specific sender.
+CREATE TABLE IF NOT EXISTS recipient_block (
+  recipient_ref      TEXT        NOT NULL,
+  blocked_sender_ref TEXT        NOT NULL,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (recipient_ref, blocked_sender_ref)
+);

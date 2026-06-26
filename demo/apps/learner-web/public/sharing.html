@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — Share with classmates</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<script src="/theme-toggle.js" defer></script>
+<script src="/age-theme.js" defer></script>
+<style>
+  :root {
+    --navy: #0F1B2D; --navy-2: #1a3658; --orange: #F26334; --orange-dark: #D44E22;
+    --teal: #2BB4B8; --grey: #3F4A5A; --line: #E3E7EE; --bg: #F5F7FA;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; color: var(--grey); background: var(--bg); line-height: 1.55; }
+  h1, h2, h3 { font-family: 'Poppins', sans-serif; color: var(--navy); margin: 0 0 0.5rem; }
+  a { color: var(--orange); text-decoration: none; }
+  nav.top { background: #fff; border-bottom: 1px solid var(--line); }
+  nav.top .wrap { max-width: 1000px; margin: 0 auto; padding: 0.9rem 1.5rem; display: flex; align-items: center; gap: 1.25rem; }
+  nav.top img { height: 40px; }
+  nav.top .links { margin-left: auto; display: flex; gap: 1.25rem; font-weight: 500; font-size: 0.9rem; }
+  nav.top .links a { color: var(--navy); }
+  main { max-width: 1000px; margin: 1.5rem auto 3rem; padding: 0 1.5rem; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.25rem 1.4rem; margin-bottom: 1.25rem; }
+  label { display: block; font-weight: 600; color: var(--navy); margin: 0.6rem 0 0.3rem; font-size: 0.9rem; }
+  input[type=text], textarea, select { width: 100%; padding: 0.6rem 0.7rem; border: 1px solid var(--line); border-radius: 10px; font: inherit; color: var(--grey); }
+  textarea { min-height: 70px; resize: vertical; }
+  .recipients { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.3rem; }
+  .chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; user-select: none; font-size: 0.88rem; }
+  .chip input { margin: 0; }
+  button { background: var(--orange); color: #fff; border: 0; padding: 0.6rem 1.1rem; border-radius: 999px; font-weight: 600; cursor: pointer; font: inherit; }
+  button:hover { background: var(--orange-dark); }
+  button.ghost { background: #fff; color: var(--navy); border: 1px solid var(--line); }
+  button.small { padding: 0.35rem 0.7rem; font-size: 0.82rem; }
+  .muted { color: #6b7480; font-size: 0.85rem; }
+  .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em; }
+  .pill.active { background: rgba(43,180,184,0.16); color: #1c7d80; }
+  .pill.flagged { background: rgba(242,99,52,0.16); color: var(--orange-dark); }
+  .pill.item { background: rgba(15,27,45,0.08); color: var(--navy); }
+  .pill.sheet { background: rgba(26,54,88,0.12); color: var(--navy-2); }
+  .received { border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 0.8rem; }
+  .received h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+  .note { background: var(--bg); border-radius: 8px; padding: 0.5rem 0.7rem; margin-top: 0.5rem; font-size: 0.9rem; }
+  .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .banner { padding: 0.7rem 0.9rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem; display: none; }
+  .banner.ok { background: rgba(43,180,184,0.12); color: #1c7d80; display: block; }
+  .banner.err { background: rgba(242,99,52,0.12); color: var(--orange-dark); display: block; }
+</style>
+</head>
+<body>
+<nav class="top"><div class="wrap">
+  <img src="/logo.svg" alt="LearnEU" />
+  <div class="links">
+    <a href="/index.html">Home</a>
+    <a href="/sharing.html">Sharing</a>
+  </div>
+</div></nav>
+<main>
+  <h1>Share with your class</h1>
+  <p class="muted">Share an exercise or a practice sheet with a classmate in your class. Sharing is read-only, stays inside your class, and your teacher can see it.</p>
+  <div id="banner" class="banner"></div>
+
+  <div class="card">
+    <h2>Send a share</h2>
+    <label for="artifactType">What are you sharing?</label>
+    <select id="artifactType">
+      <option value="item">An exercise item</option>
+      <option value="sheet">A practice sheet</option>
+    </select>
+
+    <div id="itemFields">
+      <label for="itemTitle">Title</label>
+      <input type="text" id="itemTitle" placeholder="e.g. Fractions — question 3" />
+      <label for="itemPrompt">Question</label>
+      <textarea id="itemPrompt" placeholder="Paste or describe the question…"></textarea>
+      <label for="itemSolution">Your worked solution (optional)</label>
+      <textarea id="itemSolution" placeholder="Optional — how you solved it"></textarea>
+    </div>
+
+    <div id="sheetFields" style="display:none">
+      <label for="sheetId">Sheet</label>
+      <select id="sheetId"><option value="">Loading your sheets…</option></select>
+    </div>
+
+    <label>Classmates (same class only)</label>
+    <div id="recipients" class="recipients"><span class="muted">Loading classmates…</span></div>
+
+    <label for="note">Note (optional — checked by safety filter)</label>
+    <textarea id="note" placeholder="e.g. try these, they helped me!"></textarea>
+
+    <div style="margin-top:0.9rem"><button id="sendBtn">Share</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Shared with you</h2>
+    <div id="received"><span class="muted">Loading…</span></div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function banner(msg, kind) { const b = $('banner'); b.textContent = msg; b.className = 'banner ' + (kind || 'ok'); setTimeout(() => { b.className = 'banner'; }, 6000); }
+
+$('artifactType').addEventListener('change', () => {
+  const t = $('artifactType').value;
+  $('itemFields').style.display = t === 'item' ? '' : 'none';
+  $('sheetFields').style.display = t === 'sheet' ? '' : 'none';
+});
+
+async function loadRecipients() {
+  try {
+    const r = await fetch('/api/share/recipients');
+    const data = await r.json();
+    const el = $('recipients');
+    if (data.sharingDisabled) { el.innerHTML = '<span class="muted">Sharing has been disabled by your teacher.</span>'; return; }
+    if (data.consentRequired) { el.innerHTML = '<span class="muted">Parental consent is required before you can share.</span>'; return; }
+    if (!data.rows || !data.rows.length) { el.innerHTML = '<span class="muted">No eligible classmates found.</span>'; return; }
+    el.innerHTML = data.rows.map(u => `<label class="chip"><input type="checkbox" value="${u.email}"> ${u.displayName}</label>`).join('');
+  } catch (e) { $('recipients').innerHTML = '<span class="muted">Could not load classmates.</span>'; }
+}
+
+async function loadSheets() {
+  try {
+    const r = await fetch('/api/sheets');
+    const data = await r.json();
+    const sel = $('sheetId');
+    const rows = (data && data.rows) || [];
+    sel.innerHTML = rows.length ? rows.map(s => `<option value="${s.id}">${s.title}</option>`).join('') : '<option value="">No sheets yet</option>';
+  } catch (e) { $('sheetId').innerHTML = '<option value="">No sheets</option>'; }
+}
+
+function selectedRecipients() {
+  return Array.from(document.querySelectorAll('#recipients input:checked')).map(c => c.value);
+}
+
+async function send() {
+  const type = $('artifactType').value;
+  const recipientRefs = selectedRecipients();
+  if (!recipientRefs.length) { banner('Pick at least one classmate.', 'err'); return; }
+  const body = { artifactType: type, recipientRefs, note: $('note').value || '' };
+  if (type === 'sheet') {
+    body.artifactId = $('sheetId').value;
+    if (!body.artifactId) { banner('Pick a sheet to share.', 'err'); return; }
+  } else {
+    body.artifact = { title: $('itemTitle').value, prompt: $('itemPrompt').value, solution: $('itemSolution').value };
+  }
+  $('sendBtn').disabled = true;
+  try {
+    const r = await fetch('/api/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) { banner(data.detail || data.error || 'Could not share.', 'err'); }
+    else if (data.noteState === 'held_for_moderation') { banner('Shared — your note is being checked by your teacher before it is delivered.', 'ok'); }
+    else { banner('Shared with ' + recipientRefs.length + ' classmate(s).', 'ok'); }
+    $('note').value = '';
+  } catch (e) { banner('Could not share.', 'err'); }
+  $('sendBtn').disabled = false;
+}
+$('sendBtn').addEventListener('click', send);
+
+async function loadReceived() {
+  try {
+    const r = await fetch('/api/share/received');
+    const data = await r.json();
+    const el = $('received');
+    const rows = (data && data.rows) || [];
+    if (!rows.length) { el.innerHTML = '<span class="muted">Nothing shared with you yet.</span>'; return; }
+    el.innerHTML = rows.map(s => {
+      const snap = s.snapshot || {};
+      const title = snap.title || (s.artifactType === 'sheet' ? 'Practice sheet' : 'Exercise item');
+      const bodyText = snap.prompt || snap.answer || '';
+      return `<div class="received">
+        <div class="row"><h3>${escapeHtml(title)}</h3>
+          <span class="pill ${s.artifactType}">${s.artifactType}</span></div>
+        <div class="muted">Shared by ${escapeHtml(s.sender)}</div>
+        ${bodyText ? `<div class="note">${escapeHtml(bodyText)}</div>` : ''}
+        ${s.note ? `<div class="note">“${escapeHtml(s.note)}”</div>` : ''}
+        <div style="margin-top:0.5rem"><button class="ghost small" data-sender="${escapeAttr(s.senderEmail || '')}">Block future shares</button></div>
+      </div>`;
+    }).join('');
+  } catch (e) { $('received').innerHTML = '<span class="muted">Could not load shares.</span>'; }
+}
+
+document.getElementById('received').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button[data-sender]');
+  if (!btn) return;
+  const senderRef = btn.getAttribute('data-sender');
+  if (!senderRef) { banner('Cannot block this sender.', 'err'); return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/share/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderRef }) });
+    if (r.ok) { banner('You will no longer receive shares from this classmate.', 'ok'); loadReceived(); }
+    else { banner('Could not block.', 'err'); btn.disabled = false; }
+  } catch (e) { banner('Could not block.', 'err'); btn.disabled = false; }
+});
+
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+
+loadRecipients();
+loadSheets();
+loadReceived();
+</script>
+</body>
+</html>

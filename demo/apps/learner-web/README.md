@@ -30,3 +30,19 @@ existing whole-app 8-variable palette (so no per-screen markup changes are neede
 - **Add a theme**: add a `body.theme-age-<name>` block in `age-themes.css` remapping the 8 variables, and map it in
   `BAND_TO_CLASS` / `ageToBand` in `age-theme.js` — no screen edits.
 - **Verify**: `demo/scripts/verify-age-theming.ps1` (resolver logic; add `-BaseUrl <url>` to check the statics are served).
+
+## Learner sheet & item sharing (spec 013)
+
+In-class, teacher-supervised peer sharing. A learner can share an exercise item or a
+practice sheet with same-class classmates as a **read-only** snapshot. Recipients are
+always resolved **server-side** from the class roster (`learner_hierarchy_assignment`) —
+the client never supplies a raw recipient. Optional notes are scanned by Azure Content
+Safety; flagged notes are **held for teacher moderation**. Under-16 sharing is gated on
+active parental consent (both sender and recipient). Senders can revoke; recipients can
+block a sender.
+
+- UI: `public/sharing.html` (send + received + block).
+- API (in `_shared/server.js`): `/api/share/recipients`, `/api/share`,
+  `/api/share/:id/revoke`, `/api/share/received`, `/api/share/block`.
+- Schema: `share`, `shared_artifact_snapshot`, `sharing_policy`, `recipient_block`.
+- Verify: `pwsh demo/scripts/verify-sharing.ps1`.

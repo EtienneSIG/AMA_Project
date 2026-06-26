@@ -524,6 +524,144 @@ app.post('/api/teacher/learner-theme', async (req, res) => {
     res.json({ ok: true, override: row });
   } catch (e) { res.status(400).json({ error: String(e && e.message || e) }); }
 });
+// --- Learner sheet & item sharing (Feature 013) ---------------------------
+// In-class peer support: recipients are always resolved server-side from the
+// roster; notes are Content-Safety scanned; under-16 sharing needs active consent.
+function shareDisplayName(email) {
+  const x = (auth.SEED_USERS || []).find(s => String(s.email || '').toLowerCase() === String(email || '').toLowerCase());
+  if (!x) return String(email || '').split('@')[0];
+  return [x.firstName, x.lastName].filter(Boolean).join(' ').trim() || x.email;
+}
+function shareFirstName(email) {
+  const x = (auth.SEED_USERS || []).find(s => String(s.email || '').toLowerCase() === String(email || '').toLowerCase());
+  return (x && x.firstName) ? x.firstName : String(email || '').split('@')[0];
+}
+// Eligible recipients = sender's same-class, consent-active peers (minus blocks).
+app.get('/api/share/recipients', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const { classId, emails } = await db.listClassmateEmails({ learnerEmail: u.email });
+  if (!(await db.isSharingEnabled({ learnerEmail: u.email, classId }))) return res.json({ enabled: true, sharingDisabled: true, rows: [] });
+  if (!(await db.hasActiveConsentForLearner({ childEmail: u.email }))) return res.json({ enabled: true, consentRequired: true, rows: [] });
+  const rows = [];
+  for (const email of emails) {
+    if (!(await db.hasActiveConsentForLearner({ childEmail: email }))) continue; // under-16 recipient needs consent
+    if (await db.isSenderBlocked({ recipientRef: email, senderRef: u.email })) continue;
+    rows.push({ email, displayName: shareDisplayName(email) });
+  }
+  res.json({ enabled: true, classId, rows });
+});
+// Share an item or sheet with one or more same-class recipients.
+app.post('/api/share', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const { artifactType, artifactId, artifact, recipientRefs, note } = req.body || {};
+  const type = artifactType === 'sheet' ? 'sheet' : 'item';
+  const recipients = Array.isArray(recipientRefs) ? recipientRefs.map(e => String(e || '').toLowerCase()).filter(Boolean) : [];
+  if (!recipients.length) return res.status(400).json({ error: 'recipientRefs required' });
+  const { classId, emails: classmates } = await db.listClassmateEmails({ learnerEmail: u.email });
+  if (!(await db.isSharingEnabled({ learnerEmail: u.email, classId }))) return res.status(403).json({ error: 'sharing_disabled', detail: 'Sharing has been disabled by your teacher.' });
+  if (!(await db.hasActiveConsentForLearner({ childEmail: u.email }))) return res.status(403).json({ error: 'consent_required', detail: 'Parental consent is required before you can share.' });
+  // Server-authoritative roster check — every recipient must be a same-class peer.
+  const classSet = new Set(classmates);
+  const invalid = recipients.filter(r => !classSet.has(r));
+  if (invalid.length) return res.status(400).json({ error: 'recipient_not_in_class', invalid });
+  // Build the immutable snapshot.
+  let payload = null;
+  if (type === 'sheet') {
+    if (!artifactId) return res.status(400).json({ error: 'artifactId required for sheet' });
+    const sheet = await db.getSheet({ id: artifactId, email: u.email });
+    if (!sheet) return res.status(404).json({ error: 'sheet_not_found' });
+    payload = { title: sheet.title, prompt: sheet.prompt, answer: sheet.answer, sourceSheetId: sheet.id };
+  } else {
+    const a = artifact || {};
+    payload = {
+      itemId: artifactId || a.itemId || null,
+      title: String(a.title || '').slice(0, 200),
+      prompt: String(a.prompt || a.question || '').slice(0, 4000),
+      solution: String(a.solution || a.answer || '').slice(0, 8000)
+    };
+  }
+  // Content-Safety scan on the optional note (held for teacher moderation if flagged).
+  let noteState = 'delivered';
+  let csResultId = null;
+  let shareStatus = 'active';
+  const cleanNote = note ? String(note).slice(0, 1000) : '';
+  if (cleanNote) {
+    const scan = await cs.analyze(cleanNote);
+    if (scan.ran) csResultId = await db.logContentSafety({ email: u.email, app: APP_NAME, direction: 'input', blocked: Boolean(scan.blocked), severities: scan.severities, raw: scan.raw }).catch(() => null);
+    if (scan.ran && scan.blocked) { noteState = 'held_for_moderation'; shareStatus = 'flagged'; }
+  }
+  const shareIds = [];
+  for (const recipient of recipients) {
+    if (!(await db.hasActiveConsentForLearner({ childEmail: recipient }))) continue;
+    if (await db.isSenderBlocked({ recipientRef: recipient, senderRef: u.email })) continue;
+    const snapId = await db.createShareSnapshot({ artifactType: type, payload });
+    const row = await db.createShare({ senderRef: u.email, recipientRef: recipient, classId, artifactType: type, snapshotId: snapId, note: cleanNote || null, csResultId, status: shareStatus });
+    if (row) shareIds.push(row.id);
+  }
+  if (!shareIds.length) return res.status(400).json({ error: 'no_eligible_recipients' });
+  res.json({ ok: true, shareIds, noteState });
+});
+// Sender revokes a share — immediate access removal + persisted revocation.
+app.post('/api/share/:id/revoke', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const ok = await db.revokeShare({ id: req.params.id, senderRef: u.email });
+  if (!ok) return res.status(404).json({ error: 'share_not_found_or_not_owner' });
+  res.json({ ok: true });
+});
+// Recipient's read-only received shares (active only).
+app.get('/api/share/received', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listSharesReceived({ recipientRef: u.email });
+  res.json({ enabled: true, rows: rows.map(r => ({ id: r.id, sender: shareFirstName(r.sender_ref), senderEmail: r.sender_ref, artifactType: r.artifact_type, note: r.note || null, snapshot: r.snapshot_payload || null, createdAt: r.created_at })) });
+});
+// Recipient blocks future shares from a specific sender.
+app.post('/api/share/block', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const sender = String(req.body?.senderRef || '').toLowerCase();
+  if (!sender) return res.status(400).json({ error: 'senderRef required' });
+  await db.blockSender({ recipientRef: u.email, blockedSenderRef: sender });
+  res.json({ ok: true });
+});
+// Teacher per-class sharing log.
+app.get('/api/share/teacher/log', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const classId = String(req.query.classId || '').trim();
+  if (!classId) return res.status(400).json({ error: 'classId query required' });
+  const rows = await db.listSharesForClass({ classId });
+  res.json({ enabled: true, classId, rows: rows.map(r => ({ id: r.id, sender: shareDisplayName(r.sender_ref), recipient: shareDisplayName(r.recipient_ref), artifactType: r.artifact_type, note: r.note || null, status: r.status, createdAt: r.created_at, revokedAt: r.revoked_at })) });
+});
+// Teacher disables/enables sharing per learner or whole class.
+app.post('/api/share/teacher/disable', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const { scope, scopeId, enabled } = req.body || {};
+  if (!['learner', 'class'].includes(scope) || !scopeId) return res.status(400).json({ error: 'scope (learner|class) and scopeId required' });
+  const row = await db.setSharingPolicy({ scope, scopeId, enabled: Boolean(enabled), setBy: u.email });
+  res.json({ ok: true, policy: row });
+});
+// Teacher approves/rejects a flagged share note.
+app.post('/api/share/teacher/moderate/:id', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const approve = req.body?.approve === true || req.body?.decision === 'approve';
+  const ok = await db.moderateShare({ id: req.params.id, approve });
+  if (!ok) return res.status(404).json({ error: 'flagged_share_not_found' });
+  res.json({ ok: true, decision: approve ? 'approved' : 'rejected' });
+});
 // --- Learner gamification UX (Feature 003) -------------------------------
 const GAM_BADGES = [
   { key: 'daily-flame', label: 'Daily Flame' },
