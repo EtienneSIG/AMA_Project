@@ -334,6 +334,8 @@ function gateMiddleware(allowedRoles) {
     // Editorial theme assets (CSS + toggle) are static and safe to serve pre-auth
     // so public pages (login, consent, no-access) render the optional theme too.
     '/theme.css', '/theme-toggle.js',
+    // Age-adaptive theme assets (spec 014) — static, safe to serve pre-auth.
+    '/age-theme.js', '/themes/age-themes.css',
     // Parental consent link is reached by an unauthenticated parent (GDPR Art. 8, US3).
     '/consent-pending.html', '/csrf.js', '/models/consent.js']);
   return (req, res, next) => {

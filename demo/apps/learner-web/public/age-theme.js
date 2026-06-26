@@ -48,6 +48,16 @@
     var ov = ls(OVERRIDE_KEY);
     if (ov && ov !== 'auto' && BAND_TO_CLASS[ov]) return ov;
 
+    // Demo/testing affordance: explicit ?ageband=kids|brick|game or ?age=<n> in the URL
+    // (explicit input, never inferred from behaviour/biometrics).
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      var qb = qs.get('ageband');
+      if (qb && BAND_TO_CLASS[qb]) return qb;
+      var qa = qs.get('age');
+      if (qa) { var qbnd = ageToBand(parseInt(qa, 10)); if (qbnd) return qbnd; }
+    } catch (e) {}
+
     // Explicit numeric age.
     if (typeof window.LEARNER_AGE === 'number') {
       var b = ageToBand(window.LEARNER_AGE);

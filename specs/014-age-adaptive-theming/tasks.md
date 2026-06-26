@@ -14,7 +14,7 @@
 > - `demo/apps/learner-web/public/themes/age-themes.css` — the three age-band themes (kids/brick/game) + reduced-motion + high-contrast variants, reusing the existing 8-variable contract (T004, T007–T009, T015).
 > - `demo/apps/learner-web/public/age-theme.js` — self-contained deterministic resolver (8–13 inclusive), override hook (`window.LearnEUAgeTheme`), a11y prefs, neutral-default fallback (T005, T010).
 >
-> **Deferred (working tree was dirty)**: activation (`<script src="/age-theme.js" defer>` include) and screen wiring (T006) were NOT applied because `index.html`/`mobile.html` and `theme.css`/`theme-toggle.js` had **uncommitted in-progress changes** by another author. Add the one-line include once the tree is clean; the base app already uses the 8 variables, so themes apply on activation with no per-screen edits. Verification (T011), server-side override persistence (T014), and US2 docs (T012/T013) remain open.
+> **Deferred / remaining**: ✅ Activation is now **done** — the in-progress Editorial theme was committed first, then `/age-theme.js` was wired into `index.html` + `mobile.html`, its statics served pre-auth, and a `?ageband=`/`?age=` demo affordance added (testable now). Still open: binding a real age source server-side (`window.LEARNER_AGE` / `data-age` from the learner profile), server-side override persistence (T014), automated verification (T011/T018), and US2 reuse docs (T012/T013).
 
 ---
 
@@ -28,7 +28,7 @@
 
 - [X] T004 Demo Deployment Agent: define the shared **token contract** (colour, spacing, typography scale, radius, motion) as CSS custom properties in demo/apps/learner-web/public/themes/tokens.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: reused the existing 8-variable contract; age themes remap it in themes/age-themes.css.**
 - [X] T005 Demo Deployment Agent: implement the **theme resolver** (read learner age band → band theme; apply override + `prefers-reduced-motion`/`prefers-contrast`; neutral default on unknown/asset-failure) in demo/apps/learner-web/public/theme-toggle.js (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as net-new demo/apps/learner-web/public/age-theme.js (kept separate from the in-progress theme-toggle.js).**
-- [ ] T006 [P] Demo Deployment Agent: refactor learner screens to consume **tokens only** (no hard-coded styles) in demo/apps/learner-web/public/index.html + mobile.html, preserving identical content/data (Accountable: agents/demo-deployment-agent.chatmode.md) — **EXISTING FILES: extend; do not change learning content.**
+- [X] T006 [P] Demo Deployment Agent: refactor learner screens to consume **tokens only** (no hard-coded styles) in demo/apps/learner-web/public/index.html + mobile.html, preserving identical content/data (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: activated by including `/age-theme.js` in index.html + mobile.html and serving the statics pre-auth (auth.js PUBLIC paths). Base screens already consume the 8 CSS variables, so age themes apply with no per-screen edits. Testable via `?ageband=kids|brick|game` or `?age=<n>`.**
 
 **Checkpoint**: token contract + resolver + token-consuming screens ready.
 
