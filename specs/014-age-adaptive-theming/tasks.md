@@ -10,6 +10,12 @@
 
 > **Implementation notes (avoid overwrites)**: this is **presentation-only**. EXTEND the existing `demo/apps/learner-web/public/theme.css` and `theme-toggle.js` (already present) — do not regenerate. Screens (`index.html`, `mobile.html`) must consume **tokens only**; learning content/data MUST stay identical across themes. No new personal data; no age inference.
 
+> **Implementation status (2026-06-26, partial — done autonomously)**: The core theme system is implemented as **net-new, additive files** that coexist with the in-progress "Editorial GIC" theme (which was left untouched):
+> - `demo/apps/learner-web/public/themes/age-themes.css` — the three age-band themes (kids/brick/game) + reduced-motion + high-contrast variants, reusing the existing 8-variable contract (T004, T007–T009, T015).
+> - `demo/apps/learner-web/public/age-theme.js` — self-contained deterministic resolver (8–13 inclusive), override hook (`window.LearnEUAgeTheme`), a11y prefs, neutral-default fallback (T005, T010).
+>
+> **Deferred (working tree was dirty)**: activation (`<script src="/age-theme.js" defer>` include) and screen wiring (T006) were NOT applied because `index.html`/`mobile.html` and `theme.css`/`theme-toggle.js` had **uncommitted in-progress changes** by another author. Add the one-line include once the tree is clean; the base app already uses the 8 variables, so themes apply on activation with no per-screen edits. Verification (T011), server-side override persistence (T014), and US2 docs (T012/T013) remain open.
+
 ---
 
 ## Phase 1: Setup
@@ -20,8 +26,8 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T004 Demo Deployment Agent: define the shared **token contract** (colour, spacing, typography scale, radius, motion) as CSS custom properties in demo/apps/learner-web/public/themes/tokens.css (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T005 Demo Deployment Agent: implement the **theme resolver** (read learner age band → band theme; apply override + `prefers-reduced-motion`/`prefers-contrast`; neutral default on unknown/asset-failure) in demo/apps/learner-web/public/theme-toggle.js (Accountable: agents/demo-deployment-agent.chatmode.md) — **EXISTING FILE: extend.**
+- [X] T004 Demo Deployment Agent: define the shared **token contract** (colour, spacing, typography scale, radius, motion) as CSS custom properties in demo/apps/learner-web/public/themes/tokens.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: reused the existing 8-variable contract; age themes remap it in themes/age-themes.css.**
+- [X] T005 Demo Deployment Agent: implement the **theme resolver** (read learner age band → band theme; apply override + `prefers-reduced-motion`/`prefers-contrast`; neutral default on unknown/asset-failure) in demo/apps/learner-web/public/theme-toggle.js (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as net-new demo/apps/learner-web/public/age-theme.js (kept separate from the in-progress theme-toggle.js).**
 - [ ] T006 [P] Demo Deployment Agent: refactor learner screens to consume **tokens only** (no hard-coded styles) in demo/apps/learner-web/public/index.html + mobile.html, preserving identical content/data (Accountable: agents/demo-deployment-agent.chatmode.md) — **EXISTING FILES: extend; do not change learning content.**
 
 **Checkpoint**: token contract + resolver + token-consuming screens ready.
@@ -34,10 +40,10 @@
 
 **Independent Test**: 6/11/15-year-old profiles each load a visibly distinct, correct theme; boundary 8 & 13 → brick.
 
-- [ ] T007 [P] [US1] Demo Deployment Agent: build the **kids-draw** (<8) theme token set + original asset pack in demo/apps/learner-web/public/themes/kids-draw/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T008 [P] [US1] Demo Deployment Agent: build the **brick** (8–13, Lego-inspired) theme token set + original asset pack in demo/apps/learner-web/public/themes/brick/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T009 [P] [US1] Demo Deployment Agent: build the **game-hud** (14+) theme token set + original asset pack in demo/apps/learner-web/public/themes/game-hud/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T010 [US1] Demo Deployment Agent: wire deterministic band selection (boundary 8–13 inclusive) into the resolver in demo/apps/learner-web/public/theme-toggle.js (depends on T005, T007–T009) (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T007 [P] [US1] Demo Deployment Agent: build the **kids-draw** (<8) theme token set + original asset pack in demo/apps/learner-web/public/themes/kids-draw/ (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as the `body.theme-age-kids` block in themes/age-themes.css (CSS styling; illustration packs TBD).**
+- [X] T008 [P] [US1] Demo Deployment Agent: build the **brick** (8–13, Lego-inspired) theme token set + original asset pack in demo/apps/learner-web/public/themes/brick/ (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as `body.theme-age-brick` (inspired-by; no trademarks).**
+- [X] T009 [P] [US1] Demo Deployment Agent: build the **game-hud** (14+) theme token set + original asset pack in demo/apps/learner-web/public/themes/game-hud/ (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as `body.theme-age-game`.**
+- [X] T010 [US1] Demo Deployment Agent: wire deterministic band selection (boundary 8–13 inclusive) into the resolver in demo/apps/learner-web/public/theme-toggle.js (depends on T005, T007–T009) (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE in age-theme.js (`ageToBand`: <8 kids, 8–13 brick, ≥14 game).**
 - [ ] T011 [P] [US1] Cross-Agent QA Verifier: add a learner-theme check (correct band theme per age; boundary cases; **content parity across themes**) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: US1 functional — correct age-band theme everywhere, content identical.
@@ -64,7 +70,7 @@
 **Independent Test**: override a 15-year-old to brick; enable reduced motion → animations suppressed in all themes.
 
 - [ ] T014 [US3] EdTech Program Orchestrator: persist a per-learner **theme override** (actor + timestamp) on the existing learner preferences and apply it in the resolver in demo/apps/learner-web (server.js + theme-toggle.js) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T015 [P] [US3] Demo Deployment Agent: implement **reduced-motion** + **high-contrast** variants for all three themes in demo/apps/learner-web/public/themes/ + theme.css (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T015 [P] [US3] Demo Deployment Agent: implement **reduced-motion** + **high-contrast** variants for all three themes in demo/apps/learner-web/public/themes/ + theme.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: `body.theme-reduced-motion` + `body.theme-contrast-high` in themes/age-themes.css; toggled by age-theme.js from prefers-* + explicit prefs.**
 - [ ] T016 [P] [US3] Cross-Agent QA Verifier: add accessibility checks (WCAG AA contrast, reduced-motion, high-contrast, keyboard/landmarks) per theme to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: override + accessibility complete.

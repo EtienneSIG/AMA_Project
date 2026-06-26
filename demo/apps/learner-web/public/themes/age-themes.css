@@ -1,0 +1,118 @@
+/*
+ * LearnEU — Feature 014: Age-Adaptive Theming (learner app).
+ *
+ * Coexists with the "Editorial GIC" theme (theme.css / theme-toggle.js): it reuses
+ * the SAME 8 whole-app CSS variables (--navy, --orange, --teal, --grey, --line, --bg,
+ * --navy-2, --orange-dark) and only remaps them under age-band body classes, so it
+ * re-skins the UI without touching per-app markup. Activated by /age-theme.js, which
+ * adds ONE of these classes to <body> based on the learner's age band:
+ *   • body.theme-age-kids   — under 8   (hand-drawn / crayon)
+ *   • body.theme-age-brick  — 8–13      (construction-brick / inspired-by, no trademarks)
+ *   • body.theme-age-game   — 14+       (game-HUD)
+ * No class  → neutral default (unknown age / asset failure).
+ *
+ * Accessibility variants (additive modifiers, also toggled by /age-theme.js):
+ *   • body.theme-reduced-motion  — suppress animation
+ *   • body.theme-contrast-high   — raise contrast (WCAG AA+)
+ *
+ * Presentation-only. Original/inspired-by styling — NO trademarked logos/brands/characters.
+ */
+
+/* ============================================================
+   UNDER 8 — "kids-draw": warm crayon palette, big rounded shapes
+   ============================================================ */
+body.theme-age-kids {
+  --bg:          #fffdf5; /* paper cream */
+  --line:        #ffe1b3; /* soft crayon line */
+  --grey:        #3a3330; /* friendly dark */
+  --navy:        #34508f; /* crayon blue (headings/dark surfaces) */
+  --navy-2:      #6a4cd0; /* crayon purple (hero tail) */
+  --teal:        #2bb3a3; /* crayon green-teal */
+  --orange:      #ff7a45; /* crayon coral (CTA) */
+  --orange-dark: #e85d28;
+  --radius-app:  22px;    /* extra-round */
+  --font-display: 'Comic Neue', 'Baloo 2', 'Quicksand', system-ui, sans-serif;
+  background: var(--bg);
+}
+body.theme-age-kids h1, body.theme-age-kids h2, body.theme-age-kids h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0; font-weight: 700;
+}
+body.theme-age-kids .card {
+  background:#ffffff; border:2px solid var(--line); border-radius: var(--radius-app);
+  box-shadow: 0 6px 0 rgba(255,122,69,0.14);
+}
+body.theme-age-kids button, body.theme-age-kids .btn { border-radius: 999px; }
+
+/* ============================================================
+   8–13 — "brick": bold primary palette, chunky square-rounded
+   (inspired-by construction bricks; NOT affiliated with any brand)
+   ============================================================ */
+body.theme-age-brick {
+  --bg:          #f4f6f8; /* light grey baseplate */
+  --line:        #cdd5dd;
+  --grey:        #1f2a33;
+  --navy:        #0b4ea2; /* brick blue */
+  --navy-2:      #173b6b;
+  --teal:        #1faa59; /* brick green */
+  --orange:      #d01012; /* brick red (CTA) */
+  --orange-dark: #a60d0f;
+  --brick-yellow:#ffcf00; /* brick yellow accent */
+  --radius-app:  10px;    /* square-rounded "stud" feel */
+  --font-display: 'Baloo 2', 'Fredoka', 'Nunito', system-ui, sans-serif;
+  background: var(--bg);
+}
+body.theme-age-brick h1, body.theme-age-brick h2, body.theme-age-brick h3 {
+  font-family: var(--font-display); font-weight: 800; letter-spacing: -0.01em;
+}
+body.theme-age-brick .card {
+  background:#ffffff; border:1px solid var(--line); border-radius: var(--radius-app);
+  box-shadow: 0 2px 0 var(--brick-yellow), 0 8px 20px rgba(11,78,162,0.12);
+}
+body.theme-age-brick button, body.theme-age-brick .btn { border-radius: var(--radius-app); font-weight: 700; }
+
+/* ============================================================
+   14+ — "game-hud": dark HUD, neon accents, sharp edges
+   ============================================================ */
+body.theme-age-game {
+  --bg:          #0e1320; /* deep slate */
+  --line:        #243047;
+  --grey:        #c9d4e6; /* light text on dark */
+  --navy:        #e6ecf7; /* near-white headings on dark */
+  --navy-2:      #0a0f1a;
+  --teal:        #19e3c2; /* neon teal */
+  --orange:      #36e07a; /* neon green (CTA) */
+  --orange-dark: #21b85f;
+  --radius-app:  6px;
+  --font-display: 'Orbitron', 'Rajdhani', 'Chakra Petch', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--grey);
+}
+body.theme-age-game h1, body.theme-age-game h2, body.theme-age-game h3 {
+  font-family: var(--font-display); letter-spacing: 0.02em; text-transform: none;
+}
+body.theme-age-game nav.top { background:#0a0f1a; border-bottom:1px solid var(--line); }
+body.theme-age-game .card {
+  background:#141b2b; border:1px solid var(--line); border-radius: var(--radius-app);
+  box-shadow: 0 0 0 1px rgba(25,227,194,0.08), 0 8px 28px rgba(0,0,0,0.5);
+}
+body.theme-age-game button, body.theme-age-game .btn { border-radius: var(--radius-app); }
+
+/* ============================================================
+   Accessibility variants (apply on top of any age theme)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body * { animation: none !important; transition: none !important; }
+}
+body.theme-reduced-motion * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+
+body.theme-contrast-high {
+  --line: #000000;
+  --grey: #000000;
+}
+body.theme-contrast-high.theme-age-game { --grey:#ffffff; --line:#ffffff; }
+body.theme-contrast-high .card { border-width: 2px; }
+body.theme-contrast-high a, body.theme-contrast-high button { text-decoration: underline; }
+
+/* Honour age themes inside the hero (keep text legible like the base app). */
+body.theme-age-game .hero { background: linear-gradient(135deg, var(--navy-2), #1b2740); }
