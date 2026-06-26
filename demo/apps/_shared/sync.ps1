@@ -89,6 +89,13 @@ foreach ($a in $apps) {
     # Consent-pending page (GDPR Art. 8 — learner gate)
     $consentSrc = Join-Path $here 'public/consent-pending.html'
     if (Test-Path $consentSrc) { Copy-Item -Force -Path $consentSrc -Destination (Join-Path $publicDir 'consent-pending.html') }
+    # Feature 019 — shared three-column app shell (opt-in). Mirror public/shell/* to each app.
+    $shellSrc = Join-Path $here 'public/shell'
+    if (Test-Path $shellSrc) {
+        $shellDest = Join-Path $publicDir 'shell'
+        if (-not (Test-Path $shellDest)) { New-Item -ItemType Directory -Force -Path $shellDest | Out-Null }
+        Get-ChildItem $shellSrc -File | ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $shellDest $_.Name) }
+    }
     # Sync the shared db client (Postgres helpers + schema.sql)
     $dbDest = Join-Path $appDir 'db'
     if (-not (Test-Path $dbDest)) { New-Item -ItemType Directory -Force -Path $dbDest | Out-Null }

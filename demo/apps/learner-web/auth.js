@@ -340,6 +340,8 @@ function gateMiddleware(allowedRoles) {
     '/theme.css', '/theme-toggle.js',
     // Age-adaptive theme assets (spec 014) — static, safe to serve pre-auth.
     '/age-theme.js', '/themes/age-themes.css',
+    // Three-column app shell (spec 019) — static, safe to serve pre-auth.
+    '/shell/shell.js', '/shell/shell.css',
     // Parental consent link is reached by an unauthenticated parent (GDPR Art. 8, US3).
     '/consent-pending.html', '/csrf.js', '/models/consent.js']);
   return (req, res, next) => {

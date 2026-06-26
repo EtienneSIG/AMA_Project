@@ -1,0 +1,75 @@
+/*
+ * LearnEU — Feature 019: three-column app shell styles (opt-in via body.has-appshell).
+ * Left rail | center content (existing page) | right profile panel, using the 8 theme vars.
+ * Off by default; only applies when /shell/shell.js adds .has-appshell. Reversible.
+ */
+:root { --appshell-rail: 248px; --appshell-panel: 300px; }
+
+/* --- Center gutters: push the existing page between the fixed rail + panel. --- */
+body.has-appshell { padding-left: var(--appshell-rail); padding-right: var(--appshell-panel); }
+body.has-appshell .appshell-mobilebar { display: none; }
+
+/* --- Left navigation rail --- */
+.appshell-rail {
+  position: fixed; left: 0; top: 0; bottom: 0; width: var(--appshell-rail); z-index: 1200;
+  background: #fff; border-right: 1px solid var(--line, #e3e7ee);
+  display: flex; flex-direction: column; padding: 1.1rem 0.9rem; overflow-y: auto;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.appshell-brand { display: flex; align-items: center; min-height: 42px; margin: 0 0.4rem 1.2rem; font-weight: 800; color: var(--navy, #0F1B2D); font-size: 1.05rem; }
+.appshell-brand img { height: 34px; width: auto; }
+.appshell-menu { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.appshell-menu a {
+  display: block; padding: 0.6rem 0.8rem; border-radius: 10px; color: var(--navy, #0F1B2D);
+  font-weight: 600; font-size: 0.92rem; text-decoration: none;
+}
+.appshell-menu a:hover { background: rgba(43,180,184,0.10); }
+.appshell-menu a.active { background: var(--orange, #F26334); color: #fff; }
+.appshell-pinned { margin-top: auto; padding-top: 0.8rem; border-top: 1px solid var(--line, #e3e7ee); }
+.appshell-logout { width: 100%; padding: 0.6rem 0.8rem; border: 0; border-radius: 10px; background: var(--navy, #0F1B2D); color: #fff; font-weight: 600; cursor: pointer; }
+.appshell-logout:hover { background: var(--orange-dark, #D44E22); }
+
+/* --- Right profile panel --- */
+.appshell-panel {
+  position: fixed; right: 0; top: 0; bottom: 0; width: var(--appshell-panel); z-index: 1200;
+  background: #fff; border-left: 1px solid var(--line, #e3e7ee);
+  display: flex; flex-direction: column; padding: 1.2rem 1.1rem; overflow-y: auto;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.appshell-panel-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.1rem; }
+.appshell-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--teal, #2BB4B8); color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.appshell-avatar.role-admin { background: var(--orange, #F26334); }
+.appshell-avatar.role-teacher { background: var(--navy, #0F1B2D); }
+.appshell-avatar.role-parent { background: #6B5BFF; }
+.appshell-avatar.role-director { background: #0081c0; }
+.appshell-greet { display: flex; flex-direction: column; }
+.appshell-greet strong { color: var(--navy, #0F1B2D); font-family: 'Poppins', sans-serif; }
+.appshell-greet span { font-size: 0.8rem; color: var(--grey, #3F4A5A); text-transform: capitalize; }
+.appshell-panel-section { padding: 0.8rem 0; border-top: 1px solid var(--line, #e3e7ee); }
+.appshell-actions { display: flex; gap: 0.5rem; }
+.appshell-actions a { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line, #e3e7ee); display: inline-flex; align-items: center; justify-content: center; color: var(--navy, #0F1B2D); text-decoration: none; }
+.appshell-actions a:hover { border-color: var(--navy, #0F1B2D); }
+.appshell-muted { color: var(--grey, #3F4A5A); opacity: 0.75; font-size: 0.86rem; }
+
+/* --- Mobile bar + drawers --- */
+.appshell-mobilebar { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 1300; background: #fff; border-bottom: 1px solid var(--line, #e3e7ee); display: flex; align-items: center; gap: 0.6rem; padding: 0 0.8rem; }
+.appshell-mobilebrand { font-weight: 800; color: var(--navy, #0F1B2D); }
+.appshell-mobilebrand + .appshell-iconbtn { margin-left: auto; }
+.appshell-iconbtn { background: transparent; border: 1px solid var(--line, #e3e7ee); border-radius: 8px; width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer; }
+.appshell-scrim { display: none; position: fixed; inset: 0; background: rgba(15,27,45,0.4); z-index: 1150; }
+
+@media (max-width: 1080px) {
+  body.has-appshell { padding-right: 0; }
+  .appshell-panel { transform: translateX(100%); transition: transform 0.2s ease; box-shadow: -8px 0 24px rgba(15,27,45,0.12); }
+  body.appshell-panel-open .appshell-panel { transform: translateX(0); }
+}
+@media (max-width: 860px) {
+  body.has-appshell { padding-left: 0; padding-top: 52px; }
+  body.has-appshell .appshell-mobilebar { display: flex; }
+  .appshell-rail { transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 8px 0 24px rgba(15,27,45,0.12); }
+  body.appshell-rail-open .appshell-rail { transform: translateX(0); }
+  body.appshell-rail-open .appshell-scrim, body.appshell-panel-open .appshell-scrim { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appshell-rail, .appshell-panel { transition: none !important; }
+}

@@ -10,6 +10,8 @@
 
 > **Dependency**: Consumes **Feature 014** design tokens — implement 014 first. **Presentation-only**: re-host existing pages in the center outlet **without** changing routes/data/access-control. Build the shell in `demo/apps/_shared/public/shell/` and mirror via `_shared/sync.ps1` where applicable; EXTEND each app's `public/` — do not regenerate content.
 
+> **Implementation status (2026-06-26, done autonomously)**: Shipped as an **opt-in, progressive-enhancement** shell so it can deploy to the LIVE demo without altering/breaking the bespoke pages. `demo/apps/_shared/public/shell/shell.css` + `shell.js` build the left rail / center / right profile panel **at runtime** from each app's existing nav + `/api/auth/me` (so no per-app re-author of the 100 KB pages). Mirrored to all 5 apps via `sync.ps1`; included in every app's `index.html`; statics served pre-auth. **OFF by default** — enable with `?shell=1` (or `LearnEUShell.enable()`), disable with `?shell=0`. Responsive drawers + reduced-motion + ARIA landmarks in CSS. **Open**: explicit per-role nav/panel configs (currently derived from existing nav), full pixel polish per app, RTL pass, and browser/UDL verification (T002/T011–T019).
+
 ---
 
 ## Phase 1: Setup
@@ -17,8 +19,8 @@
 - [ ] T002 [P] Learning Sciences Expert: review shell layout for clarity, Universal Design for Learning, and age-appropriateness (with 014 themes) in specs/019-app-shell-three-column/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ## Phase 2: Foundational
-- [ ] T003 Demo Deployment Agent: build the **shared shell** (CSS Grid: left rail / center outlet / right panel; consumes 014 tokens) in demo/apps/_shared/public/shell/shell.css (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T004 Demo Deployment Agent: shell JS — client-side nav (center-only update), responsive drawers, ARIA landmarks/focus order in demo/apps/_shared/public/shell/shell.js (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T003 Demo Deployment Agent: build the **shared shell** (CSS Grid: left rail / center outlet / right panel; consumes 014 tokens) in demo/apps/_shared/public/shell/shell.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE.**
+- [X] T004 Demo Deployment Agent: shell JS — client-side nav (center-only update), responsive drawers, ARIA landmarks/focus order in demo/apps/_shared/public/shell/shell.js (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE (opt-in, runtime-built).**
 - [ ] T005 [P] Demo Deployment Agent: define the `NavConfig` + `ProfilePanelConfig` schema (per-role config contract) in demo/apps/_shared/public/shell/ (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 **Checkpoint**: shared shell + config contract ready.
