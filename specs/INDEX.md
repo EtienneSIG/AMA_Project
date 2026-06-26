@@ -56,7 +56,7 @@ Each spec folder contains:
 | # | Feature | Branch | Priority | Status | Feature Area |
 |---|---------|--------|----------|--------|---------------------|
 | **013** | Learner Sheet & Item Sharing | `013-learner-sheet-sharing` | P1 | ✅ spec+plan+tasks | Student → Peer sharing of items/sheets (in-class, moderated) |
-| **014** | Age-Adaptive Theming | `014-age-adaptive-theming` | P1 | ✅ spec+plan+tasks | Student → Age-band look & feel (child-drawing / Lego-inspired / game-HUD) |
+| **014** | Age-Adaptive Theming | `014-age-adaptive-theming` | P1 | ✅ spec+plan+tasks · US1 impl | Student → Age-band look & feel (child-drawing / Lego-inspired / game-HUD) |
 | **015** | AI Tutor Video Links | `015-ai-tutor-video-links` | P1 | ✅ spec+plan+tasks | Student → Vetted external explainer videos in tutor answers |
 | **016** | AI Tutor Voice Mode | `016-ai-tutor-voice-mode` | P1 | ✅ spec+plan+tasks | Student → Write/explain + voice-to-voice discussion modes |
 | **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks | Student/Parent/Teacher → Self-reported mood + well-being routing |

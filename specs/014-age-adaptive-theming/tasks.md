@@ -14,13 +14,13 @@
 > - `demo/apps/learner-web/public/themes/age-themes.css` — the three age-band themes (kids/brick/game) + reduced-motion + high-contrast variants, reusing the existing 8-variable contract (T004, T007–T009, T015).
 > - `demo/apps/learner-web/public/age-theme.js` — self-contained deterministic resolver (8–13 inclusive), override hook (`window.LearnEUAgeTheme`), a11y prefs, neutral-default fallback (T005, T010).
 >
-> **Deferred / remaining**: ✅ Activation is now **done** — the in-progress Editorial theme was committed first, then `/age-theme.js` was wired into `index.html` + `mobile.html`, its statics served pre-auth, and a `?ageband=`/`?age=` demo affordance added (testable now). Still open: binding a real age source server-side (`window.LEARNER_AGE` / `data-age` from the learner profile), server-side override persistence (T014), automated verification (T011/T018), and US2 reuse docs (T012/T013).
+> **Deferred / remaining**: ✅ **User Story 1 complete** — the in-progress Editorial theme was committed first, then `/age-theme.js` was wired into `index.html` + `mobile.html`, its statics served pre-auth, a real **age source** bound via `GET /api/auth/me` (`user.age`, deterministic), and a `?ageband=`/`?age=` demo affordance added. ✅ **US3 override persistence** done via `PATCH /api/auth/me` `{ themeOverride }` + resolver hook (`window.LearnEUAgeTheme.saveOverride`). ✅ Verification script `demo/scripts/verify-age-theming.ps1` (resolver logic ALL PASS). **Still open (human / assets)**: pedagogical age-mapping + UDL reviews (T002/T017), original illustration packs + IP review (T003), full accessibility audit (T016), teacher/parent cross-user override UI, and extra automated tests (T013/T018).
 
 ---
 
 ## Phase 1: Setup
 
-- [ ] T001 EdTech Program Orchestrator: append the theming increment scope + touched files to demo/apps/learner-web/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **EXISTING FILE: append.**
+- [X] T001 EdTech Program Orchestrator: append the theming increment scope + touched files to demo/apps/learner-web/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **DONE: added an "Age-adaptive theming (spec 014)" section.**
 - [ ] T002 [P] Learning Sciences Expert: confirm age-band → theme mapping, readability, and age-appropriateness (under-8 / 8–13 / 14+) and the accessibility baseline in specs/014-age-adaptive-theming/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [ ] T003 [P] Content Localisation Lead: confirm original (non-trademarked) illustration/asset strategy per theme; no brand/character IP in demo/apps/learner-web/public/themes/ (Accountable: agents/content-localisation-lead.chatmode.md)
 
@@ -44,7 +44,7 @@
 - [X] T008 [P] [US1] Demo Deployment Agent: build the **brick** (8–13, Lego-inspired) theme token set + original asset pack in demo/apps/learner-web/public/themes/brick/ (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as `body.theme-age-brick` (inspired-by; no trademarks).**
 - [X] T009 [P] [US1] Demo Deployment Agent: build the **game-hud** (14+) theme token set + original asset pack in demo/apps/learner-web/public/themes/game-hud/ (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE as `body.theme-age-game`.**
 - [X] T010 [US1] Demo Deployment Agent: wire deterministic band selection (boundary 8–13 inclusive) into the resolver in demo/apps/learner-web/public/theme-toggle.js (depends on T005, T007–T009) (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE in age-theme.js (`ageToBand`: <8 kids, 8–13 brick, ≥14 game).**
-- [ ] T011 [P] [US1] Cross-Agent QA Verifier: add a learner-theme check (correct band theme per age; boundary cases; **content parity across themes**) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [X] T011 [P] [US1] Cross-Agent QA Verifier: add a learner-theme check (correct band theme per age; boundary cases; **content parity across themes**) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md) — **DONE: demo/scripts/verify-age-theming.ps1 (resolver logic + optional HTTP asset check).**
 
 **Checkpoint**: US1 functional — correct age-band theme everywhere, content identical.
 
@@ -56,7 +56,7 @@
 
 **Independent Test**: change one token → propagates with no per-screen edits; register a 4th theme without screen markup changes.
 
-- [ ] T012 [US2] Demo Deployment Agent: ensure all theme values flow through `tokens.css` (no per-screen hard-coded styles remain) and document how to add a theme in demo/apps/learner-web/README.md (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [X] T012 [US2] Demo Deployment Agent: ensure all theme values flow through `tokens.css` (no per-screen hard-coded styles remain) and document how to add a theme in demo/apps/learner-web/README.md (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: age themes remap the existing 8-variable contract (no per-screen styles); "Add a theme" documented in the README.**
 - [ ] T013 [P] [US2] Cross-Agent QA Verifier: add a token-propagation test (one token change reflected app-wide; 4th-theme registration without markup edits) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: token system proven reusable.
@@ -69,7 +69,7 @@
 
 **Independent Test**: override a 15-year-old to brick; enable reduced motion → animations suppressed in all themes.
 
-- [ ] T014 [US3] EdTech Program Orchestrator: persist a per-learner **theme override** (actor + timestamp) on the existing learner preferences and apply it in the resolver in demo/apps/learner-web (server.js + theme-toggle.js) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [X] T014 [US3] EdTech Program Orchestrator: persist a per-learner **theme override** (actor + timestamp) on the existing learner preferences and apply it in the resolver in demo/apps/learner-web (server.js + theme-toggle.js) (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **DONE: `themeOverride` field on the profile via PATCH /api/auth/me; resolver reads it (server precedence) and exposes `saveOverride`. (Cross-user teacher/parent write UI still TODO.)**
 - [X] T015 [P] [US3] Demo Deployment Agent: implement **reduced-motion** + **high-contrast** variants for all three themes in demo/apps/learner-web/public/themes/ + theme.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: `body.theme-reduced-motion` + `body.theme-contrast-high` in themes/age-themes.css; toggled by age-theme.js from prefers-* + explicit prefs.**
 - [ ] T016 [P] [US3] Cross-Agent QA Verifier: add accessibility checks (WCAG AA contrast, reduced-motion, high-contrast, keyboard/landmarks) per theme to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 

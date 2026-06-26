@@ -33,6 +33,9 @@
   var CLASSES = ['theme-age-kids', 'theme-age-brick', 'theme-age-game'];
   var BAND_TO_CLASS = { kids: 'theme-age-kids', brick: 'theme-age-brick', game: 'theme-age-game' };
 
+  // Filled by fetchProfile(): the learner's real age + any server-persisted override.
+  var serverState = { age: null, override: null };
+
   function ls(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
   // Deterministic mapping from an explicit age (number) to a band. No inference.
@@ -58,9 +61,14 @@
       if (qa) { var qbnd = ageToBand(parseInt(qa, 10)); if (qbnd) return qbnd; }
     } catch (e) {}
 
-    // Explicit numeric age.
-    if (typeof window.LEARNER_AGE === 'number') {
-      var b = ageToBand(window.LEARNER_AGE);
+    // Server-persisted override (set by a teacher/parent/learner), from the profile fetch.
+    if (serverState.override && serverState.override !== 'auto' && BAND_TO_CLASS[serverState.override]) return serverState.override;
+
+    // Explicit numeric age (from window.LEARNER_AGE or the profile fetch).
+    var age = (typeof window.LEARNER_AGE === 'number') ? window.LEARNER_AGE
+            : (typeof serverState.age === 'number' ? serverState.age : null);
+    if (age != null) {
+      var b = ageToBand(age);
       if (b) return b;
     }
     // Explicit band.
@@ -108,17 +116,48 @@
     body.classList.toggle('theme-contrast-high', !!prefersHighContrast());
   }
 
+  // Fetch the learner profile (real age + any server-persisted theme override) and re-apply.
+  function fetchProfile() {
+    try {
+      window.fetch('/api/auth/me', { credentials: 'same-origin' })
+        .then(function (r) { return r && r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.user) return;
+          if (typeof d.user.age === 'number') serverState.age = d.user.age;
+          if (d.user.themeOverride) serverState.override = d.user.themeOverride;
+          apply();
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+
+  // Persist an override to the profile (CSRF-protected PATCH). Used by teacher/parent/learner surfaces.
+  function persistOverride(band) {
+    return window.fetch('/api/auth/csrf', { credentials: 'same-origin' })
+      .then(function (r) { return r && r.ok ? r.json() : { csrfToken: '' }; })
+      .then(function (t) {
+        return window.fetch('/api/auth/me', {
+          method: 'PATCH', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': (t && t.csrfToken) || '' },
+          body: JSON.stringify({ themeOverride: band })
+        });
+      })
+      .then(function (r) { return r && r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.user) { serverState.override = d.user.themeOverride || null; apply(); } });
+  }
+
   // Public hook for teacher/parent override surfaces and live preference changes.
   window.LearnEUAgeTheme = {
     setOverride: function (band) { try { localStorage.setItem(OVERRIDE_KEY, band); } catch (e) {} apply(); },
     clearOverride: function () { try { localStorage.setItem(OVERRIDE_KEY, 'auto'); } catch (e) {} apply(); },
+    saveOverride: function (band) { try { return persistOverride(band); } catch (e) { return Promise.resolve(); } },
     setReducedMotion: function (on) { try { localStorage.setItem(RM_KEY, on ? '1' : '0'); } catch (e) {} apply(); },
     setHighContrast: function (on) { try { localStorage.setItem(HC_KEY, on ? '1' : '0'); } catch (e) {} apply(); },
     resolve: readAgeBand,
     refresh: apply
   };
 
-  function start() { injectCss(); apply(); }
+  function start() { injectCss(); apply(); fetchProfile(); }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
   } else {

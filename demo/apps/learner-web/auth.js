@@ -208,8 +208,9 @@ function mountAuth(app, options = {}) {
   // Demo-grade: writes only to in-memory userMap (persists until app restart).
   app.patch('/api/auth/me', (req, res) => {
     if (!req.user) return res.status(401).json({ error: 'not authenticated' });
-    const allowed = ['firstName', 'lastName', 'age', 'social', 'language'];
+    const allowed = ['firstName', 'lastName', 'age', 'social', 'language', 'themeOverride'];
     const supportedLangs = new Set(['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']);
+    const themeOverrides = new Set(['kids', 'brick', 'game', 'auto', '']);
     const patch = {};
     for (const k of allowed) {
       if (req.body && Object.prototype.hasOwnProperty.call(req.body, k)) {
@@ -217,6 +218,9 @@ function mountAuth(app, options = {}) {
         if (k === 'age') {
           v = parseInt(v, 10);
           if (!Number.isFinite(v) || v < 4 || v > 120) return res.status(400).json({ error: 'age must be 4-120' });
+        } else if (k === 'themeOverride') {
+          v = String(v).trim().toLowerCase();
+          if (!themeOverrides.has(v)) return res.status(400).json({ error: 'themeOverride must be one of: kids, brick, game, auto' });
         } else {
           v = String(v).trim().slice(0, 80);
           if (k === 'language') {
