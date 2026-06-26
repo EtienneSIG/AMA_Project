@@ -73,3 +73,16 @@ Teachers view per-class peer shares, approve/reject flagged notes, and disable/e
 sharing for a learner or a whole class. UI: `public/sharing-log.html`. API (in
 `_shared/server.js`): `/api/share/teacher/log`, `/api/share/teacher/disable`,
 `/api/share/teacher/moderate/:id`.
+
+## AI tutor video catalogue & controls (spec 015)
+
+Teachers decide which external videos the AI tutor may suggest. Only allow-listed,
+privacy-enhanced embeds (`youtube-nocookie.com`/`vimeo.com`) are accepted; the model
+never supplies links. Teachers can add/remove catalogue entries, disable suggestions
+per class, and learner reports auto-suppress a video pending review.
+
+- UI: `public/video-catalogue.html` (catalogue CRUD + per-class disable).
+- API (in `_shared/server.js`): `/api/tutor/video/catalogue` (GET/POST),
+  `/api/tutor/video/catalogue/:id` (PATCH/DELETE), `/api/tutor/video/disable`.
+- Schema: `video_catalogue`, `video_suggestion_log`, `video_report`, `video_policy`.
+- Verify: `pwsh demo/scripts/verify-tutor-videos.ps1`.

@@ -1835,3 +1835,55 @@ CREATE TABLE IF NOT EXISTS recipient_block (
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (recipient_ref, blocked_sender_ref)
 );
+
+-- Feature 015 — AI tutor illustrative external video links. Only teacher-curated,
+-- allow-listed videos are ever shown; the model never supplies a raw URL. No learner
+-- PII is sent to the external platform (privacy-enhanced youtube-nocookie embeds).
+CREATE TABLE IF NOT EXISTS video_catalogue (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  concept_id  TEXT        NOT NULL,
+  url         TEXT        NOT NULL,                  -- privacy-enhanced embed URL
+  source      TEXT,
+  title       TEXT        NOT NULL,
+  duration_s  INTEGER,
+  age_band    TEXT,
+  market      TEXT,
+  language    TEXT,
+  curated_by  TEXT,
+  status      TEXT        NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled','suppressed')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_video_catalogue_concept ON video_catalogue (concept_id, status);
+
+-- AI Act Art. 12 traceability: every suggestion and click, no third-party tracking data.
+CREATE TABLE IF NOT EXISTS video_suggestion_log (
+  id               BIGSERIAL   PRIMARY KEY,
+  learner_ref      TEXT,
+  tutor_turn_id    UUID,
+  concept_id       TEXT,
+  video_ids        UUID[],
+  event            TEXT        NOT NULL CHECK (event IN ('suggested','clicked')),
+  clicked_video_id UUID,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_video_sug_log_learner ON video_suggestion_log (learner_ref, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS video_report (
+  id          BIGSERIAL   PRIMARY KEY,
+  video_id    UUID,
+  reported_by TEXT,
+  reason      TEXT,
+  status      TEXT        NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Teacher control: disable video suggestions for a learner or a whole class.
+CREATE TABLE IF NOT EXISTS video_policy (
+  scope               TEXT        NOT NULL CHECK (scope IN ('learner','class')),
+  scope_id            TEXT        NOT NULL,
+  suggestions_enabled BOOLEAN     NOT NULL DEFAULT true,
+  set_by              TEXT,
+  set_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (scope, scope_id)
+);

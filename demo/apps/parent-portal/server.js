@@ -308,11 +308,34 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    // Feature 015 — attach up to 3 teacher-curated, allow-listed illustrative videos.
+    // The model never supplies URLs; only catalogue-matched entries are returned and
+    // every suggestion is logged (AI Act Art. 12). Under-16 needs active parental consent.
+    let videos = [];
+    let tutorTurnId = null;
+    if (!outputScan.blocked && db.enabled && u && u.role === 'student' && typeof db.suggestVideosForPrompt === 'function') {
+      try {
+        const resolved = typeof db.listClassmateEmails === 'function' ? await db.listClassmateEmails({ learnerEmail: u.email }) : { classId: null };
+        const classId = resolved && resolved.classId ? resolved.classId : null;
+        const suggestionsOn = await db.isVideoSuggestionEnabled({ learnerEmail: u.email, classId });
+        const consentOk = (u.age == null || u.age >= 16) ? true : await db.hasActiveConsentForLearner({ childEmail: u.email });
+        if (suggestionsOn && consentOk) {
+          videos = await db.suggestVideosForPrompt({ prompt: userPrompt, ageBand: null, max: 3 });
+          if (videos.length) {
+            tutorTurnId = crypto.randomUUID();
+            db.logVideoSuggestion({ learnerRef: u.email, tutorTurnId, conceptId: videos[0].conceptId, videoIds: videos.map(v => v.id), event: 'suggested' }).catch(() => {});
+          }
+        }
+      } catch (_) { videos = []; }
+    }
+
     res.json({
       askId,
       answer: finalAnswer,
       model: data?.model,
       usage,
+      tutorTurnId,
+      videos,
       contentSafety: cs.enabled ? {
         input: { severities: inputScan.severities, blocked: false },
         output: { severities: outputScan.severities, blocked: Boolean(outputScan.blocked) },
@@ -661,6 +684,78 @@ app.post('/api/share/teacher/moderate/:id', async (req, res) => {
   const ok = await db.moderateShare({ id: req.params.id, approve });
   if (!ok) return res.status(404).json({ error: 'flagged_share_not_found' });
   res.json({ ok: true, decision: approve ? 'approved' : 'rejected' });
+});
+// --- AI tutor illustrative video links (Feature 015) ----------------------
+// Learner logs a click on a suggested video and gets the transparency notice.
+app.post('/api/tutor/video/:id/click', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const video = await db.getVideoById({ id: req.params.id });
+  if (!video || video.status !== 'active') return res.status(404).json({ error: 'video_not_available' });
+  db.logVideoSuggestion({ learnerRef: u.email, tutorTurnId: req.body?.tutorTurnId || null, conceptId: video.concept_id, videoIds: [video.id], event: 'clicked', clickedVideoId: video.id }).catch(() => {});
+  res.json({ ok: true, transparency: 'You are leaving LearnEU to an external site. No information about you is sent to it.', url: video.url });
+});
+// Learner/teacher reports a suggested video as unsuitable → suppressed pending review.
+app.post('/api/tutor/video/:id/report', async (req, res) => {
+  const u = req.user;
+  if (!u || !['student', 'teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'auth required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  await db.reportVideo({ videoId: req.params.id, reportedBy: u.email, reason: req.body?.reason || '' });
+  res.json({ ok: true, status: 'suppressed' });
+});
+// Teacher lists the catalogue (optionally by concept/status).
+app.get('/api/tutor/video/catalogue', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listVideoCatalogue({ conceptId: req.query.conceptId, status: req.query.status });
+  res.json({ enabled: true, rows });
+});
+// Teacher adds an allow-listed video for a concept.
+app.post('/api/tutor/video/catalogue', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const { conceptId, url, source, title, durationS, ageBand, market, language } = req.body || {};
+  if (!conceptId || !url || !title) return res.status(400).json({ error: 'conceptId, url and title required' });
+  // Only privacy-enhanced / well-formed http(s) URLs accepted (no javascript:, no data:).
+  if (!/^https:\/\/(www\.)?(youtube-nocookie\.com|vimeo\.com|player\.vimeo\.com)\//i.test(String(url))) {
+    return res.status(400).json({ error: 'url must be a privacy-enhanced embed (youtube-nocookie.com or vimeo.com)' });
+  }
+  const row = await db.addVideoCatalogue({ conceptId, url, source, title, durationS, ageBand, market, language, curatedBy: u.email });
+  res.json({ ok: true, entry: row });
+});
+// Teacher replaces/updates a catalogue entry (governed Art. 10 action).
+app.patch('/api/tutor/video/catalogue/:id', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  if (req.body && req.body.url && !/^https:\/\/(www\.)?(youtube-nocookie\.com|vimeo\.com|player\.vimeo\.com)\//i.test(String(req.body.url))) {
+    return res.status(400).json({ error: 'url must be a privacy-enhanced embed' });
+  }
+  const row = await db.updateVideoCatalogue({ id: req.params.id, fields: req.body || {} });
+  if (!row) return res.status(404).json({ error: 'entry_not_found_or_no_fields' });
+  res.json({ ok: true, entry: row });
+});
+// Teacher removes (disables) a catalogue entry — never suggested again.
+app.delete('/api/tutor/video/catalogue/:id', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const ok = await db.setVideoCatalogueStatus({ id: req.params.id, status: 'disabled' });
+  if (!ok) return res.status(404).json({ error: 'entry_not_found' });
+  res.json({ ok: true });
+});
+// Teacher disables/enables video suggestions for a learner or whole class.
+app.post('/api/tutor/video/disable', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const { scope, scopeId, enabled } = req.body || {};
+  if (!['learner', 'class'].includes(scope) || !scopeId) return res.status(400).json({ error: 'scope (learner|class) and scopeId required' });
+  const row = await db.setVideoPolicy({ scope, scopeId, enabled: Boolean(enabled), setBy: u.email });
+  res.json({ ok: true, policy: row });
 });
 // --- Learner gamification UX (Feature 003) -------------------------------
 const GAM_BADGES = [

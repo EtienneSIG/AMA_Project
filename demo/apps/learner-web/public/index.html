@@ -435,6 +435,7 @@
     </div>
     <div class="reply" id="reply">Ask a question to see the explanation here. Diagrams and worked examples will appear inline.</div>
     <div class="meta" id="meta"></div>
+    <div id="videoSuggestions" style="display:none;margin-top:.75rem;padding-top:.7rem;border-top:1px solid var(--line);"></div>
     <div id="feedbackBar" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--line);">
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
         <span class="sub" style="font-size:.82rem;color:var(--grey);margin-right:.4rem;">Was this answer useful?</span>
@@ -903,8 +904,48 @@ async function chat() {
       }
     } else { out.textContent = data.answer; }
     if (data.usage) meta.textContent = `${data.usage.total_tokens} tokens · ${data.model || ''}`;
+    renderVideoSuggestions(data.videos, data.tutorTurnId);
     if (lastAskId != null) showFeedbackBar();
   } catch (err) { out.textContent = String(err); }
+}
+// Render teacher-curated illustrative video links. The model never supplies URLs;
+// these come only from the vetted catalogue. Links open externally and send no learner data.
+function renderVideoSuggestions(videos, tutorTurnId) {
+  const box = document.getElementById('videoSuggestions');
+  if (!box) return;
+  if (!Array.isArray(videos) || videos.length === 0) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const fmt = (s) => { const n = Number(s); if (!Number.isFinite(n) || n <= 0) return ''; const m = Math.floor(n/60), sec = n%60; return `${m}:${String(sec).padStart(2,'0')}`; };
+  let html = '<div style="font-size:.82rem;color:var(--grey);margin-bottom:.5rem;">📺 Optional videos picked by your teacher. They open on an external site — no information about you is sent there.</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:.5rem;">';
+  for (const v of videos) {
+    const dur = fmt(v.durationS);
+    html += `<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;">
+      <span style="font-size:1.1rem;">▶️</span>
+      <div style="flex:1;min-width:0;">
+        <a href="#" data-vid="${esc(v.id)}" class="videoLink" style="font-weight:600;color:var(--teal);text-decoration:none;">${esc(v.title)}</a>
+        <div style="font-size:.74rem;color:var(--grey);">${esc(v.source || 'External')}${dur ? ' · ' + dur : ''} · <span style="color:#a35a16;">external site</span></div>
+      </div>
+      <button class="btn btn-sm ghost videoReport" data-vid="${esc(v.id)}" title="Report this video as unsuitable" style="font-size:.72rem;">Report</button>
+    </div>`;
+  }
+  html += '</div>';
+  box.innerHTML = html;
+  box.style.display = '';
+  box.querySelectorAll('.videoLink').forEach(a => a.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const id = a.getAttribute('data-vid');
+    try {
+      const r = await fetch('/api/tutor/video/' + encodeURIComponent(id) + '/click', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ tutorTurnId: tutorTurnId || null }) });
+      const d = await r.json();
+      if (d && d.url) window.open(d.url, '_blank', 'noopener');
+    } catch (_) {}
+  }));
+  box.querySelectorAll('.videoReport').forEach(b => b.addEventListener('click', async () => {
+    const id = b.getAttribute('data-vid');
+    b.disabled = true; b.textContent = 'Reported';
+    try { await fetch('/api/tutor/video/' + encodeURIComponent(id) + '/report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reason: 'learner_report' }) }); } catch (_) {}
+  }));
 }
 function setPrompt(e, text) { e.preventDefault(); document.getElementById('prompt').value = text; document.getElementById('prompt').focus(); }
 

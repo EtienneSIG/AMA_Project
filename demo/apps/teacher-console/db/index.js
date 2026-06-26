@@ -1154,6 +1154,164 @@ async function moderateShare({ id, approve }) {
   return Boolean(r && r.rowCount > 0);
 }
 
+// --- Feature 015 — AI tutor illustrative external video links --------------
+// Teacher-curated allow-list. The model never supplies a URL; only catalogued,
+// active (non-suppressed) entries are ever shown. Concept matching is keyword-based.
+const VIDEO_CATALOGUE_SEED = [
+  { conceptId: 'fractions', keywords: ['fraction', 'fractions', 'numerator', 'denominator', 'breuk'], url: 'https://www.youtube-nocookie.com/embed/HEm_Ai5lN8s', source: 'Khan Academy', title: 'Introduction to fractions', durationS: 222, ageBand: '10-12', market: 'EU', language: 'en' },
+  { conceptId: 'decimals', keywords: ['decimal', 'decimals', 'tenths', 'hundredths', 'komma'], url: 'https://www.youtube-nocookie.com/embed/Y2-uYpe2Pwc', source: 'Khan Academy', title: 'Decimals and place value', durationS: 264, ageBand: '10-12', market: 'EU', language: 'en' },
+  { conceptId: 'percentages', keywords: ['percent', 'percentage', 'percentages', '%', 'procent'], url: 'https://www.youtube-nocookie.com/embed/p-Mvch8DUSY', source: 'Khan Academy', title: 'Understanding percentages', durationS: 198, ageBand: '13-15', market: 'EU', language: 'en' },
+  { conceptId: 'area', keywords: ['area', 'rectangle', 'surface', 'oppervlakte', 'flache'], url: 'https://www.youtube-nocookie.com/embed/xCdxURXMdFY', source: 'Khan Academy', title: 'Area of rectangles', durationS: 210, ageBand: '10-12', market: 'EU', language: 'en' },
+  { conceptId: 'equations', keywords: ['equation', 'equations', 'solve for', 'algebra', 'vergelijking', 'gleichung'], url: 'https://www.youtube-nocookie.com/embed/l3XzepN03KQ', source: 'Khan Academy', title: 'Solving one-step equations', durationS: 246, ageBand: '13-15', market: 'EU', language: 'en' },
+  { conceptId: 'multiplication', keywords: ['multiply', 'multiplication', 'times table', 'product', 'vermenigvuldigen'], url: 'https://www.youtube-nocookie.com/embed/FJ5qLWP3Fqo', source: 'Khan Academy', title: 'Intro to multiplication', durationS: 234, ageBand: '10-12', market: 'EU', language: 'en' }
+];
+
+// Idempotently seed the allow-list the first time it is needed (no init() changes).
+let _videoSeedDone = false;
+async function ensureVideoCatalogueSeed() {
+  if (_videoSeedDone || !enabled) return;
+  const r = await q(`SELECT COUNT(*)::int AS n FROM video_catalogue`);
+  if (r && r.rows && r.rows[0] && r.rows[0].n > 0) { _videoSeedDone = true; return; }
+  for (const v of VIDEO_CATALOGUE_SEED) {
+    await q(
+      `INSERT INTO video_catalogue (concept_id, url, source, title, duration_s, age_band, market, language, curated_by, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'demo-seed', 'active')`,
+      [v.conceptId, v.url, v.source, v.title, v.durationS, v.ageBand, v.market, v.language]
+    );
+  }
+  _videoSeedDone = true;
+}
+
+async function listVideoCatalogue({ conceptId, status, limit = 200 } = {}) {
+  await ensureVideoCatalogueSeed();
+  const params = []; const where = [];
+  if (conceptId) { params.push(conceptId); where.push(`concept_id = $${params.length}`); }
+  if (status) { params.push(status); where.push(`status = $${params.length}`); }
+  params.push(limit);
+  const r = await q(
+    `SELECT id, concept_id, url, source, title, duration_s, age_band, market, language, curated_by, status, created_at, updated_at
+       FROM video_catalogue ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+      ORDER BY concept_id, created_at DESC LIMIT $${params.length}`,
+    params
+  );
+  return r ? r.rows : [];
+}
+
+async function addVideoCatalogue({ conceptId, url, source, title, durationS, ageBand, market, language, curatedBy }) {
+  const r = await q(
+    `INSERT INTO video_catalogue (concept_id, url, source, title, duration_s, age_band, market, language, curated_by, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active') RETURNING *`,
+    [String(conceptId || '').toLowerCase().slice(0, 80), String(url || '').slice(0, 500), String(source || '').slice(0, 120),
+      String(title || '').slice(0, 200), Number.isFinite(Number(durationS)) ? Number(durationS) : null,
+      ageBand || null, market || null, language || null, curatedBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function updateVideoCatalogue({ id, fields }) {
+  const allowed = ['url', 'source', 'title', 'status', 'age_band', 'market', 'language'];
+  const sets = []; const params = [];
+  for (const [k, v] of Object.entries(fields || {})) {
+    const col = k === 'ageBand' ? 'age_band' : k;
+    if (!allowed.includes(col)) continue;
+    params.push(v); sets.push(`${col} = $${params.length}`);
+  }
+  if (!sets.length) return null;
+  params.push(id);
+  const r = await q(
+    `UPDATE video_catalogue SET ${sets.join(', ')}, updated_at = now() WHERE id = $${params.length} RETURNING *`,
+    params
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function setVideoCatalogueStatus({ id, status }) {
+  const st = ['active', 'disabled', 'suppressed'].includes(status) ? status : 'disabled';
+  const r = await q(`UPDATE video_catalogue SET status = $2, updated_at = now() WHERE id = $1 RETURNING id`, [id, st]);
+  return Boolean(r && r.rowCount > 0);
+}
+
+async function getVideoById({ id }) {
+  const r = await q(`SELECT * FROM video_catalogue WHERE id = $1 LIMIT 1`, [id]);
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Video suggestions are enabled unless a teacher disabled them for this learner or class.
+async function isVideoSuggestionEnabled({ learnerEmail, classId }) {
+  const r = await q(
+    `SELECT suggestions_enabled FROM video_policy
+      WHERE (scope = 'learner' AND scope_id = $1) OR (scope = 'class' AND scope_id = $2)`,
+    [String(learnerEmail || '').toLowerCase(), classId || '']
+  );
+  if (!r || !r.rows) return true;
+  return !r.rows.some(row => row.suggestions_enabled === false);
+}
+
+async function setVideoPolicy({ scope, scopeId, enabled, setBy }) {
+  const sc = scope === 'class' ? 'class' : 'learner';
+  const r = await q(
+    `INSERT INTO video_policy (scope, scope_id, suggestions_enabled, set_by, set_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (scope, scope_id) DO UPDATE
+       SET suggestions_enabled = EXCLUDED.suggestions_enabled, set_by = EXCLUDED.set_by, set_at = now()
+     RETURNING *`,
+    [sc, String(scopeId || '').toLowerCase(), Boolean(enabled), setBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Keyword-match the prompt to catalogued concepts; return up to `max` active videos.
+async function suggestVideosForPrompt({ prompt, ageBand, max = 3 }) {
+  await ensureVideoCatalogueSeed();
+  const text = String(prompt || '').toLowerCase();
+  if (!text.trim()) return [];
+  const r = await q(
+    `SELECT id, concept_id, url, source, title, duration_s, age_band
+       FROM video_catalogue WHERE status = 'active' ORDER BY created_at DESC`
+  );
+  const rows = r ? r.rows : [];
+  const seedByConcept = new Map(VIDEO_CATALOGUE_SEED.map(s => [s.conceptId, s.keywords]));
+  const scored = [];
+  for (const row of rows) {
+    const keywords = seedByConcept.get(row.concept_id) || [row.concept_id];
+    let score = 0;
+    for (const kw of keywords) { if (kw && text.includes(String(kw).toLowerCase())) score++; }
+    if (text.includes(String(row.concept_id).toLowerCase())) score++;
+    if (score > 0) scored.push({ row, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, Math.max(0, Math.min(max, 3))).map(s => ({
+    id: s.row.id,
+    title: s.row.title,
+    source: s.row.source,
+    durationS: s.row.duration_s,
+    embedUrl: s.row.url,
+    conceptId: s.row.concept_id,
+    external: true
+  }));
+}
+
+async function logVideoSuggestion({ learnerRef, tutorTurnId, conceptId, videoIds, event, clickedVideoId }) {
+  await q(
+    `INSERT INTO video_suggestion_log (learner_ref, tutor_turn_id, concept_id, video_ids, event, clicked_video_id)
+     VALUES ($1, $2, $3, $4::uuid[], $5, $6)`,
+    [String(learnerRef || '').toLowerCase() || null, tutorTurnId || null, conceptId || null,
+      Array.isArray(videoIds) && videoIds.length ? videoIds : null,
+      event === 'clicked' ? 'clicked' : 'suggested', clickedVideoId || null]
+  );
+  return true;
+}
+
+// File a report and suppress the video pending review.
+async function reportVideo({ videoId, reportedBy, reason }) {
+  await q(
+    `INSERT INTO video_report (video_id, reported_by, reason, status) VALUES ($1, $2, $3, 'open')`,
+    [videoId, String(reportedBy || '').toLowerCase() || null, String(reason || '').slice(0, 500) || null]
+  );
+  await q(`UPDATE video_catalogue SET status = 'suppressed', updated_at = now() WHERE id = $1 AND status <> 'suppressed'`, [videoId]);
+  return true;
+}
+
 // Force a re-seed and return inserted-row counts + the data dir used. Intended for the admin /api/data/reseed endpoint.
 async function reseedReferenceData() {
   if (!enabled) return { enabled: false };
@@ -3661,6 +3819,16 @@ module.exports = {
   listSharesReceived,
   listSharesForClass,
   moderateShare,
+  listVideoCatalogue,
+  addVideoCatalogue,
+  updateVideoCatalogue,
+  setVideoCatalogueStatus,
+  getVideoById,
+  isVideoSuggestionEnabled,
+  setVideoPolicy,
+  suggestVideosForPrompt,
+  logVideoSuggestion,
+  reportVideo,
   listCurricula,
   listGlossary,
   summariseLearners,

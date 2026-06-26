@@ -46,3 +46,18 @@ block a sender.
   `/api/share/:id/revoke`, `/api/share/received`, `/api/share/block`.
 - Schema: `share`, `shared_artifact_snapshot`, `sharing_policy`, `recipient_block`.
 - Verify: `pwsh demo/scripts/verify-sharing.ps1`.
+
+## AI tutor illustrative video links (spec 015)
+
+Tutor answers may include up to 3 **teacher-curated, allow-listed** explainer videos.
+The model never supplies a URL — only catalogued, active entries are shown, as
+privacy-enhanced (`youtube-nocookie.com`) embeds that send no learner data. Under-16
+learners only see suggestions with active parental consent, and teachers can disable
+suggestions per learner/class.
+
+- UI: suggestions render under the explanation (`public/index.html`,
+  `renderVideoSuggestions`); each click opens externally + is logged.
+- API (in `_shared/server.js`): `/api/chat` attaches `videos[]` + `tutorTurnId`;
+  `/api/tutor/video/:id/click`, `/api/tutor/video/:id/report`.
+- Schema: `video_catalogue`, `video_suggestion_log`, `video_report`, `video_policy`.
+- Verify: `pwsh demo/scripts/verify-tutor-videos.ps1`.

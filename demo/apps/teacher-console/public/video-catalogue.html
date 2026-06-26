@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutor Video Catalogue — LearnEU Teacher</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<script src="/csrf.js"></script>
+<script src="/theme-toggle.js" defer></script>
+<style>
+  :root { --navy:#1b2a4a; --orange:#ef6c2e; --teal:#2BB4B8; --line:#e3e7ee; --bg:#f6f8fb; --grey:#41506b; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--grey); margin:0; padding:2rem 1rem; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-family:'Poppins',sans-serif; color:var(--navy); font-size:1.4rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.3rem; box-shadow:0 8px 24px rgba(23,23,23,0.06); margin-bottom:1.2rem; }
+  label { display:block; font-weight:600; margin:.6rem 0 .35rem; color:var(--navy); font-size:.9rem; }
+  input, select { box-sizing:border-box; padding:.55rem .7rem; border:1px solid var(--line); border-radius:8px; font:inherit; width:100%; }
+  button { background:var(--orange); color:#fff; border:0; border-radius:999px; padding:.5rem 1.1rem; font-weight:600; cursor:pointer; font:inherit; }
+  button.ghost { background:#fff; color:var(--navy); border:1px solid var(--line); }
+  button.small { padding:.3rem .7rem; font-size:.82rem; }
+  button:hover { filter:brightness(.96); }
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; }
+  .row { display:flex; gap:.6rem; align-items:flex-end; flex-wrap:wrap; }
+  table { width:100%; border-collapse:collapse; margin-top:.6rem; font-size:.88rem; }
+  th, td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--navy); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  .pill { display:inline-block; padding:.12rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+  .pill.active { background:rgba(43,180,184,.16); color:#1c7d80; }
+  .pill.suppressed { background:rgba(239,108,46,.16); color:#b34715; }
+  .pill.disabled { background:rgba(15,27,45,.1); color:#41506b; }
+  .msg { margin-top:.8rem; padding:.55rem .8rem; border-radius:8px; font-size:.9rem; display:none; }
+  .msg.ok { display:block; background:#e7f6ec; color:#176b3a; }
+  .msg.err { display:block; background:#fdecec; color:#9a1a1a; }
+  .hint { font-size:.82rem; color:#6b7790; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI tutor video catalogue (Feature 015)</h1>
+  <p class="hint">You decide which external videos the AI tutor may suggest to learners. The model never supplies links of its own — only vetted, allow-listed entries below are ever shown, and only as privacy-enhanced embeds (no learner data sent to the platform). You can disable suggestions per class at any time.</p>
+  <div id="msg" class="msg"></div>
+
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin-top:0;">Add a vetted video</h2>
+    <div class="grid">
+      <div><label for="conceptId">Concept (keyword)</label><input id="conceptId" placeholder="fractions"></div>
+      <div><label for="title">Title</label><input id="title" placeholder="Introduction to fractions"></div>
+      <div><label for="url">Embed URL (youtube-nocookie.com / vimeo.com)</label><input id="url" placeholder="https://www.youtube-nocookie.com/embed/..."></div>
+      <div><label for="source">Source</label><input id="source" placeholder="Khan Academy"></div>
+      <div><label for="durationS">Duration (seconds)</label><input id="durationS" type="number" min="0" placeholder="220"></div>
+      <div><label for="ageBand">Age band</label><input id="ageBand" placeholder="10-12"></div>
+    </div>
+    <div class="row" style="margin-top:.8rem;"><button id="addBtn">Add to catalogue</button></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="loadBtn" class="ghost">Refresh catalogue</button>
+      <div style="flex:1;"></div>
+      <div>
+        <label for="policyClass">Disable suggestions for class</label>
+        <select id="policyClass">
+          <option value="CLS-7A">CLS-7A</option>
+          <option value="CLS-7B">CLS-7B</option>
+          <option value="CLS-7C">CLS-7C</option>
+          <option value="CLS-8A">CLS-8A</option>
+          <option value="CLS-8B">CLS-8B</option>
+          <option value="CLS-9A">CLS-9A</option>
+        </select>
+      </div>
+      <button id="disableBtn" class="ghost small">Disable</button>
+      <button id="enableBtn" class="ghost small">Enable</button>
+    </div>
+    <table>
+      <thead><tr><th>Concept</th><th>Title</th><th>Source</th><th>Status</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" class="hint">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const msg = document.getElementById('msg');
+function flash(text, ok) { msg.textContent = text; msg.className = 'msg ' + (ok ? 'ok' : 'err'); setTimeout(() => { msg.className = 'msg'; }, 3500); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function load() {
+  const tb = document.getElementById('rows');
+  tb.innerHTML = '<tr><td colspan="5" class="hint">Loading…</td></tr>';
+  try {
+    const r = await fetch('/api/tutor/video/catalogue');
+    const d = await r.json();
+    if (!d.enabled) { tb.innerHTML = '<tr><td colspan="5" class="hint">Catalogue requires the database (demo DB offline).</td></tr>'; return; }
+    if (!d.rows || !d.rows.length) { tb.innerHTML = '<tr><td colspan="5" class="hint">No videos yet. Add one above.</td></tr>'; return; }
+    tb.innerHTML = d.rows.map(v => `<tr>
+      <td>${esc(v.concept_id)}</td>
+      <td>${esc(v.title)}<div class="hint">${esc(v.url)}</div></td>
+      <td>${esc(v.source || '')}</td>
+      <td><span class="pill ${esc(v.status)}">${esc(v.status)}</span></td>
+      <td>${v.status === 'active' ? `<button class="ghost small rmBtn" data-id="${esc(v.id)}">Remove</button>` : `<button class="ghost small reBtn" data-id="${esc(v.id)}">Re-activate</button>`}</td>
+    </tr>`).join('');
+    tb.querySelectorAll('.rmBtn').forEach(b => b.addEventListener('click', () => removeEntry(b.getAttribute('data-id'))));
+    tb.querySelectorAll('.reBtn').forEach(b => b.addEventListener('click', () => reactivate(b.getAttribute('data-id'))));
+  } catch (e) { tb.innerHTML = '<tr><td colspan="5" class="hint">Error: ' + esc(String(e)) + '</td></tr>'; }
+}
+
+async function addEntry() {
+  const body = {
+    conceptId: document.getElementById('conceptId').value.trim(),
+    title: document.getElementById('title').value.trim(),
+    url: document.getElementById('url').value.trim(),
+    source: document.getElementById('source').value.trim(),
+    durationS: Number(document.getElementById('durationS').value) || null,
+    ageBand: document.getElementById('ageBand').value.trim()
+  };
+  if (!body.conceptId || !body.title || !body.url) { flash('Concept, title and URL are required.', false); return; }
+  try {
+    const r = await fetch('/api/tutor/video/catalogue', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) { flash(d.error || 'Could not add.', false); return; }
+    flash('Added to catalogue.', true);
+    document.getElementById('conceptId').value = ''; document.getElementById('title').value = ''; document.getElementById('url').value = '';
+    document.getElementById('source').value = ''; document.getElementById('durationS').value = ''; document.getElementById('ageBand').value = '';
+    load();
+  } catch (e) { flash(String(e), false); }
+}
+
+async function removeEntry(id) {
+  try {
+    const r = await fetch('/api/tutor/video/catalogue/' + encodeURIComponent(id), { method:'DELETE' });
+    if (!r.ok) { const d = await r.json(); flash(d.error || 'Could not remove.', false); return; }
+    flash('Removed from suggestions.', true); load();
+  } catch (e) { flash(String(e), false); }
+}
+
+async function reactivate(id) {
+  try {
+    const r = await fetch('/api/tutor/video/catalogue/' + encodeURIComponent(id), { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'active' }) });
+    if (!r.ok) { const d = await r.json(); flash(d.error || 'Could not re-activate.', false); return; }
+    flash('Re-activated.', true); load();
+  } catch (e) { flash(String(e), false); }
+}
+
+async function setPolicy(enabled) {
+  const scopeId = document.getElementById('policyClass').value;
+  try {
+    const r = await fetch('/api/tutor/video/disable', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ scope: 'class', scopeId, enabled }) });
+    if (!r.ok) { const d = await r.json(); flash(d.error || 'Could not update policy.', false); return; }
+    flash('Suggestions ' + (enabled ? 'enabled' : 'disabled') + ' for ' + scopeId + '.', true);
+  } catch (e) { flash(String(e), false); }
+}
+
+document.getElementById('addBtn').addEventListener('click', addEntry);
+document.getElementById('loadBtn').addEventListener('click', load);
+document.getElementById('disableBtn').addEventListener('click', () => setPolicy(false));
+document.getElementById('enableBtn').addEventListener('click', () => setPolicy(true));
+load();
+</script>
+</body>
+</html>
