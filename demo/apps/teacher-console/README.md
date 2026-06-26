@@ -86,3 +86,17 @@ per class, and learner reports auto-suppress a video pending review.
   `/api/tutor/video/catalogue/:id` (PATCH/DELETE), `/api/tutor/video/disable`.
 - Schema: `video_catalogue`, `video_suggestion_log`, `video_report`, `video_policy`.
 - Verify: `pwsh demo/scripts/verify-tutor-videos.ps1`.
+
+## Well-being & safeguarding (spec 017)
+
+Teachers see **self-reported** class moods (aggregate + per-learner), pedagogically
+reviewed recommendations they accept/adjust/dismiss (every decision logged), and a
+restricted safeguarding inbox for "classmate" reports. No autonomous action ever
+affects a learner; the teacher is always the decision-maker.
+
+- UI: `public/wellbeing.html` (moods, recommendations, safeguarding inbox).
+- API (in `_shared/server.js`): `/api/mood/teacher`,
+  `/api/mood/teacher/recommendations` (+ `/:id/decision`), `/api/mood/safeguarding`
+  (+ `/:id/status`).
+- Schema: `mood_entry`, `teacher_recommendation`, `safeguarding_flag`.
+- Verify: `pwsh demo/scripts/verify-mood-checkin.ps1`.

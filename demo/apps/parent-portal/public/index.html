@@ -310,6 +310,7 @@
       <select id="childSel" onchange="loadChildDashboard(this.value)"><option value="">Loading…</option></select>
       <span id="childRel" style="color:var(--grey);font-size:.85rem;"></span>
     </div>
+    <div id="wellbeingNotices" style="display:none;margin-bottom:1rem;"></div>
     <div class="kpi-grid" id="childKpis"></div>
     <div class="card" style="margin-bottom:1rem;">
       <h2 style="margin-top:0;">Mastery by chapter</h2>
@@ -736,8 +737,7 @@ function chapterTitle(id) {
 async function loadChildDashboard(childEmail) {
   if (!childEmail) return;
   const base = '/api/parent/child/' + encodeURIComponent(childEmail);
-  const safeJson = async (url) => { try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); } catch { return null; } };
-  const [mast, streak, act, tq] = await Promise.all([
+  const safeJson = async (url) => { try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); } catch { return null; } };  const [mast, streak, act, tq] = await Promise.all([
     safeJson(base + '/mastery'),
     safeJson(base + '/streak'),
     safeJson(base + '/activity'),
@@ -758,6 +758,29 @@ async function loadChildDashboard(childEmail) {
   tqEl.innerHTML = DashboardModel.renderTeacherQuestions((tq && tq.rows) || []);
   // Consent status for this child
   renderConsentStatusInDashboard(childEmail);
+  // Feature 017 — consent-gated, supportive well-being notice (never a diagnosis).
+  renderWellbeingNotices(childEmail);
+}
+
+// Feature 017 — well-being notice. Only surfaced when consent is active (server-enforced);
+// supportive framing with "how to help", never diagnostic, never raw mood logs.
+async function renderWellbeingNotices(childEmail) {
+  const box = document.getElementById('wellbeingNotices');
+  if (!box) return;
+  try {
+    const r = await fetch('/api/mood/parent');
+    const j = await r.json();
+    const notices = (j && j.notices) || [];
+    const mine = notices.filter(n => (n.childEmail || '') === childEmail);
+    if (!mine.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    box.innerHTML = mine.map(n => `<div class="card" style="border-left:4px solid var(--orange);background:#fff7f2;">
+      <h2 style="margin-top:0;font-size:1.05rem;">💛 A supportive heads-up</h2>
+      <p style="margin:.2rem 0 .5rem;">${esc(n.message)}</p>
+      <p class="sub" style="margin:0;color:var(--grey);font-size:.85rem;"><strong>How to help:</strong> ${esc(n.howToHelp)}</p>
+    </div>`).join('');
+    box.style.display = '';
+  } catch (_) { box.style.display = 'none'; }
 }
 
 // ===== Feature 6 US2 — parent ↔ teacher messaging =====

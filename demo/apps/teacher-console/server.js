@@ -757,6 +757,122 @@ app.post('/api/tutor/video/disable', async (req, res) => {
   const row = await db.setVideoPolicy({ scope, scopeId, enabled: Boolean(enabled), setBy: u.email });
   res.json({ ok: true, policy: row });
 });
+// --- Learner mood check-in & well-being routing (Feature 017) --------------
+// Mood is SELF-REPORTED only — there is no inference of any kind. Sensitive
+// "classmate" reasons route to the safeguarding inbox, never to peers or the open
+// teacher view. Mood data is never used for grading, profiling, or advertising.
+const MOOD_SUPPORT = {
+  happy: "Great to hear! Keep it up. 🌟",
+  medium: "Thanks for checking in. Every day is different — that's okay.",
+  sad: "Thanks for telling us. It's okay to find things hard — here's who can help.",
+  course_difficulty: "It's okay to find things hard — your teacher can help you catch up.",
+  personal: "Sorry you're feeling this way. Talking to a trusted adult can help.",
+  classmate: "Thank you for telling us. A trusted adult at school will help — you're not alone."
+};
+app.post('/api/mood/checkin', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const { mood, reason } = req.body || {};
+  if (!['happy', 'medium', 'sad'].includes(mood)) return res.status(400).json({ error: 'mood must be happy|medium|sad' });
+  const row = await db.recordMood({ learnerEmail: u.email, mood, reason });
+  if (!row) return res.status(400).json({ error: 'could_not_record' });
+  const supportive = (row.reason && MOOD_SUPPORT[row.reason]) || MOOD_SUPPORT[row.mood];
+  res.json({ ok: true, day: row.day, mood: row.mood, reason: row.reason, supportive });
+});
+// Read today's entry (so the UI can pre-fill / show it was recorded). Self only.
+app.get('/api/mood/today', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.json({ enabled: false });
+  const row = await db.getMoodForDay({ learnerEmail: u.email });
+  res.json({ enabled: true, entry: row });
+});
+// Erase a day's entry (data-subject rights).
+app.delete('/api/mood/checkin/:day', async (req, res) => {
+  const u = req.user;
+  if (!u || u.role !== 'student') return res.status(403).json({ error: 'student role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const ok = await db.eraseMood({ learnerEmail: u.email, day: req.params.day });
+  res.json({ ok });
+});
+// Parent supportive notice — consent-gated, supportive (never diagnostic).
+app.get('/api/mood/parent', async (req, res) => {
+  const u = req.user;
+  if (!u || !['parent', 'admin'].includes(u.role)) return res.status(403).json({ error: 'parent only' });
+  if (!db.enabled) return res.json({ enabled: false, notices: [] });
+  const children = await db.listChildrenForParent({ parentEmail: u.email }) || [];
+  const notices = [];
+  for (const c of children) {
+    const childEmail = c.childEmail;
+    const consentOk = await db.hasActiveConsentForLearner({ childEmail });
+    if (!consentOk) continue; // No surfacing without active consent.
+    const w = await db.getLowMoodWindow({ learnerEmail: childEmail });
+    if (w.sustained) {
+      notices.push({
+        childEmail,
+        severity: w.severity,
+        window: w.window,
+        message: "Your child has self-reported feeling low on several recent days. This is a supportive heads-up, not a diagnosis.",
+        howToHelp: "Find a calm moment to ask how they're doing, listen without judgement, and reach out to their teacher if you'd like support."
+      });
+    }
+  }
+  res.json({ enabled: true, notices });
+});
+// Teacher well-being view — open moods exclude 'classmate' (safeguarding-only).
+app.get('/api/mood/teacher', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [], aggregate: {} });
+  const classId = req.query.classId || null;
+  const rows = await db.listMoodForTeacher({ classId });
+  const aggregate = await db.aggregateMood({ classId });
+  res.json({ enabled: true, rows, aggregate });
+});
+// Teacher recommendations — pedagogically reviewed; teacher decides (logged).
+app.get('/api/mood/teacher/recommendations', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  // Surface a supportive recommendation for any class with a course-difficulty cluster.
+  const classId = req.query.classId || null;
+  if (classId) {
+    const moods = await db.listMoodForTeacher({ classId });
+    const difficultyCount = moods.filter(m => m.reason === 'course_difficulty').length;
+    if (difficultyCount >= 2) {
+      const existing = (await db.listRecommendations({ scopeId: classId })) || [];
+      if (!existing.some(r => r.trigger === 'course_difficulty' && r.decision === 'pending')) {
+        await db.createRecommendation({ scope: 'class', scopeId: classId, trigger: 'course_difficulty', suggestion: 'Several learners flagged course difficulty — consider a short catch-up session or revisiting recent material.' });
+      }
+    }
+  }
+  const rows = await db.listRecommendations({ scopeId: classId });
+  res.json({ enabled: true, rows });
+});
+app.post('/api/mood/teacher/recommendations/:id/decision', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'teacher role required' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const row = await db.decideRecommendation({ id: req.params.id, decision: req.body?.decision, decidedBy: u.email });
+  if (!row) return res.status(400).json({ error: 'invalid_decision_or_id' });
+  res.json({ ok: true, recommendation: row });
+});
+// Safeguarding inbox — authorised pastoral staff only; never peer-visible.
+app.get('/api/mood/safeguarding', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'authorised staff only' });
+  if (!db.enabled) return res.json({ enabled: false, flags: [] });
+  const flags = await db.listSafeguardingFlags({ status: req.query.status || undefined });
+  res.json({ enabled: true, flags });
+});
+app.post('/api/mood/safeguarding/:id/status', async (req, res) => {
+  const u = req.user;
+  if (!u || !['teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'authorised staff only' });
+  if (!db.enabled) return res.status(503).json({ error: 'db unavailable' });
+  const ok = await db.updateSafeguardingFlag({ id: req.params.id, status: req.body?.status });
+  res.json({ ok });
+});
 // --- Learner gamification UX (Feature 003) -------------------------------
 const GAM_BADGES = [
   { key: 'daily-flame', label: 'Daily Flame' },

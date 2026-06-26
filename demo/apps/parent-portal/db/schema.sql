@@ -1887,3 +1887,52 @@ CREATE TABLE IF NOT EXISTS video_policy (
   set_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (scope, scope_id)
 );
+
+-- Feature 017 — learner mood check-in & well-being routing. Mood is SELF-REPORTED
+-- only: no biometric/voice/behavioural inference, ever. Sensitive reasons are strictly
+-- access-controlled and never used for grading, profiling, or advertising.
+CREATE TABLE IF NOT EXISTS mood_entry (
+  id          BIGSERIAL   PRIMARY KEY,
+  learner_ref TEXT        NOT NULL,
+  day         DATE        NOT NULL,
+  mood        TEXT        NOT NULL CHECK (mood IN ('happy','medium','sad')),
+  reason      TEXT        CHECK (reason IN ('personal','course_difficulty','classmate')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (learner_ref, day)
+);
+CREATE INDEX IF NOT EXISTS idx_mood_entry_learner ON mood_entry (learner_ref, day DESC);
+
+-- Parent-facing supportive notice, only surfaced when consent is active.
+CREATE TABLE IF NOT EXISTS wellbeing_alert (
+  id          BIGSERIAL   PRIMARY KEY,
+  learner_ref TEXT        NOT NULL,
+  parent_ref  TEXT,
+  severity    TEXT        NOT NULL DEFAULT 'info' CHECK (severity IN ('info','elevated')),
+  window      TEXT,
+  consent_ok  BOOLEAN     NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Pedagogically-reviewed teacher recommendations; the teacher is always the decision-maker.
+CREATE TABLE IF NOT EXISTS teacher_recommendation (
+  id          BIGSERIAL   PRIMARY KEY,
+  scope       TEXT        NOT NULL CHECK (scope IN ('learner','class')),
+  scope_id    TEXT        NOT NULL,
+  trigger     TEXT        NOT NULL CHECK (trigger IN ('course_difficulty','low_mood_pattern')),
+  suggestion  TEXT        NOT NULL,
+  decision    TEXT        NOT NULL DEFAULT 'pending' CHECK (decision IN ('accepted','adjusted','dismissed','pending')),
+  decided_by  TEXT,
+  decided_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Safeguarding flags (e.g. possible bullying). Authorised pastoral roles ONLY; never peer-visible.
+CREATE TABLE IF NOT EXISTS safeguarding_flag (
+  id            BIGSERIAL   PRIMARY KEY,
+  learner_ref   TEXT        NOT NULL,
+  reason        TEXT        NOT NULL DEFAULT 'classmate' CHECK (reason IN ('classmate')),
+  status        TEXT        NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_review','resolved')),
+  restricted_to TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);

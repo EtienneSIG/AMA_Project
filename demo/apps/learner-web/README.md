@@ -61,3 +61,17 @@ suggestions per learner/class.
   `/api/tutor/video/:id/click`, `/api/tutor/video/:id/report`.
 - Schema: `video_catalogue`, `video_suggestion_log`, `video_report`, `video_policy`.
 - Verify: `pwsh demo/scripts/verify-tutor-videos.ps1`.
+
+## Mood check-in (spec 017)
+
+An optional, skippable, **self-reported** mood prompt on the home dashboard (happy /
+okay / not great). There is **no** emotion/voice/behavioural inference. On "not great"
+the learner may optionally share a reason; a "classmate" reason routes privately to the
+teacher safeguarding inbox (never peer-visible). Entries are editable/erasable and never
+used for grading or profiling.
+
+- UI: mood card in `public/index.html` (skippable; never nags — checks `/api/mood/today`).
+- API (in `_shared/server.js`): `/api/mood/checkin`, `/api/mood/today`,
+  `/api/mood/checkin/:day` (DELETE).
+- Schema: `mood_entry`, `wellbeing_alert`, `teacher_recommendation`, `safeguarding_flag`.
+- Verify: `pwsh demo/scripts/verify-mood-checkin.ps1`.

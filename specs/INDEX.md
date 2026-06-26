@@ -59,7 +59,7 @@ Each spec folder contains:
 | **014** | Age-Adaptive Theming | `014-age-adaptive-theming` | P1 | ✅ spec+plan+tasks · US1 impl | Student → Age-band look & feel (child-drawing / Lego-inspired / game-HUD) |
 | **015** | AI Tutor Video Links | `015-ai-tutor-video-links` | P1 | ✅ spec+plan+tasks · impl | Student → Vetted external explainer videos in tutor answers |
 | **016** | AI Tutor Voice Mode | `016-ai-tutor-voice-mode` | P1 | ✅ spec+plan+tasks | Student → Write/explain + voice-to-voice discussion modes |
-| **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks | Student/Parent/Teacher → Self-reported mood + well-being routing |
+| **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks · impl | Student/Parent/Teacher → Self-reported mood + well-being routing |
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks | Director → Native Fabric app replacing Power BI Embedded |
 | **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (opt-in) | All apps → Left nav / center content / right profile redesign |
 

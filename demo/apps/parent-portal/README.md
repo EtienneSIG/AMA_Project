@@ -98,3 +98,14 @@ For full acceptance checks (including app reachability):
 ```powershell
 pwsh ./demo/scripts/acceptance_tests.ps1
 ```
+
+## Well-being notice (spec 017)
+
+In the child tab, parents may see a **consent-gated**, supportive well-being notice when
+their child has self-reported feeling low on several recent days. It is framed as a
+supportive heads-up with "how to help" guidance — never a diagnosis, never raw mood logs.
+No notice is surfaced without active parental consent (server-enforced).
+
+- UI: well-being notice card in `public/index.html` (child tab).
+- API (in `_shared/server.js`): `/api/mood/parent` (consent-gated).
+- Verify: `pwsh demo/scripts/verify-mood-checkin.ps1`.

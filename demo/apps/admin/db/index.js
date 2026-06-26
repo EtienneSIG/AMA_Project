@@ -1312,6 +1312,159 @@ async function reportVideo({ videoId, reportedBy, reason }) {
   return true;
 }
 
+// --- Feature 017 — learner mood check-in & well-being routing -------------
+// Mood is SELF-REPORTED only: there is no inference anywhere in this module.
+// "classmate" reasons are routed to the safeguarding inbox, never to peers or the
+// open teacher view, and mood is never used for grading/profiling/advertising.
+
+// Record or update today's self-reported mood (one editable entry per day).
+async function recordMood({ learnerEmail, mood, reason, day }) {
+  const m = ['happy', 'medium', 'sad'].includes(mood) ? mood : null;
+  if (!m) return null;
+  // A reason only applies to a 'sad' entry; ignore otherwise.
+  const r = (m === 'sad' && ['personal', 'course_difficulty', 'classmate'].includes(reason)) ? reason : null;
+  const d = day || new Date().toISOString().slice(0, 10);
+  const ref = String(learnerEmail || '').toLowerCase();
+  const row = await q(
+    `INSERT INTO mood_entry (learner_ref, day, mood, reason)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (learner_ref, day) DO UPDATE
+       SET mood = EXCLUDED.mood, reason = EXCLUDED.reason, updated_at = now()
+     RETURNING id, learner_ref, day, mood, reason`,
+    [ref, d, m, r]
+  );
+  // Route a 'classmate' reason to the safeguarding inbox (authorised staff only).
+  if (r === 'classmate') {
+    await q(
+      `INSERT INTO safeguarding_flag (learner_ref, reason, status, restricted_to)
+       VALUES ($1, 'classmate', 'open', 'pastoral')`,
+      [ref]
+    );
+  }
+  return row && row.rows[0] ? row.rows[0] : null;
+}
+
+// Erase a day's entry (data-subject rights).
+async function eraseMood({ learnerEmail, day }) {
+  const r = await q(
+    `DELETE FROM mood_entry WHERE learner_ref = $1 AND day = $2`,
+    [String(learnerEmail || '').toLowerCase(), day]
+  );
+  return Boolean(r && r.rowCount > 0);
+}
+
+async function getMoodForDay({ learnerEmail, day }) {
+  const d = day || new Date().toISOString().slice(0, 10);
+  const r = await q(
+    `SELECT learner_ref, day, mood, reason FROM mood_entry WHERE learner_ref = $1 AND day = $2 LIMIT 1`,
+    [String(learnerEmail || '').toLowerCase(), d]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Derive a low-mood window for a learner (threshold: >=2 'sad' in the last 7 days).
+async function getLowMoodWindow({ learnerEmail, days = 7 }) {
+  const r = await q(
+    `SELECT COUNT(*) FILTER (WHERE mood = 'sad')::int AS sad,
+            COUNT(*)::int AS total
+       FROM mood_entry
+      WHERE learner_ref = $1 AND day >= (CURRENT_DATE - $2::int)`,
+    [String(learnerEmail || '').toLowerCase(), days]
+  );
+  const sad = r && r.rows[0] ? r.rows[0].sad : 0;
+  return { sad, sustained: sad >= 2, severity: sad >= 3 ? 'elevated' : 'info', window: `last ${days} days` };
+}
+
+// Teacher view: per-learner self-reported moods, EXCLUDING 'classmate' reasons
+// (those live only in the safeguarding inbox). Optionally scoped to a class.
+async function listMoodForTeacher({ classId, days = 7 } = {}) {
+  let learnerFilter = '';
+  const params = [days];
+  if (classId) {
+    params.push(classId);
+    learnerFilter = `AND m.learner_ref IN (SELECT learner_id FROM learner_hierarchy_assignment WHERE class_id = $${params.length})`;
+  }
+  const r = await q(
+    `SELECT m.learner_ref, m.day, m.mood,
+            CASE WHEN m.reason = 'classmate' THEN NULL ELSE m.reason END AS reason
+       FROM mood_entry m
+      WHERE m.day >= (CURRENT_DATE - $1::int) ${learnerFilter}
+      ORDER BY m.day DESC, m.learner_ref`,
+    params
+  );
+  return r ? r.rows : [];
+}
+
+// Aggregate mood counts (for a supportive class overview, no individual profiling).
+async function aggregateMood({ classId, days = 7 } = {}) {
+  const params = [days];
+  let learnerFilter = '';
+  if (classId) {
+    params.push(classId);
+    learnerFilter = `AND learner_ref IN (SELECT learner_id FROM learner_hierarchy_assignment WHERE class_id = $${params.length})`;
+  }
+  const r = await q(
+    `SELECT mood, COUNT(*)::int AS n FROM mood_entry
+      WHERE day >= (CURRENT_DATE - $1::int) ${learnerFilter} GROUP BY mood`,
+    params
+  );
+  const out = { happy: 0, medium: 0, sad: 0 };
+  for (const row of (r ? r.rows : [])) out[row.mood] = row.n;
+  return out;
+}
+
+async function createRecommendation({ scope, scopeId, trigger, suggestion }) {
+  const sc = scope === 'class' ? 'class' : 'learner';
+  const tr = ['course_difficulty', 'low_mood_pattern'].includes(trigger) ? trigger : 'low_mood_pattern';
+  const r = await q(
+    `INSERT INTO teacher_recommendation (scope, scope_id, trigger, suggestion, decision)
+     VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
+    [sc, String(scopeId || '').toLowerCase(), tr, String(suggestion || '').slice(0, 500)]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function listRecommendations({ scopeId } = {}) {
+  const params = []; let where = '';
+  if (scopeId) { params.push(String(scopeId).toLowerCase()); where = `WHERE scope_id = $1`; }
+  const r = await q(
+    `SELECT * FROM teacher_recommendation ${where} ORDER BY created_at DESC LIMIT 200`,
+    params
+  );
+  return r ? r.rows : [];
+}
+
+// Teacher decision is always logged; no autonomous action ever affects the learner.
+async function decideRecommendation({ id, decision, decidedBy }) {
+  const dec = ['accepted', 'adjusted', 'dismissed'].includes(decision) ? decision : null;
+  if (!dec) return null;
+  const r = await q(
+    `UPDATE teacher_recommendation SET decision = $2, decided_by = $3, decided_at = now()
+      WHERE id = $1 RETURNING *`,
+    [id, dec, String(decidedBy || '').toLowerCase() || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// Safeguarding inbox — authorised pastoral staff only; never peer-visible.
+async function listSafeguardingFlags({ status } = {}) {
+  const params = []; let where = '';
+  if (status) { params.push(status); where = `WHERE status = $1`; }
+  const r = await q(
+    `SELECT id, learner_ref, reason, status, created_at FROM safeguarding_flag ${where}
+      ORDER BY created_at DESC LIMIT 200`,
+    params
+  );
+  return r ? r.rows : [];
+}
+
+async function updateSafeguardingFlag({ id, status }) {
+  const st = ['open', 'in_review', 'resolved'].includes(status) ? status : null;
+  if (!st) return false;
+  const r = await q(`UPDATE safeguarding_flag SET status = $2 WHERE id = $1`, [id, st]);
+  return Boolean(r && r.rowCount > 0);
+}
+
 // Force a re-seed and return inserted-row counts + the data dir used. Intended for the admin /api/data/reseed endpoint.
 async function reseedReferenceData() {
   if (!enabled) return { enabled: false };
@@ -3829,6 +3982,17 @@ module.exports = {
   suggestVideosForPrompt,
   logVideoSuggestion,
   reportVideo,
+  recordMood,
+  eraseMood,
+  getMoodForDay,
+  getLowMoodWindow,
+  listMoodForTeacher,
+  aggregateMood,
+  createRecommendation,
+  listRecommendations,
+  decideRecommendation,
+  listSafeguardingFlags,
+  updateSafeguardingFlag,
   listCurricula,
   listGlossary,
   summariseLearners,
