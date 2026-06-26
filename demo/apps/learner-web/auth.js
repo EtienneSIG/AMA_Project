@@ -331,6 +331,9 @@ function mountAuth(app, options = {}) {
 // Gate every request after public ones. PUBLIC_PATHS + /api/auth/* + /api/health are open.
 function gateMiddleware(allowedRoles) {
   const PUBLIC = new Set(['/login.html', '/logo.svg', '/favicon.ico', '/no-access.html',
+    // Editorial theme assets (CSS + toggle) are static and safe to serve pre-auth
+    // so public pages (login, consent, no-access) render the optional theme too.
+    '/theme.css', '/theme-toggle.js',
     // Parental consent link is reached by an unauthenticated parent (GDPR Art. 8, US3).
     '/consent-pending.html', '/csrf.js', '/models/consent.js']);
   return (req, res, next) => {

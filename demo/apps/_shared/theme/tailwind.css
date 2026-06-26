@@ -1,0 +1,78 @@
+/*
+ * LearnEU — "Editorial GIC" alternative theme · Tailwind v4 tokens
+ * Derived from https://styles.refero.design/style/34baa524-5d5b-4165-bbab-d01f05e6d6b9
+ *
+ * Tailwind v4 is CSS-first: tokens live in an @theme block and become
+ * utilities automatically (bg-canvas, text-ink, rounded-elevated, etc.).
+ *
+ * Usage:
+ *   @import "tailwindcss";
+ *   @import "./tailwind.css";
+ */
+@theme {
+  /* ---- Colors: brand ---- */
+  --color-hudson-blue: #0081c0;
+  --color-slate-cyan:  #41a1cf;
+
+  /* ---- Colors: neutrals ---- */
+  --color-ink:            #171717;
+  --color-obsidian:       #1f1f29;
+  --color-graphite-night: #282834;
+  --color-carbon:         #2c2c2c;
+  --color-iron:           #444141;
+  --color-steel:          #646464;
+  --color-ash:            #a5afaf;
+  --color-fog:            #b4b8b4;
+  --color-mist:           #cfd3cf;
+  --color-sage:           #dee2de;
+  --color-linen:          #f9faf7;
+  --color-cream:          #fefffc;
+  --color-paper:          #ffffff;
+
+  /* ---- Colors: semantic ---- */
+  --color-canvas:        #fefffc;
+  --color-surface:       #ffffff;
+  --color-surface-muted: #f9faf7;
+  --color-border-hair:   #dee2de;
+  --color-link:          #0081c0;
+  --color-action:        #1f1f29;
+
+  /* ---- Fonts ---- */
+  --font-display: 'ppmondwest', 'Source Serif 4', 'Lora', 'PT Serif', serif;
+  --font-body:    'af', 'Inter', 'Söhne', 'Geist Sans', system-ui, sans-serif;
+
+  /* ---- Type scale: Major Second (1.125) from 16px ---- */
+  --text-caption:    13px;
+  --text-body-sm:    15px;
+  --text-base:       16px;
+  --text-subheading: 18px;
+  --text-heading:    40px;
+  --text-heading-lg: 48px;
+  --text-display:    54px;
+
+  --leading-display: 1.1;
+  --leading-snug:    1.3;
+  --leading-normal:  1.5;
+
+  --tracking-display: -0.02em;
+  --tracking-body:    -0.012em;
+
+  /* ---- Spacing (4px base) ---- */
+  --spacing-1:  4px;
+  --spacing-2:  8px;
+  --spacing-3:  12px;
+  --spacing-4:  16px;
+  --spacing-6:  24px;
+  --spacing-12: 48px;
+
+  /* ---- Radius ---- */
+  --radius-button:   4px;
+  --radius-card:     12px;
+  --radius-elevated: 16px;
+  --radius-hero:     24px;
+  --radius-pill:     50px;
+
+  /* ---- Shadows ---- */
+  --shadow-nav:  0 2px 6px rgb(0 0 0 / 0.15);
+  --shadow-ring: 0 1px 2px rgb(23 23 23 / 0.04), 0 8px 24px rgb(23 23 23 / 0.08);
+}

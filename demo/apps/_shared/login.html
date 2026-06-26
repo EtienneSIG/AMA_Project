@@ -22,8 +22,89 @@
   img { display:block; margin:0 auto 1.2rem; height:38px; }
   .lang-pill { display:inline-block; background:rgba(43,180,184,0.15); color:#2BB4B8; padding:.2rem .6rem; border-radius:999px; font-size:.7rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:.6rem; }
 </style>
+<!-- ===== Theme dongle (top-right) — only addition to the existing markup ===== -->
+<style>
+  /* Dongle is theme-agnostic so it shows in both themes. */
+  .theme-dongle { position:fixed; top:16px; right:16px; z-index:50; display:flex; align-items:center; gap:.5rem;
+    background:rgba(255,255,255,0.12); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    padding:.35rem .6rem; border-radius:50px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-family:'Inter',sans-serif; }
+  .theme-dongle__label { font-size:.7rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#fff; user-select:none; }
+  .theme-dongle__switch { position:relative; width:42px; height:24px; border:0; border-radius:50px; cursor:pointer;
+    background:rgba(255,255,255,0.35); transition:background .2s ease; padding:0; }
+  .theme-dongle__switch::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
+    background:#fff; transition:transform .2s ease; box-shadow:0 1px 2px rgba(0,0,0,0.25); }
+  .theme-dongle__switch[aria-checked="true"] { background:#0081c0; }
+  .theme-dongle__switch[aria-checked="true"]::after { transform:translateX(18px); }
+</style>
+
+<!-- ===== Alternative "Editorial GIC" theme — scoped under body.theme-gic ===== -->
+<style>
+  /* Display serif fallback (ppmondwest is proprietary; Source Serif 4 stands in). */
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap');
+
+  body.theme-gic {
+    /* GIC design tokens */
+    --gic-cream:#fefffc; --gic-paper:#ffffff; --gic-linen:#f9faf7;
+    --gic-ink:#171717; --gic-carbon:#2c2c2c; --gic-steel:#646464;
+    --gic-sage:#dee2de; --gic-iron:#444141; --gic-obsidian:#1f1f29;
+    --gic-hudson-blue:#0081c0; --gic-slate-cyan:#41a1cf;
+    --gic-font-display:'Source Serif 4','Lora','PT Serif',serif;
+    --gic-font-body:'Inter','Söhne',system-ui,sans-serif;
+    background:var(--gic-cream);
+    font-family:var(--gic-font-body);
+    letter-spacing:-0.012em;
+  }
+  body.theme-gic .card {
+    background:var(--gic-paper);
+    border:1px solid var(--gic-sage);
+    border-radius:16px; /* elevated card */
+    box-shadow:0 1px 2px rgba(23,23,23,0.04), 0 8px 24px rgba(23,23,23,0.08);
+    padding:2.4rem 2.4rem;
+  }
+  body.theme-gic h1 {
+    font-family:var(--gic-font-display);
+    font-weight:500; font-size:2.1rem; line-height:1.1;
+    letter-spacing:-0.02em; color:var(--gic-ink);
+    font-feature-settings:'liga' 0;
+  }
+  body.theme-gic p.sub { color:var(--gic-steel); font-size:.95rem; line-height:1.5; }
+  body.theme-gic label { color:var(--gic-steel); font-weight:600; font-size:.72rem; letter-spacing:.04em; }
+  body.theme-gic input {
+    border:1px solid var(--gic-sage); border-radius:4px;
+    color:var(--gic-ink); background:var(--gic-paper);
+  }
+  body.theme-gic input:focus { outline:2px solid var(--gic-slate-cyan); outline-offset:1px; }
+  body.theme-gic button {
+    background:var(--gic-obsidian); color:var(--gic-paper);
+    border-radius:4px; /* content buttons stay at 4px */
+    font-weight:600; letter-spacing:-0.01em;
+  }
+  body.theme-gic button:hover { background:#000; }
+  body.theme-gic .demo {
+    background:var(--gic-linen); border:1px solid var(--gic-sage);
+    border-radius:12px; color:var(--gic-steel);
+  }
+  body.theme-gic .demo code { background:var(--gic-paper); color:var(--gic-ink); border:1px solid var(--gic-sage); }
+  body.theme-gic .demo strong { color:var(--gic-ink); }
+  body.theme-gic .lang-pill {
+    background:transparent; color:var(--gic-slate-cyan);
+    border:1px solid var(--gic-slate-cyan); border-radius:50px;
+  }
+  body.theme-gic .err { color:#a02b2b; }
+  /* Dongle adapts to the light canvas in editorial mode. */
+  body.theme-gic .theme-dongle { background:var(--gic-paper); border:1px solid var(--gic-sage); box-shadow:0 1px 2px rgba(23,23,23,0.06); }
+  body.theme-gic .theme-dongle__label { color:var(--gic-steel); }
+  body.theme-gic .theme-dongle__switch { background:var(--gic-mist,#cfd3cf); }
+</style>
 </head>
 <body>
+  <!-- Theme dongle — switches the optional "Editorial GIC" alternative design -->
+  <div class="theme-dongle">
+    <span class="theme-dongle__label">Editorial</span>
+    <button type="button" class="theme-dongle__switch" id="themeToggle"
+            role="switch" aria-checked="false" aria-label="Toggle editorial theme"
+            onclick="toggleTheme()"></button>
+  </div>
   <form class="card" onsubmit="return signIn(event)">
     <img src="/logo.svg" alt="EdTech Group" />
     <span class="lang-pill" id="portalPill">Portal</span>
@@ -54,6 +135,22 @@
   document.getElementById('appHint').textContent = 'You are signing in to ' + meta.label + '.';
   document.getElementById('demoEmail').textContent = meta.email;
   document.getElementById('email').value = meta.email;
+
+  // ----- Theme dongle: persist the optional "Editorial GIC" theme -----
+  function applyTheme(on) {
+    document.body.classList.toggle('theme-gic', on);
+    document.getElementById('themeToggle').setAttribute('aria-checked', String(on));
+  }
+  function toggleTheme() {
+    const on = !document.body.classList.contains('theme-gic');
+    applyTheme(on);
+    try { localStorage.setItem('learneu_theme', on ? 'gic' : 'default'); } catch (e) {}
+  }
+  (function initTheme() {
+    let saved = 'default';
+    try { saved = localStorage.getItem('learneu_theme') || 'default'; } catch (e) {}
+    applyTheme(saved === 'gic');
+  })();
 
   async function signIn(e) {
     e.preventDefault();
