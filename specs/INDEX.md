@@ -62,7 +62,7 @@ Each spec folder contains:
 | **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks · impl | Student/Parent/Teacher → Self-reported mood + well-being routing |
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks | Director → Native Fabric app replacing Power BI Embedded |
 | **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (opt-in) | All apps → Left nav / center content / right profile redesign |
-| **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec | All apps → Remove Editorial theme toggle + left-align primary menu |
+| **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec+plan+tasks · impl | All apps → Remove Editorial theme toggle + left-align primary menu |
 
 ---
 

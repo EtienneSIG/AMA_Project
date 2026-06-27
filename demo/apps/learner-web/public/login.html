@@ -98,13 +98,6 @@
 </style>
 </head>
 <body>
-  <!-- Theme dongle — switches the optional "Editorial GIC" alternative design -->
-  <div class="theme-dongle">
-    <span class="theme-dongle__label">Editorial</span>
-    <button type="button" class="theme-dongle__switch" id="themeToggle"
-            role="switch" aria-checked="false" aria-label="Toggle editorial theme"
-            onclick="toggleTheme()"></button>
-  </div>
   <form class="card" onsubmit="return signIn(event)">
     <img src="/logo.svg" alt="EdTech Group" />
     <span class="lang-pill" id="portalPill">Portal</span>
@@ -135,22 +128,6 @@
   document.getElementById('appHint').textContent = 'You are signing in to ' + meta.label + '.';
   document.getElementById('demoEmail').textContent = meta.email;
   document.getElementById('email').value = meta.email;
-
-  // ----- Theme dongle: persist the optional "Editorial GIC" theme -----
-  function applyTheme(on) {
-    document.body.classList.toggle('theme-gic', on);
-    document.getElementById('themeToggle').setAttribute('aria-checked', String(on));
-  }
-  function toggleTheme() {
-    const on = !document.body.classList.contains('theme-gic');
-    applyTheme(on);
-    try { localStorage.setItem('learneu_theme', on ? 'gic' : 'default'); } catch (e) {}
-  }
-  (function initTheme() {
-    let saved = 'default';
-    try { saved = localStorage.getItem('learneu_theme') || 'default'; } catch (e) {}
-    applyTheme(saved === 'gic');
-  })();
 
   async function signIn(e) {
     e.preventDefault();
