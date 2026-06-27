@@ -44,6 +44,7 @@
     // left rail navigates the app's real sections (Coursue-style). Falls back to the
     // top-nav links when there are no tabs (e.g. parent/admin pages without a tabbar).
     var tabs = document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]');
+    var navCfg = (window.LEARNEU_NAV && window.LEARNEU_NAV.length) ? window.LEARNEU_NAV : null;
     var logoutA = null;
 
     if (tabs.length) {
@@ -90,6 +91,26 @@
         li.appendChild(link);
         menu.appendChild(li);
       });
+    } else if (navCfg) {
+      // Standalone sub-pages (no in-page tabs): build a consistent rail from the
+      // app-provided window.LEARNEU_NAV so the menu never disappears between pages.
+      rail.appendChild(el('div', 'appshell-group', 'Overview'));
+      var menuC = el('ul', 'appshell-menu');
+      navCfg.forEach(function (item) {
+        if (!item || !item.label) return;
+        var li = el('li');
+        var link = el('a');
+        link.href = item.href || '#';
+        var base = String(item.href || '').split('?')[0].split('#')[0];
+        var here = location.pathname;
+        var isActive = item.active === true ||
+          (base && (base === here || (base === '/' && (here === '/' || here === '/index.html'))));
+        if (isActive) link.className = 'active';
+        link.innerHTML = (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>';
+        li.appendChild(link);
+        menuC.appendChild(li);
+      });
+      rail.appendChild(menuC);
     } else {
       // Fallback: primary menu = the existing top-nav links.
       var menu0 = el('ul', 'appshell-menu');
@@ -142,19 +163,31 @@
     try {
       var quick = panel.querySelector('#appshellQuick');
       var tabs = document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]');
-      tabs.forEach(function (btn) {
-        var icoEl = btn.querySelector('.ico');
-        var ico = icoEl ? (icoEl.textContent || '').trim() : '';
-        var label = (btn.textContent || '').trim();
-        if (ico) label = label.replace(ico, '').trim();
-        if (!label) return;
-        var li = el('li');
-        var a = el('a', null, (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>');
-        a.href = '#';
-        a.addEventListener('click', function (ev) { ev.preventDefault(); btn.click(); document.body.classList.remove('appshell-panel-open'); });
-        li.appendChild(a);
-        quick.appendChild(li);
-      });
+      if (tabs.length) {
+        tabs.forEach(function (btn) {
+          var icoEl = btn.querySelector('.ico');
+          var ico = icoEl ? (icoEl.textContent || '').trim() : '';
+          var label = (btn.textContent || '').trim();
+          if (ico) label = label.replace(ico, '').trim();
+          if (!label) return;
+          var li = el('li');
+          var a = el('a', null, (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>');
+          a.href = '#';
+          a.addEventListener('click', function (ev) { ev.preventDefault(); btn.click(); document.body.classList.remove('appshell-panel-open'); });
+          li.appendChild(a);
+          quick.appendChild(li);
+        });
+      } else if (window.LEARNEU_NAV && window.LEARNEU_NAV.length) {
+        // Standalone sub-pages: mirror the declarative nav as real links.
+        window.LEARNEU_NAV.forEach(function (item) {
+          if (!item || !item.label) return;
+          var li = el('li');
+          var a = el('a', null, (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>');
+          a.href = item.href || '#';
+          li.appendChild(a);
+          quick.appendChild(li);
+        });
+      }
     } catch (e) {}
     // Populate identity from /api/auth/me (best-effort).
     try {
