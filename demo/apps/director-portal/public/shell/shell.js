@@ -71,13 +71,15 @@
       });
       rail.appendChild(menu);
 
-      // Secondary section — the cross-app / utility links from the top nav.
+      // Append the remaining app-local utility links from the top nav INTO the same
+      // Overview menu (no separate group). Cross-app portal links + logout are excluded.
       var extras = document.querySelectorAll('nav.top .links a');
-      var menu2 = el('ul', 'appshell-menu');
       extras.forEach(function (a) {
         var label = (a.textContent || '').trim();
         if (!label) return;
         if (a.id === 'logoutBtn' || /logout|déconnex|sign out/i.test(label)) { logoutA = a; return; }
+        // Drop the cross-app portal links (keep app-local ones like Moderation, Sharing…).
+        if (/^for\s+(schools|families|educators)$/i.test(label)) return;
         var li = el('li');
         var link = el('a');
         link.href = a.getAttribute('href') || '#';
@@ -86,9 +88,8 @@
           if (link.getAttribute('href') === '#' || !link.getAttribute('href')) { ev.preventDefault(); a.click(); }
         });
         li.appendChild(link);
-        menu2.appendChild(li);
+        menu.appendChild(li);
       });
-      if (menu2.children.length) { rail.appendChild(el('div', 'appshell-group', 'Shortcuts')); rail.appendChild(menu2); }
     } else {
       // Fallback: primary menu = the existing top-nav links.
       var menu0 = el('ul', 'appshell-menu');
