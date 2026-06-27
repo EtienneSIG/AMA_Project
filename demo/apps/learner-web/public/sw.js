@@ -1,4 +1,4 @@
-const CACHE_NAME = 'learneu-student-pwa-v1';
+const CACHE_NAME = 'learneu-student-pwa-v2';
 const SHELL_ASSETS = [
   '/mobile.html',
   '/login.html',
