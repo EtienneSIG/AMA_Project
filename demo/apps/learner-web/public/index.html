@@ -17,6 +17,7 @@
 <script src="/age-theme.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<script src="/mathfmt.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
@@ -1061,7 +1062,7 @@ async function chat() {
     if (typeof showExplDrawerIfHidden === 'function') showExplDrawerIfHidden();
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks: true, gfm: true });
-      out.innerHTML = DOMPurify.sanitize(marked.parse(data.answer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(window.plainMath?plainMath(data.answer):data.answer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
       out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
         const wrap = document.createElement('div');
         wrap.className = 'mermaid';
@@ -1226,7 +1227,7 @@ async function loadSheet(id) {
     const out = document.getElementById('reply');
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks:true, gfm:true });
-      out.innerHTML = DOMPurify.sanitize(marked.parse(lastAnswer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(window.plainMath?plainMath(lastAnswer):lastAnswer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
       out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
         const wrap = document.createElement('div'); wrap.className = 'mermaid'; wrap.id = 'm' + Date.now() + '_' + idx; wrap.textContent = codeEl.textContent; codeEl.parentElement.replaceWith(wrap);
       });
@@ -1278,7 +1279,7 @@ async function openSheetInReader(id) {
     let bodyHtml;
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks:true, gfm:true });
-      bodyHtml = DOMPurify.sanitize(marked.parse(s.answer || ''), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      bodyHtml = DOMPurify.sanitize(marked.parse(window.plainMath?plainMath(s.answer || ''):(s.answer || '')), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
     } else { bodyHtml = '<pre>' + escapeHtml(s.answer || '') + '</pre>'; }
     reader.innerHTML = '<div class="explhead" style="margin-bottom:.5rem;"><h2 style="font-size:1.15rem;">' + escapeHtml(s.title || 'Sheet') + '</h2></div>'
       + '<div class="reply">' + bodyHtml + '</div>'

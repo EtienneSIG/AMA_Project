@@ -19,6 +19,7 @@
 <script src="/shell/shell.js?v=020h" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+<script src="/mathfmt.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
@@ -615,7 +616,7 @@ async function chat() {
     if (saveBtn) saveBtn.disabled = false;
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks: true, gfm: true });
-      out.innerHTML = DOMPurify.sanitize(marked.parse(data.answer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(window.plainMath?plainMath(data.answer):data.answer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
       out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
         const wrap = document.createElement('div');
         wrap.className = 'mermaid';
@@ -686,7 +687,7 @@ async function loadSheet(id) {
     const out = document.getElementById('reply');
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks:true, gfm:true });
-      out.innerHTML = DOMPurify.sanitize(marked.parse(lastAnswer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+      out.innerHTML = DOMPurify.sanitize(marked.parse(window.plainMath?plainMath(lastAnswer):lastAnswer), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
       out.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
         const wrap = document.createElement('div'); wrap.className = 'mermaid'; wrap.id = 'm' + Date.now() + '_' + idx; wrap.textContent = codeEl.textContent; codeEl.parentElement.replaceWith(wrap);
       });
