@@ -279,6 +279,7 @@
   <button class="tab-btn"        data-tab-btn="ask-teacher" onclick="setTab('ask-teacher')" role="tab" aria-selected="false"><span class="ico">💬</span> Ask your teacher</button>
   <button class="tab-btn"        data-tab-btn="progress"    onclick="setTab('progress')"    role="tab" aria-selected="false"><span class="ico">📈</span> My progress</button>
   <button class="tab-btn"        data-tab-btn="activities"  onclick="setTab('activities')"  role="tab" aria-selected="false"><span class="ico">🧩</span> Activities</button>
+  <button class="tab-btn"        data-tab-btn="sharing"     onclick="setTab('sharing')"     role="tab" aria-selected="false"><span class="ico">🔗</span> Sharing</button>
 </nav>
 <div data-tab="quest" class="active">
 <div class="progress-wrap">
@@ -521,6 +522,145 @@
   </div>
 </div>
 </div><!-- /tab activities -->
+
+<div data-tab="sharing">
+<div class="progress-wrap">
+  <div class="share-pane">
+    <style>
+      .share-pane h2 { font-family:'Poppins',sans-serif; color:var(--navy); }
+      .share-pane .muted { color:#6b7480; font-size:.85rem; }
+      .share-pane label { display:block; font-weight:600; color:var(--navy); margin:.6rem 0 .3rem; font-size:.9rem; }
+      .share-pane select, .share-pane input[type=text], .share-pane textarea { width:100%; padding:.6rem .7rem; border:1px solid var(--line); border-radius:10px; font:inherit; color:var(--grey); }
+      .share-pane textarea { min-height:70px; resize:vertical; }
+      .share-pane .recipients { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.3rem; }
+      .share-pane .chip { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .7rem; border:1px solid var(--line); border-radius:999px; cursor:pointer; user-select:none; font-size:.88rem; }
+      .share-pane .chip input { margin:0; }
+      .share-pane .received { border:1px solid var(--line); border-radius:12px; padding:.9rem 1rem; margin-bottom:.8rem; }
+      .share-pane .received h3 { margin:0 0 .2rem; font-size:1rem; }
+      .share-pane .note { background:var(--bg); border-radius:8px; padding:.5rem .7rem; margin-top:.5rem; font-size:.9rem; }
+      .share-pane .row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+      .share-pane .banner { padding:.7rem .9rem; border-radius:10px; margin-bottom:1rem; font-size:.9rem; display:none; }
+      .share-pane .banner.ok { background:rgba(43,180,184,0.12); color:#1c7d80; display:block; }
+      .share-pane .banner.err { background:rgba(242,99,52,0.12); color:var(--orange-dark); display:block; }
+      .share-pane .s-pill { display:inline-block; padding:.15rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; letter-spacing:.03em; }
+      .share-pane .s-pill.item { background:rgba(15,27,45,0.08); color:var(--navy); }
+      .share-pane .s-pill.sheet { background:rgba(26,54,88,0.12); color:var(--navy-2); }
+    </style>
+    <h2>Share with your class</h2>
+    <p class="muted">Share an exercise or a practice sheet with a classmate in your class. Sharing is read-only, stays inside your class, and your teacher can see it.</p>
+    <div id="banner" class="banner"></div>
+    <div class="card">
+      <h2>Send a share</h2>
+      <label for="artifactType">What are you sharing?</label>
+      <select id="artifactType">
+        <option value="item">An exercise item</option>
+        <option value="sheet">A practice sheet</option>
+      </select>
+      <div id="itemFields">
+        <label for="itemTitle">Title</label>
+        <input type="text" id="itemTitle" placeholder="e.g. Fractions — question 3" />
+        <label for="itemPrompt">Question</label>
+        <textarea id="itemPrompt" placeholder="Paste or describe the question…"></textarea>
+        <label for="itemSolution">Your worked solution (optional)</label>
+        <textarea id="itemSolution" placeholder="Optional — how you solved it"></textarea>
+      </div>
+      <div id="sheetFields" style="display:none">
+        <label for="sheetId">Sheet</label>
+        <select id="sheetId"><option value="">Loading your sheets…</option></select>
+      </div>
+      <label>Classmates (same class only)</label>
+      <div id="recipients" class="recipients"><span class="muted">Loading classmates…</span></div>
+      <label for="note">Note (optional — checked by safety filter)</label>
+      <textarea id="note" placeholder="e.g. try these, they helped me!"></textarea>
+      <div style="margin-top:0.9rem"><button class="btn" id="sendBtn">Share</button></div>
+    </div>
+    <div class="card">
+      <h2>Shared with you</h2>
+      <div id="received"><span class="muted">Loading…</span></div>
+    </div>
+  </div>
+</div>
+</div><!-- /tab sharing -->
+<script>
+// Sharing tab (Feature 013) — inlined as an in-page tab for consistent /?tab=sharing URL.
+(function () {
+  const $ = (id) => document.getElementById(id);
+  if (!$('artifactType')) return;
+  function banner(msg, kind) { const b = $('banner'); if (!b) return; b.textContent = msg; b.className = 'banner ' + (kind || 'ok'); setTimeout(() => { b.className = 'banner'; }, 6000); }
+  function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  $('artifactType').addEventListener('change', () => {
+    const t = $('artifactType').value;
+    $('itemFields').style.display = t === 'item' ? '' : 'none';
+    $('sheetFields').style.display = t === 'sheet' ? '' : 'none';
+  });
+  async function loadRecipients() {
+    try {
+      const data = await (await fetch('/api/share/recipients')).json();
+      const el = $('recipients');
+      if (data.sharingDisabled) { el.innerHTML = '<span class="muted">Sharing has been disabled by your teacher.</span>'; return; }
+      if (data.consentRequired) { el.innerHTML = '<span class="muted">Parental consent is required before you can share.</span>'; return; }
+      if (!data.rows || !data.rows.length) { el.innerHTML = '<span class="muted">No eligible classmates found.</span>'; return; }
+      el.innerHTML = data.rows.map(u => `<label class="chip"><input type="checkbox" value="${escHtml(u.email)}"> ${escHtml(u.displayName)}</label>`).join('');
+    } catch (e) { $('recipients').innerHTML = '<span class="muted">Could not load classmates.</span>'; }
+  }
+  async function loadSheets() {
+    try {
+      const data = await (await fetch('/api/sheets')).json();
+      const sel = $('sheetId'); const rows = (data && data.rows) || [];
+      sel.innerHTML = rows.length ? rows.map(s => `<option value="${escHtml(s.id)}">${escHtml(s.title)}</option>`).join('') : '<option value="">No sheets yet</option>';
+    } catch (e) { $('sheetId').innerHTML = '<option value="">No sheets</option>'; }
+  }
+  function selectedRecipients() { return Array.from(document.querySelectorAll('#recipients input:checked')).map(c => c.value); }
+  async function send() {
+    const type = $('artifactType').value; const recipientRefs = selectedRecipients();
+    if (!recipientRefs.length) { banner('Pick at least one classmate.', 'err'); return; }
+    const body = { artifactType: type, recipientRefs, note: $('note').value || '' };
+    if (type === 'sheet') { body.artifactId = $('sheetId').value; if (!body.artifactId) { banner('Pick a sheet to share.', 'err'); return; } }
+    else { body.artifact = { title: $('itemTitle').value, prompt: $('itemPrompt').value, solution: $('itemSolution').value }; }
+    $('sendBtn').disabled = true;
+    try {
+      const r = await fetch('/api/share', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await r.json();
+      if (!r.ok) { banner(data.detail || data.error || 'Could not share.', 'err'); }
+      else if (data.noteState === 'held_for_moderation') { banner('Shared — your note is being checked by your teacher before it is delivered.', 'ok'); }
+      else { banner('Shared with ' + recipientRefs.length + ' classmate(s).', 'ok'); }
+      $('note').value = '';
+    } catch (e) { banner('Could not share.', 'err'); }
+    $('sendBtn').disabled = false;
+  }
+  $('sendBtn').addEventListener('click', send);
+  async function loadReceived() {
+    try {
+      const data = await (await fetch('/api/share/received')).json();
+      const el = $('received'); const rows = (data && data.rows) || [];
+      if (!rows.length) { el.innerHTML = '<span class="muted">Nothing shared with you yet.</span>'; return; }
+      el.innerHTML = rows.map(s => {
+        const snap = s.snapshot || {};
+        const title = snap.title || (s.artifactType === 'sheet' ? 'Practice sheet' : 'Exercise item');
+        const bodyText = snap.prompt || snap.answer || '';
+        return `<div class="received"><div class="row"><h3>${escHtml(title)}</h3>` +
+          `<span class="s-pill ${escHtml(s.artifactType)}">${escHtml(s.artifactType)}</span></div>` +
+          `<div class="muted">Shared by ${escHtml(s.sender)}</div>` +
+          (bodyText ? `<div class="note">${escHtml(bodyText)}</div>` : '') +
+          (s.note ? `<div class="note">“${escHtml(s.note)}”</div>` : '') +
+          `<div style="margin-top:0.5rem"><button class="btn btn-sm secondary" data-sender="${escHtml(s.senderEmail || '')}">Block future shares</button></div></div>`;
+      }).join('');
+    } catch (e) { $('received').innerHTML = '<span class="muted">Could not load shares.</span>'; }
+  }
+  $('received').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-sender]'); if (!btn) return;
+    const senderRef = btn.getAttribute('data-sender');
+    if (!senderRef) { banner('Cannot block this sender.', 'err'); return; }
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/share/block', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderRef }) });
+      if (r.ok) { banner('You will no longer receive shares from this classmate.', 'ok'); loadReceived(); }
+      else { banner('Could not block.', 'err'); btn.disabled = false; }
+    } catch (e) { banner('Could not block.', 'err'); btn.disabled = false; }
+  });
+  loadRecipients(); loadSheets(); loadReceived();
+})();
+</script>
 
 <script>
 // Feature 009 — Interoperability learner surface (SCORM + due dates).

@@ -8,6 +8,6 @@ window.LEARNEU_NAV = [
   { label: 'Ask your teacher', icon: '💬', tab: 'ask-teacher' },
   { label: 'My progress', icon: '📈', tab: 'progress' },
   { label: 'Activities', icon: '🧩', tab: 'activities' },
-  { label: 'Sharing', icon: '🔗', href: '/sharing.html' },
+  { label: 'Sharing', icon: '🔗', tab: 'sharing' },
   { label: 'Mobile app', icon: '📱', href: '/mobile.html' }
 ];
