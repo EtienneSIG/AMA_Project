@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LearnEU — How are you feeling?</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="/csrf.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<script src="/theme-toggle.js?v=020" defer></script>
+<script>try{if(localStorage.getItem('learneu_shell')===null)localStorage.setItem('learneu_shell','on');}catch(e){}</script>
+<script src="/nav-config.js?v=020h" defer></script>
+<script src="/shell/shell.js?v=020h" defer></script>
+<script src="/age-theme.js" defer></script>
+<style>
+  :root { --navy:#0F1B2D; --orange:#F26334; --teal:#2BB4B8; --line:#e3e7ee; --bg:#f6f8fb; --grey:#41506b; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--grey); margin:0; padding:2rem 1rem; line-height:1.55; }
+  .wrap { max-width:720px; margin:0 auto; }
+  h1 { font-family:'Poppins',sans-serif; color:var(--navy); font-size:1.5rem; margin:0 0 .3rem; }
+  .sub { color:var(--grey); font-size:.92rem; margin:0 0 1.2rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:1.5rem; box-shadow:0 6px 24px rgba(15,27,45,0.06); }
+  .moodrow { display:flex; gap:.7rem; flex-wrap:wrap; }
+  .btn { border:1.5px solid var(--line); background:#fff; color:var(--navy); padding:.85rem 1.3rem; border-radius:999px; font:inherit; font-weight:600; font-size:1.05rem; cursor:pointer; transition:all .15s; }
+  .btn:hover { border-color:var(--teal); color:var(--teal); }
+  .btn.sm { font-size:.92rem; padding:.55rem 1rem; }
+  .btn.primary { background:var(--orange); color:#fff; border-color:var(--orange); }
+  .btn.ghost { background:#fff; }
+  .reasons { display:none; margin-top:1.1rem; padding-top:1.1rem; border-top:1px solid var(--line); }
+  .ack { display:none; margin-top:1.1rem; font-size:1rem; color:var(--teal); font-weight:600; }
+  .priv { margin-top:1rem; font-size:.8rem; color:var(--grey); opacity:.8; }
+  .done { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>How are you feeling today?</h1>
+  <p class="sub">This is optional and private. It's not graded, and only you choose what to share. You can skip any time.</p>
+
+  <div class="card" id="moodCard">
+    <div id="moodChoices" class="moodrow">
+      <button class="btn moodBtn" data-mood="happy">😀 Good</button>
+      <button class="btn moodBtn" data-mood="medium">😐 Okay</button>
+      <button class="btn moodBtn" data-mood="sad">😟 Not great</button>
+    </div>
+
+    <div id="moodReason" class="reasons">
+      <p class="sub" style="margin:0 0 .6rem;">Want to share what's making it hard? (optional)</p>
+      <div class="moodrow">
+        <button class="btn sm ghost reasonBtn" data-reason="personal">Something personal</button>
+        <button class="btn sm ghost reasonBtn" data-reason="course_difficulty">The work is hard</button>
+        <button class="btn sm ghost reasonBtn" data-reason="classmate">A classmate</button>
+        <button class="btn sm reasonBtn" data-reason="">Skip</button>
+      </div>
+    </div>
+
+    <div id="moodAck" class="ack"></div>
+    <p class="priv">🔒 Self-reported only — there is no AI guessing your mood. A "classmate" concern is shared privately with a trusted adult at school, never with other students.</p>
+
+    <div id="moodDone" class="done">
+      <p class="sub" style="margin:.2rem 0 .8rem;">You've already checked in today. Thanks for sharing! 💛</p>
+      <button class="btn sm ghost" id="changeBtn">Change today's answer</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  const card = document.getElementById('moodCard');
+  const choices = document.getElementById('moodChoices');
+  const reasonBox = document.getElementById('moodReason');
+  const ack = document.getElementById('moodAck');
+  const done = document.getElementById('moodDone');
+  const changeBtn = document.getElementById('changeBtn');
+  const SUPPORT = {
+    happy: 'Great to hear! Keep it up. 🌟',
+    medium: "Thanks for checking in. Every day is different — that's okay.",
+    sad: "Thanks for telling us. It's okay to find things hard — here's who can help.",
+    course_difficulty: "It's okay to find things hard — your teacher can help you catch up.",
+    personal: 'Sorry you are feeling this way. Talking to a trusted adult can help.',
+    classmate: "Thank you for telling us. A trusted adult at school will help — you're not alone."
+  };
+  function showAck(text) { ack.textContent = text; ack.style.display = 'block'; }
+  async function post(mood, reason) {
+    try {
+      const r = await fetch('/api/mood/checkin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mood, reason: reason || undefined }) });
+      const d = await r.json();
+      showAck((d && d.supportive) || SUPPORT[reason] || SUPPORT[mood] || 'Thanks for checking in.');
+    } catch (_) { showAck('Thanks for checking in.'); }
+  }
+  choices.querySelectorAll('.moodBtn').forEach(b => b.addEventListener('click', async () => {
+    const mood = b.getAttribute('data-mood');
+    choices.style.display = 'none';
+    reasonBox.style.display = (mood === 'sad') ? 'block' : 'none';
+    await post(mood);
+  }));
+  reasonBox.querySelectorAll('.reasonBtn').forEach(b => b.addEventListener('click', async () => {
+    reasonBox.style.display = 'none';
+    await post('sad', b.getAttribute('data-reason'));
+  }));
+  function showForm() { done.style.display = 'none'; choices.style.display = 'flex'; reasonBox.style.display = 'none'; ack.style.display = 'none'; }
+  if (changeBtn) changeBtn.addEventListener('click', showForm);
+  // If already checked in today, show the "done" state with an option to change.
+  (async function init() {
+    try {
+      const r = await fetch('/api/mood/today');
+      const d = await r.json();
+      if (d && d.enabled && d.entry) { choices.style.display = 'none'; done.style.display = 'block'; }
+    } catch (_) {}
+  })();
+})();
+</script>
+</body>
+</html>
