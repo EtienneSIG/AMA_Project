@@ -265,6 +265,7 @@
   <button class="tab-btn"        data-tab-btn="progress"    onclick="setTab('progress')"    role="tab" aria-selected="false"><span class="ico">📈</span> My progress</button>
   <button class="tab-btn"        data-tab-btn="activities"  onclick="setTab('activities')"  role="tab" aria-selected="false"><span class="ico">🧩</span> Activities</button>
   <button class="tab-btn"        data-tab-btn="sharing"     onclick="setTab('sharing')"     role="tab" aria-selected="false"><span class="ico">🔗</span> Sharing</button>
+  <button class="tab-btn"        data-tab-btn="videos"      onclick="setTab('videos')"      role="tab" aria-selected="false"><span class="ico">📺</span> Videos</button>
 </nav>
 <div data-tab="quest" class="active">
 <div class="progress-wrap">
@@ -566,6 +567,26 @@
   </div>
 </div>
 </div><!-- /tab sharing -->
+<div data-tab="videos">
+<div class="progress-wrap">
+  <div class="card">
+    <style>
+      .vid-list { display:flex; flex-direction:column; gap:.6rem; margin-top:.6rem; }
+      .vid-card { display:flex; align-items:center; gap:.8rem; padding:.7rem .85rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
+      .vid-thumb { width:46px; height:46px; flex:0 0 auto; border-radius:10px; background:rgba(43,180,184,0.12); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+      .vid-meta { display:flex; flex-direction:column; flex:1 1 auto; min-width:0; }
+      .vid-meta strong { color:var(--navy); }
+      .vid-meta .sub { font-size:.78rem; color:var(--grey); opacity:.85; }
+    </style>
+    <div class="explhead">
+      <h2>Learning videos <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">teacher-approved · privacy-enhanced</span></h2>
+      <button class="btn btn-sm secondary" onclick="loadVideoLibrary()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .2rem;opacity:.85;font-size:.88rem;">Short videos your teacher has approved to help you understand a topic. They open on a privacy-enhanced player — no information about you is sent to the video site.</p>
+    <div id="videoLibrary" class="vid-list"><div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div></div>
+  </div>
+</div>
+</div><!-- /tab videos -->
 <script>
 // Sharing tab (Feature 013) — inlined as an in-page tab for consistent /?tab=sharing URL.
 (function () {
@@ -1697,9 +1718,38 @@ function setTab(name) {
   if (name === 'progress') loadMastery();
   if (name === 'ask-teacher') loadTeacherQuestions();
   if (name === 'quest') { loadGamificationDashboard(); loadChampionZone(); loadDuelZone(); }
+  if (name === 'videos') loadVideoLibrary();
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// --- Learning videos (Feature 015) — teacher-curated allow-list ----------
+async function loadVideoLibrary() {
+  const el = document.getElementById('videoLibrary'); if (!el) return;
+  el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Loading…</div>';
+  const fmt = (s) => { s = Number(s) || 0; const m = Math.floor(s / 60), x = s % 60; return m ? (m + ':' + String(x).padStart(2, '0')) : (s + 's'); };
+  try {
+    const j = await (await fetch('/api/tutor/video/library', { cache: 'no-store' })).json();
+    if (j.enabled === false) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Video library is temporarily unavailable.</div>'; return; }
+    const rows = j.rows || [];
+    if (!rows.length) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">No videos available yet — your teacher curates this list.</div>'; return; }
+    el.innerHTML = rows.map(v => '<div class="vid-card">'
+      + '<div class="vid-thumb">📺</div>'
+      + '<div class="vid-meta"><strong>' + escapeHtml(v.title) + '</strong>'
+      + '<span class="sub">' + escapeHtml(v.source || '') + (v.durationS ? (' · ' + fmt(v.durationS)) : '') + (v.conceptId ? (' · ' + escapeHtml(v.conceptId)) : '') + '</span></div>'
+      + '<button class="btn btn-sm" data-vid="' + escapeHtml(v.id) + '" data-url="' + escapeHtml(v.url) + '">Watch ▶</button>'
+      + '</div>').join('');
+  } catch (e) { el.innerHTML = '<div class="sub" style="font-size:.85rem;opacity:.7;">Could not load videos.</div>'; }
+}
+function watchVideo(id, url) {
+  // Log the click (transparency + audit), then open the privacy-enhanced embed in a new tab.
+  try { fetch('/api/tutor/video/' + encodeURIComponent(id) + '/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {}); } catch (e) {}
+  if (url) window.open(url, '_blank', 'noopener');
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('#videoLibrary button[data-vid]'); if (!b) return;
+  watchVideo(b.getAttribute('data-vid'), b.getAttribute('data-url'));
+});
 function toggleExplDrawer() {
   const grid = document.querySelector('.practice-grid'); if (!grid) return;
   grid.classList.toggle('expl-collapsed');

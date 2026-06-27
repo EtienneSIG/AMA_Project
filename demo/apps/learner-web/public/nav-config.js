@@ -9,5 +9,6 @@ window.LEARNEU_NAV = [
   { label: 'My progress', icon: '📈', tab: 'progress' },
   { label: 'Activities', icon: '🧩', tab: 'activities' },
   { label: 'Sharing', icon: '🔗', tab: 'sharing' },
+  { label: 'Videos', icon: '📺', tab: 'videos' },
   { label: 'Mobile app', icon: '📱', href: '/mobile.html' }
 ];

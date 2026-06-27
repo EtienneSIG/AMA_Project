@@ -714,6 +714,16 @@ app.get('/api/tutor/video/catalogue', async (req, res) => {
   const rows = await db.listVideoCatalogue({ conceptId: req.query.conceptId, status: req.query.status });
   res.json({ enabled: true, rows });
 });
+// Learner library — browse the active, teacher-curated allow-list (read-only).
+app.get('/api/tutor/video/library', async (req, res) => {
+  const u = req.user;
+  if (!u || !['student', 'teacher', 'admin'].includes(u.role)) return res.status(403).json({ error: 'auth required' });
+  if (!db.enabled) return res.json({ enabled: false, rows: [] });
+  const rows = await db.listVideoCatalogue({ status: 'active' });
+  // Expose only safe display fields (no curator email / internal status).
+  const safe = (rows || []).map(v => ({ id: v.id, conceptId: v.concept_id, title: v.title, url: v.url, source: v.source, durationS: v.duration_s, ageBand: v.age_band, language: v.language }));
+  res.json({ enabled: true, rows: safe });
+});
 // Teacher adds an allow-listed video for a concept.
 app.post('/api/tutor/video/catalogue', async (req, res) => {
   const u = req.user;
