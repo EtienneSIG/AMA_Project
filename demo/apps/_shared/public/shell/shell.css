@@ -18,13 +18,21 @@ body.has-appshell .appshell-mobilebar { display: none; }
 }
 .appshell-brand { display: flex; align-items: center; min-height: 42px; margin: 0 0.4rem 1.2rem; font-weight: 800; color: var(--navy, #0F1B2D); font-size: 1.05rem; }
 .appshell-brand img { height: 34px; width: auto; }
+.appshell-group { margin: 1rem 0.8rem 0.4rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--grey, #3F4A5A); opacity: 0.65; }
+.appshell-group:first-of-type { margin-top: 0.2rem; }
 .appshell-menu { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .appshell-menu a {
-  display: block; padding: 0.6rem 0.8rem; border-radius: 10px; color: var(--navy, #0F1B2D);
+  display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.8rem; border-radius: 10px; color: var(--navy, #0F1B2D);
   font-weight: 600; font-size: 0.92rem; text-decoration: none;
 }
+.appshell-ico { width: 1.25rem; text-align: center; font-size: 1.05rem; line-height: 1; flex: 0 0 auto; }
 .appshell-menu a:hover { background: rgba(43,180,184,0.10); }
 .appshell-menu a.active { background: var(--orange, #F26334); color: #fff; }
+.appshell-menu a.active .appshell-ico { filter: none; }
+
+/* When the shell is active, the left rail IS the navigation, so the in-page
+   horizontal pill tabs are redundant — hide them to declutter the center. */
+body.has-appshell .tabbar { display: none; }
 .appshell-pinned { margin-top: auto; padding-top: 0.8rem; border-top: 1px solid var(--line, #e3e7ee); }
 .appshell-logout { width: 100%; padding: 0.6rem 0.8rem; border: 0; border-radius: 10px; background: var(--navy, #0F1B2D); color: #fff; font-weight: 600; cursor: pointer; }
 .appshell-logout:hover { background: var(--orange-dark, #D44E22); }

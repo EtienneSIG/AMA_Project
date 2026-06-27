@@ -11,7 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/theme.css">
 <script src="/theme-toggle.js?v=020" defer></script>
-<script src="/shell/shell.js" defer></script>
+<script>/* Spec 019/020: three-column app shell ON by default (opt-out with ?shell=0). */try{if(localStorage.getItem('learneu_shell')===null)localStorage.setItem('learneu_shell','on');}catch(e){}</script>
+<script src="/shell/shell.js?v=020b" defer></script>
 <script src="/age-theme.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>

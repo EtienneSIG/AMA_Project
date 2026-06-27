@@ -40,26 +40,74 @@
     else { brand.textContent = 'LearnEU'; }
     rail.appendChild(brand);
 
-    // Primary menu = the existing top-nav links (label + href + active state).
-    var menu = el('ul', 'appshell-menu');
-    var anchors = document.querySelectorAll('nav.top .links a');
+    // Primary menu — prefer the in-page workspace sections (the .tabbar tabs) so the
+    // left rail navigates the app's real sections (Coursue-style). Falls back to the
+    // top-nav links when there are no tabs (e.g. parent/admin pages without a tabbar).
+    var tabs = document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]');
     var logoutA = null;
-    anchors.forEach(function (a) {
-      var label = (a.textContent || '').trim();
-      if (!label) return;
-      if (a.id === 'logoutBtn' || /logout|déconnex|sign out/i.test(label)) { logoutA = a; return; }
-      var li = el('li');
-      var link = el('a', a.classList.contains('active') ? 'active' : '');
-      link.href = a.getAttribute('href') || '#';
-      link.textContent = label;
-      // Mirror clicks to the original control to preserve existing behaviour.
-      link.addEventListener('click', function (ev) {
-        if (link.getAttribute('href') === '#' || !link.getAttribute('href')) { ev.preventDefault(); a.click(); }
+
+    if (tabs.length) {
+      rail.appendChild(el('div', 'appshell-group', 'Overview'));
+      var menu = el('ul', 'appshell-menu');
+      tabs.forEach(function (btn) {
+        var icoEl = btn.querySelector('.ico');
+        var ico = icoEl ? (icoEl.textContent || '').trim() : '';
+        var label = (btn.textContent || '').trim();
+        if (ico) label = label.replace(ico, '').trim();
+        if (!label) return;
+        var li = el('li');
+        var link = el('a', btn.classList.contains('active') ? 'active' : '');
+        link.href = '#';
+        link.innerHTML = '<span class="appshell-ico" aria-hidden="true">' + (ico || '•') + '</span><span>' + label + '</span>';
+        link.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          btn.click();
+          menu.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); });
+          link.classList.add('active');
+          document.body.classList.remove('appshell-rail-open');
+        });
+        li.appendChild(link);
+        menu.appendChild(li);
       });
-      li.appendChild(link);
-      menu.appendChild(li);
-    });
-    rail.appendChild(menu);
+      rail.appendChild(menu);
+
+      // Secondary section — the cross-app / utility links from the top nav.
+      var extras = document.querySelectorAll('nav.top .links a');
+      var menu2 = el('ul', 'appshell-menu');
+      extras.forEach(function (a) {
+        var label = (a.textContent || '').trim();
+        if (!label) return;
+        if (a.id === 'logoutBtn' || /logout|déconnex|sign out/i.test(label)) { logoutA = a; return; }
+        var li = el('li');
+        var link = el('a');
+        link.href = a.getAttribute('href') || '#';
+        link.textContent = label;
+        link.addEventListener('click', function (ev) {
+          if (link.getAttribute('href') === '#' || !link.getAttribute('href')) { ev.preventDefault(); a.click(); }
+        });
+        li.appendChild(link);
+        menu2.appendChild(li);
+      });
+      if (menu2.children.length) { rail.appendChild(el('div', 'appshell-group', 'Shortcuts')); rail.appendChild(menu2); }
+    } else {
+      // Fallback: primary menu = the existing top-nav links.
+      var menu0 = el('ul', 'appshell-menu');
+      document.querySelectorAll('nav.top .links a').forEach(function (a) {
+        var label = (a.textContent || '').trim();
+        if (!label) return;
+        if (a.id === 'logoutBtn' || /logout|déconnex|sign out/i.test(label)) { logoutA = a; return; }
+        var li = el('li');
+        var link = el('a', a.classList.contains('active') ? 'active' : '');
+        link.href = a.getAttribute('href') || '#';
+        link.textContent = label;
+        link.addEventListener('click', function (ev) {
+          if (link.getAttribute('href') === '#' || !link.getAttribute('href')) { ev.preventDefault(); a.click(); }
+        });
+        li.appendChild(link);
+        menu0.appendChild(li);
+      });
+      rail.appendChild(menu0);
+    }
 
     // Pinned section (Settings/Logout-style) at the bottom.
     var pinned = el('div', 'appshell-pinned');
@@ -107,7 +155,7 @@
   function build() {
     if (document.body.classList.contains('has-appshell')) return;
     if (!document.querySelector('link[data-appshell]')) {
-      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
+      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css?v=020b'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
     }
     var rail = buildRail();
     var panel = buildPanel();
