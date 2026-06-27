@@ -35,6 +35,11 @@ body.has-appshell .appshell-mobilebar { display: none; }
    horizontal pill tabs are redundant — hide them to declutter the center. */
 body.has-appshell .tabbar { display: none; }
 
+/* Footer: under the shell the legal/footer line sits at the bottom of the centre
+   column. Align it to the right so it reads as a discreet bottom-right caption
+   rather than a centred banner (consistent across every app). */
+body.has-appshell footer { text-align: right; padding-right: 1.6rem; }
+
 /* Heroless pages (dashboards, after the hero banner was removed) need breathing
    room between the top search bar and the first content block. Pages that still
    have a hero (the home pages) keep their overlap and are excluded via :not(:has). */
