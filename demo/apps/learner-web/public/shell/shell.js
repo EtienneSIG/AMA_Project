@@ -45,6 +45,50 @@
     return a ? (a.getAttribute('data-tab-btn') || a.getAttribute('data-tab')) : null;
   }
 
+  // --- Favorites: pin pages from the left rail; they appear in the right panel. ---
+  var favListEl = null;
+  function favKey() { return 'learneu_fav_' + (window.LEARNEU_APP || location.host); }
+  function favItemKey(item) { return item.tab ? ('tab:' + item.tab) : ('href:' + (item.href || '')); }
+  function loadFavs() { try { return JSON.parse(localStorage.getItem(favKey()) || '[]'); } catch (e) { return []; } }
+  function saveFavs(arr) { try { localStorage.setItem(favKey(), JSON.stringify(arr)); } catch (e) {} }
+  function toggleFav(item) {
+    var k = favItemKey(item); var arr = loadFavs(); var idx = -1;
+    for (var j = 0; j < arr.length; j++) { if (arr[j].key === k) { idx = j; break; } }
+    if (idx >= 0) arr.splice(idx, 1);
+    else arr.push({ key: k, label: item.label, icon: item.icon || '', tab: item.tab || null, href: item.href || null });
+    saveFavs(arr); renderFavorites(); syncPinStates();
+    return idx < 0;
+  }
+  function renderFavorites() {
+    if (!favListEl) return;
+    favListEl.innerHTML = '';
+    var favs = loadFavs();
+    if (!favs.length) {
+      favListEl.appendChild(el('li', 'appshell-fav-empty', 'Pin a page from the menu (📌) to add it here.'));
+      return;
+    }
+    favs.forEach(function (item) {
+      var li = el('li');
+      var a = el('a', null, (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>');
+      a.href = item.tab ? (findTab(item.tab) ? '#' : ('/?tab=' + encodeURIComponent(item.tab))) : (item.href || '#');
+      if (item.tab) a.addEventListener('click', function (ev) { var b = findTab(item.tab); if (b) { ev.preventDefault(); b.click(); document.body.classList.remove('appshell-panel-open'); } });
+      var unpin = el('button', 'appshell-fav-x', '×'); unpin.type = 'button'; unpin.title = 'Remove from favorites'; unpin.setAttribute('aria-label', 'Remove from favorites');
+      (function (it) { unpin.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); toggleFav(it); }); })(item);
+      li.appendChild(a); li.appendChild(unpin);
+      favListEl.appendChild(li);
+    });
+  }
+  function syncPinStates() {
+    var favs = loadFavs();
+    document.querySelectorAll('.appshell-pin').forEach(function (btn) {
+      var k = btn.getAttribute('data-favkey');
+      var on = favs.some(function (f) { return f.key === k; });
+      btn.classList.toggle('pinned', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? 'Unpin from favorites' : 'Pin to favorites';
+    });
+  }
+
   function buildRail() {
     var rail = el('nav', 'appshell-rail');
     rail.setAttribute('aria-label', 'Primary');
@@ -100,6 +144,13 @@
         }
         link.innerHTML = (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>';
         li.appendChild(link);
+        // Pin toggle — adds/removes this page from the right-column Favorites.
+        var pin = el('button', 'appshell-pin', '<span aria-hidden="true">📌</span>');
+        pin.type = 'button';
+        pin.setAttribute('data-favkey', favItemKey(item));
+        pin.setAttribute('aria-label', 'Pin to favorites');
+        (function (it) { pin.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); toggleFav(it); }); })(item);
+        li.appendChild(pin);
         menuC.appendChild(li);
       });
       rail.appendChild(menuC);
@@ -199,40 +250,14 @@
       '<a href="#" id="appshellPanelClose" class="appshell-mobileonly" title="Close" aria-label="Close panel">✕</a></div>' +
       '<div class="appshell-panel-section"><div class="appshell-subtitle">This week</div>' +
       '<div class="appshell-chart" aria-hidden="true">' + bars + '</div></div>' +
-      '<div class="appshell-panel-section"><div class="appshell-subtitle">Quick links</div>' +
-      '<ul class="appshell-quick" id="appshellQuick"></ul></div>';
+      '<div class="appshell-panel-section"><div class="appshell-subtitle">Favorites</div>' +
+      '<ul class="appshell-quick" id="appshellFav"></ul></div>';
     // Mobile close.
     var close = panel.querySelector('#appshellPanelClose');
     if (close) close.addEventListener('click', function (ev) { ev.preventDefault(); document.body.classList.remove('appshell-panel-open'); });
-    // Quick links — the page shortcuts (sub-pages) from the canonical nav; falls back
-    // to the in-page sections when no nav config is present.
-    try {
-      var quick = panel.querySelector('#appshellQuick');
-      var navC = (window.LEARNEU_NAV && window.LEARNEU_NAV.length) ? window.LEARNEU_NAV : null;
-      if (navC) {
-        navC.filter(function (it) { return it && it.label && it.href; }).forEach(function (item) {
-          var li = el('li');
-          var a = el('a', null, (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>');
-          a.href = item.href;
-          li.appendChild(a);
-          quick.appendChild(li);
-        });
-      } else {
-        document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]').forEach(function (btn) {
-          var icoEl = btn.querySelector('.ico');
-          var ico = icoEl ? (icoEl.textContent || '').trim() : '';
-          var label = (btn.textContent || '').trim();
-          if (ico) label = label.replace(ico, '').trim();
-          if (!label) return;
-          var li = el('li');
-          var a = el('a', null, (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>');
-          a.href = '#';
-          a.addEventListener('click', function (ev) { ev.preventDefault(); btn.click(); document.body.classList.remove('appshell-panel-open'); });
-          li.appendChild(a);
-          quick.appendChild(li);
-        });
-      }
-    } catch (e) {}
+    // Favorites — pages the user pinned from the left rail (📌). Persisted per app.
+    favListEl = panel.querySelector('#appshellFav');
+    renderFavorites();
     // Populate identity from /api/auth/me (best-effort).
     try {
       window.fetch('/api/auth/me', { credentials: 'same-origin' })
@@ -289,6 +314,8 @@
     document.body.appendChild(bar);
     document.body.appendChild(scrim);
     document.body.classList.add('has-appshell');
+    // Reflect any already-pinned favorites on the rail pin buttons.
+    try { syncPinStates(); } catch (e) {}
 
     // Relocate the page footer out of the centre column and pin it to the bottom
     // of the right profile panel (consistent across every app).

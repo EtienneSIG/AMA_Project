@@ -31,6 +31,20 @@ body.has-appshell .appshell-mobilebar { display: none; }
 .appshell-menu a.active { background: var(--orange, #F26334); color: #fff; }
 .appshell-menu a.active .appshell-ico { filter: none; }
 
+/* Pin toggle on each rail item → adds the page to the right-column Favorites. */
+.appshell-menu li { display: flex; align-items: center; gap: 0.15rem; }
+.appshell-menu li > a { flex: 1 1 auto; min-width: 0; }
+.appshell-pin { flex: 0 0 auto; background: transparent; border: 0; cursor: pointer; padding: 0.3rem 0.35rem; border-radius: 6px; font-size: 0.82rem; line-height: 1; opacity: 0; filter: grayscale(1); transition: opacity 0.12s, background 0.12s; }
+.appshell-menu li:hover .appshell-pin { opacity: 0.55; }
+.appshell-pin:hover { opacity: 1 !important; background: rgba(43,180,184,0.14); }
+.appshell-pin.pinned { opacity: 1; filter: none; }
+.appshell-fav-empty { list-style: none; font-size: 0.78rem; color: var(--grey, #3F4A5A); opacity: 0.7; padding: 0.3rem 0.6rem; line-height: 1.4; }
+.appshell-quick li { display: flex; align-items: center; }
+.appshell-quick li > a { flex: 1 1 auto; min-width: 0; }
+.appshell-fav-x { flex: 0 0 auto; background: transparent; border: 0; cursor: pointer; color: var(--grey, #3F4A5A); font-size: 1.05rem; line-height: 1; padding: 0.1rem 0.35rem; border-radius: 6px; opacity: 0; transition: opacity 0.12s; }
+.appshell-quick li:hover .appshell-fav-x { opacity: 0.6; }
+.appshell-fav-x:hover { opacity: 1 !important; color: var(--orange, #F26334); background: rgba(242,99,52,0.10); }
+
 /* When the shell is active, the left rail IS the navigation, so the in-page
    horizontal pill tabs are redundant — hide them to declutter the center. */
 body.has-appshell .tabbar { display: none; }
