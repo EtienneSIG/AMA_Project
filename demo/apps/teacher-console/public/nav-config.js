@@ -4,6 +4,7 @@
  * sub-page); `href` items open a page. */
 window.LEARNEU_APP = 'Teacher Console';
 window.LEARNEU_NAV = [
+  { label: 'Home', icon: '🏠', href: '/home.html' },
   { label: 'Ask the assistant', icon: '💬', tab: 'ask' },
   { label: 'Learner inbox', icon: '📥', tab: 'inbox' },
   { label: 'Class dashboard', icon: '🧑‍🏫', tab: 'class' },

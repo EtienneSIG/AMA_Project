@@ -2,6 +2,7 @@
  * Admin tab buttons use `data-tab` + setTab(); the shell resolves them via findTab(). */
 window.LEARNEU_APP = 'Admin Console';
 window.LEARNEU_NAV = [
+  { label: 'Home', icon: '🏠', href: '/home.html' },
   { label: 'Overview', icon: '📊', tab: 'overview' },
   { label: 'Users & sheets', icon: '👥', tab: 'users' },
   { label: 'Activity', icon: '📈', tab: 'activity' },
