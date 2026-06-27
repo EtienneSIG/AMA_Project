@@ -154,14 +154,22 @@
       rail.appendChild(menu0);
     }
 
-    // Pinned section (Settings/Logout-style) at the bottom.
+    // Pinned footer: compliance mention, a separator, then a Sign out button.
     var pinned = el('div', 'appshell-pinned');
-    if (logoutA) {
-      var lo = el('button', 'appshell-logout', 'Logout');
-      lo.type = 'button';
-      lo.addEventListener('click', function () { logoutA.click(); });
-      pinned.appendChild(lo);
-    }
+    pinned.appendChild(el('p', 'appshell-legal', 'EU-region inference, GDPR Art. 8 minimisation, and a child-safe interface — powered by ONNX Runtime Web and the EdTech Group LearnEU stack.'));
+    pinned.appendChild(el('div', 'appshell-sep'));
+    var lo = el('button', 'appshell-logout', 'Sign out');
+    lo.type = 'button';
+    lo.addEventListener('click', function () {
+      if (logoutA) { logoutA.click(); return; }
+      // Standalone pages have no top-nav logout control: sign out directly.
+      try {
+        window.fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+          .then(function () { location.href = '/login.html'; })
+          .catch(function () { location.href = '/login.html'; });
+      } catch (e) { location.href = '/login.html'; }
+    });
+    pinned.appendChild(lo);
     rail.appendChild(pinned);
     return rail;
   }
