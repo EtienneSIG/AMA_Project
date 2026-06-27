@@ -1,10 +1,19 @@
-/* Teacher Console — declarative rail navigation for standalone sub-pages (Spec 019/020).
- * The shell (shell.js) reads window.LEARNEU_NAV on pages that have no in-page tabs,
- * so the left menu stays consistent when navigating to Moderation / Sharing / etc. */
+/* Teacher Console — single canonical rail navigation (Spec 019/020).
+ * Used by the shell on EVERY page (dashboard + sub-pages) so the menu is identical
+ * everywhere. `tab` items switch the in-page section (or deep-link via /?tab= from a
+ * sub-page); `href` items open a page. */
+window.LEARNEU_APP = 'Teacher Console';
 window.LEARNEU_NAV = [
-  { label: 'Dashboard', href: '/', icon: '🏠' },
-  { label: 'Moderation', href: '/moderation.html', icon: '🛡️' },
-  { label: 'Sharing', href: '/sharing-log.html', icon: '🔗' },
-  { label: 'Videos', href: '/video-catalogue.html', icon: '📺' },
-  { label: 'Well-being', href: '/wellbeing.html', icon: '💛' }
+  { label: 'Ask the assistant', icon: '💬', tab: 'ask' },
+  { label: 'Learner inbox', icon: '📥', tab: 'inbox' },
+  { label: 'Class dashboard', icon: '🧑‍🏫', tab: 'class' },
+  { label: 'Assessment', icon: '📝', tab: 'assessment' },
+  { label: 'Adaptive paths', icon: '🧭', tab: 'adaptive' },
+  { label: 'Integrations', icon: '🔌', tab: 'interop' },
+  { label: 'Content versions', icon: '📚', tab: 'content' },
+  { label: 'Oversight & audit', icon: '🛡️', tab: 'audit' },
+  { label: 'Moderation', icon: '🚦', href: '/moderation.html' },
+  { label: 'Sharing', icon: '🔗', href: '/sharing-log.html' },
+  { label: 'Videos', icon: '📺', href: '/video-catalogue.html' },
+  { label: 'Well-being', icon: '💛', href: '/wellbeing.html' }
 ];

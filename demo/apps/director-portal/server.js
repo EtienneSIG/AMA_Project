@@ -133,8 +133,9 @@ if (APP_ROLE === 'student') {
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
-    // Cache static assets aggressively; skip for HTML (always revalidate)
-    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    const p = filePath.replace(/\\/g, '/');
+    if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    else if (/\/shell\/shell\.(js|css)$|\/nav-config\.js$|\/theme-toggle\.js$/.test(p)) res.setHeader('Cache-Control', 'no-cache');
     else res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
   }
 }));

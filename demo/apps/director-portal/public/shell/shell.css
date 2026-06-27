@@ -16,8 +16,9 @@ body.has-appshell .appshell-mobilebar { display: none; }
   display: flex; flex-direction: column; padding: 1.1rem 0.9rem; overflow-y: auto;
   font-family: 'Inter', system-ui, sans-serif;
 }
-.appshell-brand { display: flex; align-items: center; min-height: 42px; margin: 0 0.4rem 1.2rem; font-weight: 800; color: var(--navy, #0F1B2D); font-size: 1.05rem; }
-.appshell-brand img { height: 34px; width: auto; }
+.appshell-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; min-height: 42px; margin: 0 0.4rem 1.2rem; }
+.appshell-brand img { height: 30px; width: auto; }
+.appshell-brand-name { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1rem; letter-spacing: 0.01em; color: var(--navy, #0F1B2D); }
 .appshell-group { margin: 1rem 0.8rem 0.4rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--grey, #3F4A5A); opacity: 0.65; }
 .appshell-group:first-of-type { margin-top: 0.2rem; }
 .appshell-menu { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; }

@@ -1,6 +1,11 @@
-/* Learner Web — declarative rail navigation for standalone sub-pages (Spec 019/020). */
+/* Learner Web — single canonical rail navigation (Spec 019/020). */
+window.LEARNEU_APP = 'Learner Web';
 window.LEARNEU_NAV = [
-  { label: 'Dashboard', href: '/', icon: '🏠' },
-  { label: 'Sharing', href: '/sharing.html', icon: '🔗' },
-  { label: 'Mobile app', href: '/mobile.html', icon: '📱' }
+  { label: 'Quest dashboard', icon: '🎯', tab: 'quest' },
+  { label: 'Test your knowledge', icon: '🧠', tab: 'practice' },
+  { label: 'Ask your teacher', icon: '💬', tab: 'ask-teacher' },
+  { label: 'My progress', icon: '📈', tab: 'progress' },
+  { label: 'Activities', icon: '🧩', tab: 'activities' },
+  { label: 'Sharing', icon: '🔗', href: '/sharing.html' },
+  { label: 'Mobile app', icon: '📱', href: '/mobile.html' }
 ];

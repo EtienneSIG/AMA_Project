@@ -36,8 +36,13 @@
     // Brand from the existing top nav (logo img or first heading), else text.
     var brand = el('div', 'appshell-brand');
     var logo = document.querySelector('nav.top img');
-    if (logo) { var i = logo.cloneNode(true); i.removeAttribute('height'); brand.appendChild(i); }
-    else { brand.textContent = 'LearnEU'; }
+    var img;
+    if (logo) { img = logo.cloneNode(true); img.removeAttribute('height'); }
+    else { img = document.createElement('img'); img.src = '/logo.svg'; img.alt = 'LearnEU'; }
+    brand.appendChild(img);
+    // App/portal name on top of the menu (Coursue-style brand header).
+    var appName = window.LEARNEU_APP || ((document.querySelector('.hero .pill') || {}).textContent || '').trim();
+    if (appName) brand.appendChild(el('span', 'appshell-brand-name', appName));
     rail.appendChild(brand);
 
     // Primary menu — prefer the in-page workspace sections (the .tabbar tabs) so the
@@ -47,7 +52,45 @@
     var navCfg = (window.LEARNEU_NAV && window.LEARNEU_NAV.length) ? window.LEARNEU_NAV : null;
     var logoutA = null;
 
-    if (tabs.length) {
+    if (navCfg) {
+      // Single canonical menu (window.LEARNEU_NAV) used on EVERY page so the dashboard
+      // and the standalone sub-pages share ONE identical rail. Section items (with a
+      // `tab`) switch the in-page section on the dashboard, or deep-link to it from a
+      // sub-page (/?tab=…). Page items (with `href`) navigate.
+      rail.appendChild(el('div', 'appshell-group', 'Overview'));
+      var menuC = el('ul', 'appshell-menu');
+      var railSync = function () {
+        var act = document.querySelector('[data-tab-btn].active');
+        var id = act ? act.getAttribute('data-tab-btn') : null;
+        menuC.querySelectorAll('a[data-railtab]').forEach(function (a) {
+          a.classList.toggle('active', a.getAttribute('data-railtab') === id);
+        });
+      };
+      navCfg.forEach(function (item) {
+        if (!item || !item.label) return;
+        var li = el('li');
+        var link = el('a');
+        if (item.tab) {
+          var tabBtn = document.querySelector('[data-tab-btn="' + item.tab + '"]');
+          link.setAttribute('data-railtab', item.tab);
+          link.href = tabBtn ? '#' : ('/?tab=' + encodeURIComponent(item.tab));
+          if (tabBtn && tabBtn.classList.contains('active')) link.className = 'active';
+          if (tabBtn) link.addEventListener('click', function (ev) {
+            ev.preventDefault(); tabBtn.click(); railSync(); document.body.classList.remove('appshell-rail-open');
+          });
+        } else {
+          link.href = item.href || '#';
+          var base = String(item.href || '').split('?')[0].split('#')[0];
+          var here = location.pathname;
+          if (base && (base === here || (base === '/' && (here === '/' || here === '/index.html')))) link.className = 'active';
+        }
+        link.innerHTML = (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>';
+        li.appendChild(link);
+        menuC.appendChild(li);
+      });
+      rail.appendChild(menuC);
+      logoutA = document.querySelector('nav.top #logoutBtn');
+    } else if (tabs.length) {
       rail.appendChild(el('div', 'appshell-group', 'Overview'));
       var menu = el('ul', 'appshell-menu');
       tabs.forEach(function (btn) {
@@ -91,26 +134,6 @@
         li.appendChild(link);
         menu.appendChild(li);
       });
-    } else if (navCfg) {
-      // Standalone sub-pages (no in-page tabs): build a consistent rail from the
-      // app-provided window.LEARNEU_NAV so the menu never disappears between pages.
-      rail.appendChild(el('div', 'appshell-group', 'Overview'));
-      var menuC = el('ul', 'appshell-menu');
-      navCfg.forEach(function (item) {
-        if (!item || !item.label) return;
-        var li = el('li');
-        var link = el('a');
-        link.href = item.href || '#';
-        var base = String(item.href || '').split('?')[0].split('#')[0];
-        var here = location.pathname;
-        var isActive = item.active === true ||
-          (base && (base === here || (base === '/' && (here === '/' || here === '/index.html'))));
-        if (isActive) link.className = 'active';
-        link.innerHTML = (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>';
-        li.appendChild(link);
-        menuC.appendChild(li);
-      });
-      rail.appendChild(menuC);
     } else {
       // Fallback: primary menu = the existing top-nav links.
       var menu0 = el('ul', 'appshell-menu');
@@ -159,12 +182,21 @@
     // Mobile close.
     var close = panel.querySelector('#appshellPanelClose');
     if (close) close.addEventListener('click', function (ev) { ev.preventDefault(); document.body.classList.remove('appshell-panel-open'); });
-    // Quick links mirror the workspace sections (click switches the section).
+    // Quick links — the page shortcuts (sub-pages) from the canonical nav; falls back
+    // to the in-page sections when no nav config is present.
     try {
       var quick = panel.querySelector('#appshellQuick');
-      var tabs = document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]');
-      if (tabs.length) {
-        tabs.forEach(function (btn) {
+      var navC = (window.LEARNEU_NAV && window.LEARNEU_NAV.length) ? window.LEARNEU_NAV : null;
+      if (navC) {
+        navC.filter(function (it) { return it && it.label && it.href; }).forEach(function (item) {
+          var li = el('li');
+          var a = el('a', null, (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>');
+          a.href = item.href;
+          li.appendChild(a);
+          quick.appendChild(li);
+        });
+      } else {
+        document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]').forEach(function (btn) {
           var icoEl = btn.querySelector('.ico');
           var ico = icoEl ? (icoEl.textContent || '').trim() : '';
           var label = (btn.textContent || '').trim();
@@ -174,16 +206,6 @@
           var a = el('a', null, (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>');
           a.href = '#';
           a.addEventListener('click', function (ev) { ev.preventDefault(); btn.click(); document.body.classList.remove('appshell-panel-open'); });
-          li.appendChild(a);
-          quick.appendChild(li);
-        });
-      } else if (window.LEARNEU_NAV && window.LEARNEU_NAV.length) {
-        // Standalone sub-pages: mirror the declarative nav as real links.
-        window.LEARNEU_NAV.forEach(function (item) {
-          if (!item || !item.label) return;
-          var li = el('li');
-          var a = el('a', null, (item.icon ? '<span class="appshell-ico" aria-hidden="true">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>');
-          a.href = item.href || '#';
           li.appendChild(a);
           quick.appendChild(li);
         });
@@ -211,7 +233,7 @@
   function build() {
     if (document.body.classList.contains('has-appshell')) return;
     if (!document.querySelector('link[data-appshell]')) {
-      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css?v=020c'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
+      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css?v=020h'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
     }
     // Center top bar: drop a search field into the existing top nav (Coursue-style).
     // CSS then hides the now-redundant brand + cross-app links in that nav, keeping
@@ -245,6 +267,21 @@
     document.body.appendChild(bar);
     document.body.appendChild(scrim);
     document.body.classList.add('has-appshell');
+
+    // Deep-link: if we arrived via /?tab=<id> from another page, open that section
+    // and reflect it in the rail's active state.
+    try {
+      var qtab = new URLSearchParams(location.search).get('tab');
+      if (qtab) {
+        var qb = document.querySelector('[data-tab-btn="' + qtab + '"]');
+        if (qb) {
+          qb.click();
+          document.querySelectorAll('.appshell-rail .appshell-menu a[data-railtab]').forEach(function (a) {
+            a.classList.toggle('active', a.getAttribute('data-railtab') === qtab);
+          });
+        }
+      }
+    } catch (e) {}
   }
 
   function start() {
