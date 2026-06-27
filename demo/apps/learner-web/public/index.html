@@ -281,28 +281,6 @@
 </nav>
 <div data-tab="quest" class="active">
 <div class="progress-wrap">
-  <div class="card" id="moodCard" style="display:none;">
-    <div class="explhead">
-      <h2 id="moodTitle">How are you feeling today?</h2>
-      <button class="btn btn-sm ghost" id="moodSkipBtn" title="You can always skip — this is optional">Skip</button>
-    </div>
-    <p class="sub" style="font-size:.84rem;color:var(--grey);margin:.1rem 0 .6rem;">This is optional and private. It's not graded and only you choose what to share.</p>
-    <div id="moodChoices" style="display:flex;gap:.6rem;flex-wrap:wrap;">
-      <button class="btn moodBtn" data-mood="happy" style="font-size:1.05rem;">😀 Good</button>
-      <button class="btn moodBtn secondary" data-mood="medium" style="font-size:1.05rem;">😐 Okay</button>
-      <button class="btn moodBtn ghost" data-mood="sad" style="font-size:1.05rem;">😟 Not great</button>
-    </div>
-    <div id="moodReason" style="display:none;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--line);">
-      <p class="sub" style="font-size:.84rem;color:var(--grey);margin:0 0 .5rem;">Want to share what's making it hard? (optional)</p>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <button class="btn btn-sm ghost reasonBtn" data-reason="personal">Something personal</button>
-        <button class="btn btn-sm ghost reasonBtn" data-reason="course_difficulty">The work is hard</button>
-        <button class="btn btn-sm ghost reasonBtn" data-reason="classmate">A classmate</button>
-        <button class="btn btn-sm secondary reasonBtn" data-reason="">Skip</button>
-      </div>
-    </div>
-    <div id="moodAck" style="display:none;margin-top:.7rem;font-size:.9rem;color:var(--teal);font-weight:600;"></div>
-  </div>
   <div class="card" id="questDashCard">
     <div class="explhead">
       <h2>Quest dashboard <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">daily mission · class objective · boss battle</span></h2>
@@ -739,49 +717,6 @@ window.adaptive = (function() {
     } catch (_) { /* resume is best-effort */ }
   })();
   return { next, answer };
-})();
-</script>
-<script>
-// Feature 017 — optional, skippable, self-reported mood check-in. No inference of any kind.
-(function moodCheckin() {
-  const card = document.getElementById('moodCard');
-  if (!card) return;
-  const choices = document.getElementById('moodChoices');
-  const reasonBox = document.getElementById('moodReason');
-  const ack = document.getElementById('moodAck');
-  const skipBtn = document.getElementById('moodSkipBtn');
-  let lastMood = null;
-  function showAck(text) { ack.textContent = text; ack.style.display = ''; }
-  async function post(mood, reason) {
-    try {
-      const r = await fetch('/api/mood/checkin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mood, reason: reason || undefined }) });
-      const d = await r.json();
-      if (d && d.supportive) showAck(d.supportive);
-    } catch (_) {}
-  }
-  card.querySelectorAll('.moodBtn').forEach(b => b.addEventListener('click', async () => {
-    lastMood = b.getAttribute('data-mood');
-    choices.style.display = 'none';
-    if (lastMood === 'sad') { reasonBox.style.display = ''; }
-    else { reasonBox.style.display = 'none'; }
-    await post(lastMood);
-  }));
-  card.querySelectorAll('.reasonBtn').forEach(b => b.addEventListener('click', async () => {
-    const reason = b.getAttribute('data-reason');
-    reasonBox.style.display = 'none';
-    await post('sad', reason);
-  }));
-  skipBtn.addEventListener('click', () => { card.style.display = 'none'; });
-  // Only show the prompt if today's check-in hasn't been recorded — never nag.
-  (async function init() {
-    try {
-      const r = await fetch('/api/mood/today');
-      const d = await r.json();
-      if (d && d.enabled && d.entry) { card.style.display = 'none'; return; }
-      if (d && d.enabled === false) { card.style.display = 'none'; return; }
-      card.style.display = '';
-    } catch (_) { card.style.display = 'none'; }
-  })();
 })();
 </script>
 <div class="modal-bg" id="sheetsModal" onclick="if(event.target.id==='sheetsModal')closeSheets()">
