@@ -51,7 +51,7 @@ Each spec folder contains:
 | **011** | Multi-School Hierarchy | `011-multi-school-hierarchy` | P1 | ✅ spec+plan+tasks | Director → District View, Benchmarking, Peer Learning |
 | **012** | A/B Testing | `012-ab-testing-framework` | P2 | ✅ spec+plan+tasks | Platform → Experimentation, Product Iteration |
 
-### 🆕 NEW SPECS (013–019) — Experience, Tutor, Well-Being & Analytics
+### 🆕 NEW SPECS (013–020) — Experience, Tutor, Well-Being & Analytics
 
 | # | Feature | Branch | Priority | Status | Feature Area |
 |---|---------|--------|----------|--------|---------------------|
@@ -62,6 +62,7 @@ Each spec folder contains:
 | **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks · impl | Student/Parent/Teacher → Self-reported mood + well-being routing |
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks | Director → Native Fabric app replacing Power BI Embedded |
 | **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (opt-in) | All apps → Left nav / center content / right profile redesign |
+| **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec | All apps → Remove Editorial theme toggle + left-align primary menu |
 
 ---
 
