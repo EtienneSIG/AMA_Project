@@ -30,6 +30,21 @@
     return n;
   }
 
+  // Find a section's tab button across the apps' differing conventions:
+  // teacher/learner/parent use [data-tab-btn]; admin uses .tabbar button[data-tab].
+  function findTab(id) {
+    return document.querySelector('[data-tab-btn="' + id + '"]') ||
+      document.querySelector('.tabbar [data-tab="' + id + '"]') ||
+      document.querySelector('.tabbar button[onclick*="setTab(\'' + id + '\')"]');
+  }
+  function activeTabId() {
+    var a = document.querySelector('[data-tab-btn].active') ||
+      document.querySelector('.tabbar .tab-btn.active') ||
+      document.querySelector('.tabbar [role="tab"].active') ||
+      document.querySelector('.tabbar button.active');
+    return a ? (a.getAttribute('data-tab-btn') || a.getAttribute('data-tab')) : null;
+  }
+
   function buildRail() {
     var rail = el('nav', 'appshell-rail');
     rail.setAttribute('aria-label', 'Primary');
@@ -60,8 +75,7 @@
       rail.appendChild(el('div', 'appshell-group', 'Overview'));
       var menuC = el('ul', 'appshell-menu');
       var railSync = function () {
-        var act = document.querySelector('[data-tab-btn].active');
-        var id = act ? act.getAttribute('data-tab-btn') : null;
+        var id = activeTabId();
         menuC.querySelectorAll('a[data-railtab]').forEach(function (a) {
           a.classList.toggle('active', a.getAttribute('data-railtab') === id);
         });
@@ -71,7 +85,7 @@
         var li = el('li');
         var link = el('a');
         if (item.tab) {
-          var tabBtn = document.querySelector('[data-tab-btn="' + item.tab + '"]');
+          var tabBtn = findTab(item.tab);
           link.setAttribute('data-railtab', item.tab);
           link.href = tabBtn ? '#' : ('/?tab=' + encodeURIComponent(item.tab));
           if (tabBtn && tabBtn.classList.contains('active')) link.className = 'active';
@@ -281,7 +295,7 @@
     try {
       var qtab = new URLSearchParams(location.search).get('tab');
       if (qtab) {
-        var qb = document.querySelector('[data-tab-btn="' + qtab + '"]');
+        var qb = findTab(qtab);
         if (qb) {
           qb.click();
           document.querySelectorAll('.appshell-rail .appshell-menu a[data-railtab]').forEach(function (a) {
