@@ -290,6 +290,15 @@
     document.body.appendChild(scrim);
     document.body.classList.add('has-appshell');
 
+    // Relocate the page footer out of the centre column and pin it to the bottom
+    // of the right profile panel (consistent across every app).
+    try {
+      var pageFooter = document.querySelector('body > footer, main ~ footer, footer');
+      if (pageFooter && !rail.contains(pageFooter) && !panel.contains(pageFooter)) {
+        panel.appendChild(pageFooter);
+      }
+    } catch (e) {}
+
     // Deep-link: if we arrived via /?tab=<id> from another page, open that section
     // and reflect it in the rail's active state.
     try {

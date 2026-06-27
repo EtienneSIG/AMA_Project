@@ -35,10 +35,11 @@ body.has-appshell .appshell-mobilebar { display: none; }
    horizontal pill tabs are redundant — hide them to declutter the center. */
 body.has-appshell .tabbar { display: none; }
 
-/* Footer: under the shell the legal/footer line sits at the bottom of the centre
-   column. Align it to the right so it reads as a discreet bottom-right caption
-   rather than a centred banner (consistent across every app). */
-body.has-appshell footer { text-align: right; padding-right: 1.6rem; }
+/* Footer is relocated by shell.js into the right profile panel and pinned to its
+   bottom, so it reads as a discreet caption in the right column rather than a
+   banner across the centre column (consistent across every app). */
+.appshell-panel > footer { margin-top: auto; padding: 0.9rem 0 0.2rem; border: 0; border-top: 1px solid var(--line, #e3e7ee); background: none; font-size: 0.64rem; line-height: 1.5; color: var(--grey, #3F4A5A); opacity: 0.75; text-align: left; }
+.appshell-panel > footer a { color: var(--grey, #3F4A5A); text-decoration: underline; }
 
 /* Heroless pages (dashboards, after the hero banner was removed) need breathing
    room between the top search bar and the first content block. Pages that still
