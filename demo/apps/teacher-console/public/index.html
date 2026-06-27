@@ -167,6 +167,37 @@
   .tabbar .tab-btn:not(.active) .badge-count { background:var(--orange); color:#fff; }
   [data-tab] { display:none; }
   [data-tab].active { display:block; }
+  /* Inlined sub-page tabs (moderation / sharing / videos / well-being) */
+  .tc-pane { max-width:1100px; margin:0 auto 2rem; padding:0 1.5rem; }
+  .tc-pane .pane-head { margin-bottom:1rem; }
+  .tc-pane .pane-head h2 { margin:0 0 .2rem; }
+  .tc-pane .pane-head p { margin:0; font-size:.88rem; color:var(--grey); opacity:.85; max-width:760px; }
+  .tc-pane label { display:block; font-weight:600; margin:.6rem 0 .35rem; color:var(--navy); font-size:.88rem; }
+  .tc-pane input, .tc-pane select { box-sizing:border-box; padding:.55rem .7rem; border:1px solid var(--line); border-radius:8px; font:inherit; }
+  .tc-pane .row { display:flex; gap:.6rem; align-items:flex-end; flex-wrap:wrap; }
+  .tc-pane .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; }
+  .tc-pane table { width:100%; border-collapse:collapse; margin-top:.6rem; font-size:.88rem; }
+  .tc-pane th, .tc-pane td { text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  .tc-pane th { color:var(--navy); font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; }
+  .tc-pane .pill { display:inline-block; padding:.12rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+  .tc-pane .pill.active, .tc-pane .pill.happy { background:rgba(43,180,184,.16); color:#1c7d80; }
+  .tc-pane .pill.flagged, .tc-pane .pill.suppressed, .tc-pane .pill.sad, .tc-pane .pill.open { background:rgba(239,108,46,.16); color:#b34715; }
+  .tc-pane .pill.revoked, .tc-pane .pill.disabled, .tc-pane .pill.resolved { background:rgba(15,27,45,.1); color:#41506b; }
+  .tc-pane .pill.medium, .tc-pane .pill.in_review { background:rgba(239,170,46,.16); color:#9a6b14; }
+  .tc-pane .msg { margin-top:.8rem; padding:.55rem .8rem; border-radius:8px; font-size:.9rem; display:none; }
+  .tc-pane .msg.ok { display:block; background:#e7f6ec; color:#176b3a; }
+  .tc-pane .msg.err { display:block; background:#fdecec; color:#9a1a1a; }
+  .tc-pane .hint { font-size:.82rem; color:#6b7790; }
+  .tc-pane .agg { display:flex; gap:1rem; flex-wrap:wrap; margin-top:.4rem; }
+  .tc-pane .agg div { background:#f6f8fb; border:1px solid var(--line); border-radius:10px; padding:.5rem .9rem; font-weight:700; color:var(--navy); }
+  .tc-pane .card.safeguard { border-left:4px solid var(--orange); }
+  .tc-pane .verdict { font-size:.72rem; font-weight:700; padding:.15rem .55rem; border-radius:999px; background:#FFF1E6; color:#D44E22; }
+  .tc-pane .sev { font-size:.74rem; color:var(--grey); margin:.3rem 0 .6rem; }
+  .tc-pane .sev code { background:#EEF2F7; padding:.05rem .35rem; border-radius:4px; font-family:ui-monospace, monospace; }
+  .tc-pane .mod-item { border:1px solid var(--line); border-radius:10px; padding:1rem 1.2rem; margin-bottom:.8rem; }
+  .tc-pane .mod-item .who { font-weight:600; color:var(--navy); font-size:.9rem; }
+  .tc-pane .mod-item .when { font-size:.76rem; color:var(--grey); opacity:.7; }
+  .tc-pane .mod-item .body { margin:.5rem 0; color:var(--navy); white-space:pre-wrap; font-size:.92rem; }
   .ask-wrap { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; }
   .md-view { font-size:.86rem; line-height:1.5; color:var(--navy); }
   .md-view h1, .md-view h2 { font-size:1.05rem; margin:.7rem 0 .35rem; color:var(--navy); }
@@ -218,6 +249,10 @@
   <button class="tab-btn" data-tab-btn="interop" onclick="setTab('interop')" role="tab">🔌 Integrations</button>
   <button class="tab-btn" data-tab-btn="content" onclick="setTab('content')" role="tab">📚 Content versions</button>
   <button class="tab-btn" data-tab-btn="audit" onclick="setTab('audit')" role="tab">🛡️ Oversight & audit</button>
+  <button class="tab-btn" data-tab-btn="moderation" onclick="setTab('moderation')" role="tab">🚦 Moderation</button>
+  <button class="tab-btn" data-tab-btn="sharing" onclick="setTab('sharing')" role="tab">🔗 Sharing</button>
+  <button class="tab-btn" data-tab-btn="videos" onclick="setTab('videos')" role="tab">📺 Videos</button>
+  <button class="tab-btn" data-tab-btn="wellbeing" onclick="setTab('wellbeing')" role="tab">💛 Well-being</button>
 </nav>
 <div data-tab="ask" class="active">
 <main class="grid2 ask-wrap" style="margin-top:0;">
@@ -533,6 +568,163 @@ async function loadProvenance(itemId) {
   </div>
 </section>
 </div>
+<div data-tab="moderation">
+<section class="tc-pane">
+  <div class="pane-head">
+    <h2>Parent message moderation</h2>
+    <p>Messages flagged by Azure Content Safety are held here for your review before delivery. Approve to deliver, or reject to block. Every decision is written to the immutable audit log (EU AI Act Art. 14).</p>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2 style="margin:0;font-size:1.05rem;">Quarantine queue <span id="modCount" style="font-size:.8rem;color:var(--grey);font-weight:400;"></span></h2>
+      <button class="btn btn-sm secondary" onclick="modLoadQueue()">Refresh</button>
+    </div>
+    <p class="hint" style="margin-top:.4rem;">Only flagged messages appear here. Clean messages are delivered automatically.</p>
+    <div id="modQueue"><div class="hint">Loading…</div></div>
+  </div>
+</section>
+</div>
+<div data-tab="sharing">
+<section class="tc-pane">
+  <div class="pane-head">
+    <h2>Class sharing log</h2>
+    <p>View peer-to-peer shares in a class, moderate flagged notes, and disable sharing for a learner or the whole class. Every action is recorded against your account (teacher-in-the-loop).</p>
+  </div>
+  <div id="shlMsg" class="msg"></div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="shlClassId">Class</label>
+        <select id="shlClassId">
+          <option value="CLS-7A">CLS-7A</option>
+          <option value="CLS-7B">CLS-7B</option>
+          <option value="CLS-7C">CLS-7C</option>
+          <option value="CLS-8A">CLS-8A</option>
+          <option value="CLS-8B">CLS-8B</option>
+          <option value="CLS-9A">CLS-9A</option>
+        </select>
+      </div>
+      <button class="btn btn-sm" id="shlLoadBtn">Load log</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin:.1rem 0 .2rem;">Disable / enable sharing</h2>
+    <div class="row">
+      <div>
+        <label for="shlScope">Scope</label>
+        <select id="shlScope">
+          <option value="class">Whole class</option>
+          <option value="learner">One learner</option>
+        </select>
+      </div>
+      <div>
+        <label for="shlScopeId">Class or learner email</label>
+        <input id="shlScopeId" type="text" placeholder="CLS-7A or student1@learneu.demo" style="min-width:260px">
+      </div>
+      <button class="btn btn-sm secondary" id="shlDisableBtn">Disable sharing</button>
+      <button class="btn btn-sm secondary" id="shlEnableBtn">Enable sharing</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin:.1rem 0 .2rem;">Shares</h2>
+    <div id="shlLog"><span class="hint">Pick a class and load the log.</span></div>
+  </div>
+</section>
+</div>
+<div data-tab="videos">
+<section class="tc-pane">
+  <div class="pane-head">
+    <h2>AI tutor video catalogue</h2>
+    <p>You decide which external videos the AI tutor may suggest to learners. The model never supplies links of its own — only vetted, allow-listed entries below are ever shown, and only as privacy-enhanced embeds (no learner data sent to the platform). You can disable suggestions per class at any time.</p>
+  </div>
+  <div id="vidMsg" class="msg"></div>
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin-top:0;">Add a vetted video</h2>
+    <div class="grid">
+      <div><label for="vidConceptId">Concept (keyword)</label><input id="vidConceptId" placeholder="fractions" style="width:100%;"></div>
+      <div><label for="vidTitle">Title</label><input id="vidTitle" placeholder="Introduction to fractions" style="width:100%;"></div>
+      <div><label for="vidUrl">Embed URL (youtube-nocookie.com / vimeo.com)</label><input id="vidUrl" placeholder="https://www.youtube-nocookie.com/embed/..." style="width:100%;"></div>
+      <div><label for="vidSource">Source</label><input id="vidSource" placeholder="Khan Academy" style="width:100%;"></div>
+      <div><label for="vidDurationS">Duration (seconds)</label><input id="vidDurationS" type="number" min="0" placeholder="220" style="width:100%;"></div>
+      <div><label for="vidAgeBand">Age band</label><input id="vidAgeBand" placeholder="10-12" style="width:100%;"></div>
+    </div>
+    <div class="row" style="margin-top:.8rem;"><button class="btn btn-sm" id="vidAddBtn">Add to catalogue</button></div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <button class="btn btn-sm secondary" id="vidLoadBtn">Refresh catalogue</button>
+      <div style="flex:1;"></div>
+      <div>
+        <label for="vidPolicyClass">Disable suggestions for class</label>
+        <select id="vidPolicyClass">
+          <option value="CLS-7A">CLS-7A</option>
+          <option value="CLS-7B">CLS-7B</option>
+          <option value="CLS-7C">CLS-7C</option>
+          <option value="CLS-8A">CLS-8A</option>
+          <option value="CLS-8B">CLS-8B</option>
+          <option value="CLS-9A">CLS-9A</option>
+        </select>
+      </div>
+      <button class="btn btn-sm secondary" id="vidDisableBtn">Disable</button>
+      <button class="btn btn-sm secondary" id="vidEnableBtn">Enable</button>
+    </div>
+    <table>
+      <thead><tr><th>Concept</th><th>Title</th><th>Source</th><th>Status</th><th></th></tr></thead>
+      <tbody id="vidRows"><tr><td colspan="5" class="hint">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+</div>
+<div data-tab="wellbeing">
+<section class="tc-pane">
+  <div class="pane-head">
+    <h2>Class well-being &amp; safeguarding</h2>
+    <p>Self-reported mood only — there is no AI inference of emotions. You remain the decision-maker; recommendations are suggestions you accept, adjust, or dismiss. Sensitive "classmate" reports appear only in the safeguarding inbox and are never visible to peers.</p>
+  </div>
+  <div id="wbMsg" class="msg"></div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="wbClassId">Class</label>
+        <select id="wbClassId">
+          <option value="CLS-7A">CLS-7A</option>
+          <option value="CLS-7B">CLS-7B</option>
+          <option value="CLS-7C">CLS-7C</option>
+          <option value="CLS-8A">CLS-8A</option>
+          <option value="CLS-8B">CLS-8B</option>
+          <option value="CLS-9A">CLS-9A</option>
+        </select>
+      </div>
+      <button class="btn btn-sm" id="wbLoadBtn">Load</button>
+    </div>
+    <div class="agg" id="wbAgg"></div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin-top:0;">Self-reported moods (last 7 days)</h2>
+    <p class="hint">"classmate" reasons are intentionally hidden here — see the safeguarding inbox.</p>
+    <table>
+      <thead><tr><th>Learner</th><th>Day</th><th>Mood</th><th>Reason</th></tr></thead>
+      <tbody id="wbMoodRows"><tr><td colspan="4" class="hint">Choose a class and load.</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin-top:0;">Pedagogical recommendations</h2>
+    <p class="hint">Generated when several learners flag course difficulty. You decide — every decision is logged.</p>
+    <table>
+      <thead><tr><th>Trigger</th><th>Suggestion</th><th>Decision</th><th></th></tr></thead>
+      <tbody id="wbRecRows"><tr><td colspan="4" class="hint">—</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card safeguard">
+    <h2 style="font-size:1.05rem;color:var(--navy);margin-top:0;">🔒 Safeguarding inbox</h2>
+    <p class="hint">Authorised pastoral staff only. Never peer-visible. Learner identity is shown so you can follow up sensitively.</p>
+    <table>
+      <thead><tr><th>Learner</th><th>Reason</th><th>Raised</th><th>Status</th><th></th></tr></thead>
+      <tbody id="wbSgRows"><tr><td colspan="5" class="hint">—</td></tr></tbody>
+    </table>
+  </div>
+</section>
+</div>
 <div class="modal-bg" id="overrideModal" onclick="if(event.target.id==='overrideModal')closeOverrideModal()">
   <div class="modal" role="dialog" aria-label="Override mastery level">
     <h2>Override mastery <span class="sub" id="ovrCtx" style="font-size:.78rem;color:var(--grey);font-weight:400;"></span></h2>
@@ -627,6 +819,10 @@ function setTab(name) {
   if (name === 'adaptive' && typeof loadAdaptiveTab === 'function') loadAdaptiveTab();
   if (name === 'interop' && typeof loadInteropTab === 'function') loadInteropTab();
   if (name === 'content' && typeof loadContentTab === 'function') loadContentTab();
+  if (name === 'moderation' && typeof modLoadQueue === 'function') modLoadQueue();
+  if (name === 'sharing' && typeof shlInit === 'function') shlInit();
+  if (name === 'videos' && typeof vidInit === 'function') vidInit();
+  if (name === 'wellbeing' && typeof wbInit === 'function') wbInit();
 }
 
 async function refreshStatus() {
@@ -823,9 +1019,10 @@ window.addEventListener('load', () => {
   loadOverrides();
   loadMotivationModeration();
   loadGamificationOverrides();
-  // Optional deep-link: #ask|#inbox|#class|#audit
-  const h = (location.hash || '').replace('#','');
-  if (['ask','inbox','class','audit','assessment'].includes(h)) setTab(h);
+  // Optional deep-link: #ask|#inbox|#class|#audit  or ?tab=
+  const params = new URLSearchParams(location.search);
+  const deep = params.get('tab') || (location.hash || '').replace('#','');
+  if (['ask','inbox','class','audit','assessment','adaptive','interop','content','moderation','sharing','videos','wellbeing'].includes(deep)) setTab(deep);
 });
 
 // --- Learner Q&A inbox (teacher view) -----------------------------------
@@ -1489,6 +1686,173 @@ async function stretchFeedback(id) {
   loadAdaptiveTab();
 }
 
+</script>
+<script>
+/* ---- Inlined sub-page tabs: moderation / sharing / videos / well-being ---- */
+function tcEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// --- Moderation (parent message quarantine) ---
+(function(){
+  function sevLine(sev){ if(!sev||typeof sev!=='object')return ''; const parts=Object.entries(sev).filter(([,v])=>v>0).map(([k,v])=>`<code>${tcEsc(k)}: ${v}</code>`); return parts.length?'<div class="sev">Content Safety severities: '+parts.join(' ')+'</div>':'<div class="sev">Content Safety: flagged (no per-category detail)</div>'; }
+  async function loadQueue(){
+    const el=document.getElementById('modQueue'); if(!el)return; el.innerHTML='<div class="hint">Loading…</div>';
+    try{
+      const r=await fetch('/api/teacher/parent-messages/moderation',{cache:'no-store'});
+      if(r.status===403){ el.innerHTML='<div class="hint">You must be signed in as a teacher or admin to moderate messages.</div>'; document.getElementById('modCount').textContent=''; return; }
+      const j=await r.json();
+      if(!j.enabled){ el.innerHTML='<div class="hint">Database offline.</div>'; return; }
+      const rows=j.rows||[];
+      document.getElementById('modCount').textContent='· '+rows.length+' awaiting review';
+      if(!rows.length){ el.innerHTML='<div class="hint">Nothing to moderate. 🎉</div>'; return; }
+      el.innerHTML=rows.map(m=>{
+        const when=m.created_at?new Date(m.created_at).toLocaleString():'';
+        let sev=m.cs_severities; if(typeof sev==='string'){ try{ sev=JSON.parse(sev);}catch(e){ sev=null; } }
+        return `<div class="mod-item" id="modItem-${m.id}"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;"><span class="who">From ${tcEsc(m.sender_email||'')} · about ${tcEsc(m.child_email||'')}</span><span class="when">${tcEsc(when)} <span class="verdict">${tcEsc(m.cs_verdict||'flagged')}</span></span></div>${m.subject?`<div style="font-weight:600;color:var(--navy);margin-top:.3rem;">${tcEsc(m.subject)}</div>`:''}<div class="body">${tcEsc(m.body||'')}</div>${sevLine(sev)}<div><button class="btn btn-sm" onclick="modModerate(${m.id},'approve')">Approve &amp; deliver</button> <button class="btn btn-sm secondary" onclick="modModerate(${m.id},'reject')">Reject</button></div></div>`;
+      }).join('');
+    }catch(e){ el.innerHTML='<div class="hint">(error loading queue)</div>'; }
+  }
+  async function moderate(id,action){
+    const item=document.getElementById('modItem-'+id);
+    try{
+      const r=await fetch('/api/teacher/parent-messages/'+id+'/moderate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});
+      const j=await r.json();
+      if(!r.ok){ alert(j.error||'Failed'); return; }
+      if(item){ item.style.opacity='.5'; item.querySelector('div:last-child').innerHTML='<span class="hint">'+(action==='approve'?'Approved &amp; delivered.':'Rejected.')+'</span>'; }
+      setTimeout(loadQueue,600);
+    }catch(e){ alert(String(e)); }
+  }
+  window.modLoadQueue=loadQueue; window.modModerate=moderate;
+})();
+
+// --- Class sharing log ---
+(function(){
+  let wired=false;
+  const $=id=>document.getElementById(id);
+  function msg(t,kind){ const m=$('shlMsg'); if(!m)return; m.textContent=t; m.className='msg '+(kind||'ok'); setTimeout(()=>{ m.className='msg'; },6000); }
+  async function loadLog(){
+    const classId=$('shlClassId').value;
+    try{
+      const r=await fetch('/api/share/teacher/log?classId='+encodeURIComponent(classId));
+      const data=await r.json();
+      if(!r.ok){ $('shlLog').innerHTML='<span class="hint">'+tcEsc(data.error||'Could not load.')+'</span>'; return; }
+      const rows=(data&&data.rows)||[];
+      if(!rows.length){ $('shlLog').innerHTML='<span class="hint">No shares in this class yet.</span>'; return; }
+      $('shlLog').innerHTML='<table><thead><tr><th>From</th><th>To</th><th>Type</th><th>Note</th><th>Status</th><th>When</th><th></th></tr></thead><tbody>'+
+        rows.map(s=>`<tr><td>${tcEsc(s.sender)}</td><td>${tcEsc(s.recipient)}</td><td>${tcEsc(s.artifactType)}</td><td>${s.note?tcEsc(s.note):'<span class="hint">—</span>'}</td><td><span class="pill ${tcEsc(s.status)}">${tcEsc(s.status)}</span></td><td class="hint">${tcEsc(new Date(s.createdAt).toLocaleString())}</td><td>${s.status==='flagged'?`<button class="btn btn-sm" data-approve="${tcEsc(s.id)}">Approve</button> <button class="btn btn-sm secondary" data-reject="${tcEsc(s.id)}">Reject</button>`:''}</td></tr>`).join('')+'</tbody></table>';
+    }catch(e){ $('shlLog').innerHTML='<span class="hint">Could not load log.</span>'; }
+  }
+  async function setPolicy(enabled){
+    const scope=$('shlScope').value;
+    const scopeId=($('shlScopeId').value||'').trim()||(scope==='class'?$('shlClassId').value:'');
+    if(!scopeId){ msg('Enter a class id or learner email.','err'); return; }
+    try{
+      const r=await fetch('/api/share/teacher/disable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope,scopeId,enabled})});
+      if(r.ok){ msg('Sharing '+(enabled?'enabled':'disabled')+' for '+scope+' '+scopeId+'.','ok'); }
+      else{ const d=await r.json(); msg(d.error||'Could not update policy.','err'); }
+    }catch(e){ msg('Could not update policy.','err'); }
+  }
+  function init(){
+    if(!wired){
+      wired=true;
+      $('shlLoadBtn').addEventListener('click',loadLog);
+      $('shlDisableBtn').addEventListener('click',()=>setPolicy(false));
+      $('shlEnableBtn').addEventListener('click',()=>setPolicy(true));
+      $('shlLog').addEventListener('click',async ev=>{
+        const a=ev.target.closest('button[data-approve]'); const rj=ev.target.closest('button[data-reject]'); const btn=a||rj; if(!btn)return;
+        const id=btn.getAttribute('data-approve')||btn.getAttribute('data-reject'); const approve=!!a; btn.disabled=true;
+        try{ const r=await fetch('/api/share/teacher/moderate/'+encodeURIComponent(id),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({approve})}); if(r.ok){ msg('Note '+(approve?'approved and delivered':'rejected')+'.','ok'); loadLog(); } else{ msg('Could not moderate.','err'); btn.disabled=false; } }catch(e){ msg('Could not moderate.','err'); btn.disabled=false; }
+      });
+    }
+    loadLog();
+  }
+  window.shlInit=init;
+})();
+
+// --- AI tutor video catalogue ---
+(function(){
+  let wired=false;
+  const $=id=>document.getElementById(id);
+  function flash(text,ok){ const m=$('vidMsg'); if(!m)return; m.textContent=text; m.className='msg '+(ok?'ok':'err'); setTimeout(()=>{ m.className='msg'; },3500); }
+  async function load(){
+    const tb=$('vidRows'); if(!tb)return; tb.innerHTML='<tr><td colspan="5" class="hint">Loading…</td></tr>';
+    try{
+      const r=await fetch('/api/tutor/video/catalogue'); const d=await r.json();
+      if(!d.enabled){ tb.innerHTML='<tr><td colspan="5" class="hint">Catalogue requires the database (demo DB offline).</td></tr>'; return; }
+      if(!d.rows||!d.rows.length){ tb.innerHTML='<tr><td colspan="5" class="hint">No videos yet. Add one above.</td></tr>'; return; }
+      tb.innerHTML=d.rows.map(v=>`<tr><td>${tcEsc(v.concept_id)}</td><td>${tcEsc(v.title)}<div class="hint">${tcEsc(v.url)}</div></td><td>${tcEsc(v.source||'')}</td><td><span class="pill ${tcEsc(v.status)}">${tcEsc(v.status)}</span></td><td>${v.status==='active'?`<button class="btn btn-sm secondary rmBtn" data-id="${tcEsc(v.id)}">Remove</button>`:`<button class="btn btn-sm secondary reBtn" data-id="${tcEsc(v.id)}">Re-activate</button>`}</td></tr>`).join('');
+      tb.querySelectorAll('.rmBtn').forEach(b=>b.addEventListener('click',()=>removeEntry(b.getAttribute('data-id'))));
+      tb.querySelectorAll('.reBtn').forEach(b=>b.addEventListener('click',()=>reactivate(b.getAttribute('data-id'))));
+    }catch(e){ tb.innerHTML='<tr><td colspan="5" class="hint">Error: '+tcEsc(String(e))+'</td></tr>'; }
+  }
+  async function addEntry(){
+    const body={ conceptId:$('vidConceptId').value.trim(), title:$('vidTitle').value.trim(), url:$('vidUrl').value.trim(), source:$('vidSource').value.trim(), durationS:Number($('vidDurationS').value)||null, ageBand:$('vidAgeBand').value.trim() };
+    if(!body.conceptId||!body.title||!body.url){ flash('Concept, title and URL are required.',false); return; }
+    try{
+      const r=await fetch('/api/tutor/video/catalogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json();
+      if(!r.ok){ flash(d.error||'Could not add.',false); return; }
+      flash('Added to catalogue.',true);
+      ['vidConceptId','vidTitle','vidUrl','vidSource','vidDurationS','vidAgeBand'].forEach(i=>$(i).value='');
+      load();
+    }catch(e){ flash(String(e),false); }
+  }
+  async function removeEntry(id){ try{ const r=await fetch('/api/tutor/video/catalogue/'+encodeURIComponent(id),{method:'DELETE'}); if(!r.ok){ const d=await r.json(); flash(d.error||'Could not remove.',false); return; } flash('Removed from suggestions.',true); load(); }catch(e){ flash(String(e),false); } }
+  async function reactivate(id){ try{ const r=await fetch('/api/tutor/video/catalogue/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'active'})}); if(!r.ok){ const d=await r.json(); flash(d.error||'Could not re-activate.',false); return; } flash('Re-activated.',true); load(); }catch(e){ flash(String(e),false); } }
+  async function setPolicy(enabled){ const scopeId=$('vidPolicyClass').value; try{ const r=await fetch('/api/tutor/video/disable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope:'class',scopeId,enabled})}); if(!r.ok){ const d=await r.json(); flash(d.error||'Could not update policy.',false); return; } flash('Suggestions '+(enabled?'enabled':'disabled')+' for '+scopeId+'.',true); }catch(e){ flash(String(e),false); } }
+  function init(){
+    if(!wired){
+      wired=true;
+      $('vidAddBtn').addEventListener('click',addEntry);
+      $('vidLoadBtn').addEventListener('click',load);
+      $('vidDisableBtn').addEventListener('click',()=>setPolicy(false));
+      $('vidEnableBtn').addEventListener('click',()=>setPolicy(true));
+    }
+    load();
+  }
+  window.vidInit=init;
+})();
+
+// --- Well-being & safeguarding ---
+(function(){
+  let wired=false;
+  const $=id=>document.getElementById(id);
+  function flash(text,ok){ const m=$('wbMsg'); if(!m)return; m.textContent=text; m.className='msg '+(ok?'ok':'err'); setTimeout(()=>{ m.className='msg'; },3500); }
+  function classId(){ return $('wbClassId').value; }
+  async function loadMoods(){
+    const tb=$('wbMoodRows'); const agg=$('wbAgg'); if(!tb)return; tb.innerHTML='<tr><td colspan="4" class="hint">Loading…</td></tr>';
+    try{
+      const r=await fetch('/api/mood/teacher?classId='+encodeURIComponent(classId())); const d=await r.json();
+      if(!d.enabled){ tb.innerHTML='<tr><td colspan="4" class="hint">Database offline.</td></tr>'; agg.innerHTML=''; return; }
+      const a=d.aggregate||{}; agg.innerHTML=`<div>😀 ${a.happy||0}</div><div>😐 ${a.medium||0}</div><div>😟 ${a.sad||0}</div>`;
+      const rows=d.rows||[]; if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="hint">No check-ins yet.</td></tr>'; return; }
+      tb.innerHTML=rows.map(m=>`<tr><td>${tcEsc(m.learner_ref)}</td><td>${tcEsc(String(m.day).slice(0,10))}</td><td><span class="pill ${tcEsc(m.mood)}">${tcEsc(m.mood)}</span></td><td>${tcEsc(m.reason||'—')}</td></tr>`).join('');
+    }catch(e){ tb.innerHTML='<tr><td colspan="4" class="hint">Error: '+tcEsc(String(e))+'</td></tr>'; }
+  }
+  async function loadRecs(){
+    const tb=$('wbRecRows'); if(!tb)return; tb.innerHTML='<tr><td colspan="4" class="hint">Loading…</td></tr>';
+    try{
+      const r=await fetch('/api/mood/teacher/recommendations?classId='+encodeURIComponent(classId())); const d=await r.json();
+      if(!d.enabled){ tb.innerHTML='<tr><td colspan="4" class="hint">Database offline.</td></tr>'; return; }
+      const rows=d.rows||[]; if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="hint">No recommendations.</td></tr>'; return; }
+      tb.innerHTML=rows.map(x=>`<tr><td>${tcEsc(x.trigger)}</td><td>${tcEsc(x.suggestion)}</td><td>${tcEsc(x.decision)}</td><td>${x.decision==='pending'?`<button class="btn btn-sm secondary recBtn" data-id="${tcEsc(x.id)}" data-dec="accepted">Accept</button> <button class="btn btn-sm secondary recBtn" data-id="${tcEsc(x.id)}" data-dec="dismissed">Dismiss</button>`:''}</td></tr>`).join('');
+      tb.querySelectorAll('.recBtn').forEach(b=>b.addEventListener('click',()=>decide(b.getAttribute('data-id'),b.getAttribute('data-dec'))));
+    }catch(e){ tb.innerHTML='<tr><td colspan="4" class="hint">Error: '+tcEsc(String(e))+'</td></tr>'; }
+  }
+  async function decide(id,decision){ try{ const r=await fetch('/api/mood/teacher/recommendations/'+encodeURIComponent(id)+'/decision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})}); if(!r.ok){ const d=await r.json(); flash(d.error||'Could not record decision.',false); return; } flash('Decision recorded: '+decision+'.',true); loadRecs(); }catch(e){ flash(String(e),false); } }
+  async function loadSafeguarding(){
+    const tb=$('wbSgRows'); if(!tb)return; tb.innerHTML='<tr><td colspan="5" class="hint">Loading…</td></tr>';
+    try{
+      const r=await fetch('/api/mood/safeguarding'); const d=await r.json();
+      if(!d.enabled){ tb.innerHTML='<tr><td colspan="5" class="hint">Database offline.</td></tr>'; return; }
+      const flags=d.flags||[]; if(!flags.length){ tb.innerHTML='<tr><td colspan="5" class="hint">No open flags.</td></tr>'; return; }
+      tb.innerHTML=flags.map(f=>`<tr><td>${tcEsc(f.learner_ref)}</td><td>${tcEsc(f.reason)}</td><td>${tcEsc(String(f.created_at).slice(0,10))}</td><td><span class="pill ${tcEsc(f.status)}">${tcEsc(f.status)}</span></td><td>${f.status!=='resolved'?`<button class="btn btn-sm secondary sgBtn" data-id="${tcEsc(f.id)}" data-st="in_review">In review</button> <button class="btn btn-sm secondary sgBtn" data-id="${tcEsc(f.id)}" data-st="resolved">Resolve</button>`:''}</td></tr>`).join('');
+      tb.querySelectorAll('.sgBtn').forEach(b=>b.addEventListener('click',()=>setStatus(b.getAttribute('data-id'),b.getAttribute('data-st'))));
+    }catch(e){ tb.innerHTML='<tr><td colspan="5" class="hint">Error: '+tcEsc(String(e))+'</td></tr>'; }
+  }
+  async function setStatus(id,status){ try{ const r=await fetch('/api/mood/safeguarding/'+encodeURIComponent(id)+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}); if(!r.ok){ flash('Could not update flag.',false); return; } flash('Flag updated.',true); loadSafeguarding(); }catch(e){ flash(String(e),false); } }
+  function loadAll(){ loadMoods(); loadRecs(); loadSafeguarding(); }
+  function init(){ if(!wired){ wired=true; $('wbLoadBtn').addEventListener('click',loadAll); } loadAll(); }
+  window.wbInit=init;
+})();
 </script>
 </body>
 </html>

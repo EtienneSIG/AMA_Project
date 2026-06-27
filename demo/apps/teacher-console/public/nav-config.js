@@ -13,8 +13,8 @@ window.LEARNEU_NAV = [
   { label: 'Integrations', icon: '🔌', tab: 'interop' },
   { label: 'Content versions', icon: '📚', tab: 'content' },
   { label: 'Oversight & audit', icon: '🛡️', tab: 'audit' },
-  { label: 'Moderation', icon: '🚦', href: '/moderation.html' },
-  { label: 'Sharing', icon: '🔗', href: '/sharing-log.html' },
-  { label: 'Videos', icon: '📺', href: '/video-catalogue.html' },
-  { label: 'Well-being', icon: '💛', href: '/wellbeing.html' }
+  { label: 'Moderation', icon: '🚦', tab: 'moderation' },
+  { label: 'Sharing', icon: '🔗', tab: 'sharing' },
+  { label: 'Videos', icon: '📺', tab: 'videos' },
+  { label: 'Well-being', icon: '💛', tab: 'wellbeing' }
 ];
