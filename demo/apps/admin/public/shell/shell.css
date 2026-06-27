@@ -35,6 +35,14 @@ body.has-appshell .appshell-mobilebar { display: none; }
    horizontal pill tabs are redundant — hide them to declutter the center. */
 body.has-appshell .tabbar { display: none; }
 
+/* Heroless pages (dashboards, after the hero banner was removed) need breathing
+   room between the top search bar and the first content block. Pages that still
+   have a hero (the home pages) keep their overlap and are excluded via :not(:has). */
+body.has-appshell:not(:has(.hero)) main,
+body.has-appshell:not(:has(.hero)) main.grid2,
+body.has-appshell:not(:has(.hero)) .progress-wrap,
+body.has-appshell:not(:has(.hero)) .child-wrap { margin-top: 1.5rem !important; }
+
 /* Center top bar (Coursue-style): the existing top nav becomes a slim bar with a
    search box on the left; the brand logo + cross-app links move to the rail, so we
    hide them here but KEEP the action buttons (status / sheets / profile) intact. */
