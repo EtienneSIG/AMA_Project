@@ -643,7 +643,12 @@
       else { banner('Could not block.', 'err'); btn.disabled = false; }
     } catch (e) { banner('Could not block.', 'err'); btn.disabled = false; }
   });
-  loadRecipients(); loadSheets(); loadReceived();
+  // Lazy-load the sharing data only when the tab is opened (keeps page-load API calls low).
+  let _shareInited = false;
+  function initShare() { if (_shareInited) return; _shareInited = true; loadRecipients(); loadSheets(); loadReceived(); }
+  const _sbtn = document.querySelector('[data-tab-btn="sharing"]');
+  if (_sbtn) _sbtn.addEventListener('click', initShare);
+  try { if (new URLSearchParams(location.search).get('tab') === 'sharing') initShare(); } catch (e) {}
 })();
 </script>
 
@@ -941,8 +946,12 @@ try {
 async function loadMe() {
   try {
     const r = await fetch('/api/auth/me', { cache:'no-store' });
+    // Only treat a real authentication failure as logged-out. Transient responses
+    // (e.g. 429 rate-limit after fast navigation, 5xx) must NOT redirect to login.
+    if (r.status === 401) { location.href = '/login.html'; return; }
+    if (!r.ok) { return; }
     const d = await r.json();
-    if (!d.user) { location.href = '/login.html'; return; }
+    if (!d.user) { return; }
     currentUser = d.user;
     const a = document.getElementById('avatarBtn');
     a.textContent = initials(d.user);

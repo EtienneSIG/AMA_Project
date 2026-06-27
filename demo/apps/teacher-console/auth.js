@@ -74,7 +74,10 @@ function csrfMiddleware(req, res, next) {
 // --- Rate Limiting (in-memory sliding window) ---
 const RATE_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60 * 1000;
 const RATE_MAX_LOGIN = parseInt(process.env.RATE_LIMIT_LOGIN, 10) || 10;
-const RATE_MAX_API   = parseInt(process.env.RATE_LIMIT_API, 10) || 60;
+// The single-page apps fire many /api/* reads per page load; a low cap turns fast
+// navigation into spurious 429s (which the client used to read as a logout). Keep a
+// generous default so normal browsing never trips it.
+const RATE_MAX_API   = parseInt(process.env.RATE_LIMIT_API, 10) || 600;
 const rateBuckets = new Map();
 
 // Evict stale entries every 5 minutes
