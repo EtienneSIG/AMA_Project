@@ -9,7 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/theme.css">
 <script src="/theme-toggle.js?v=020" defer></script>
-<script src="/shell/shell.js" defer></script>
+<script>/* Spec 019/020: three-column app shell ON by default (opt-out with ?shell=0). */try{if(localStorage.getItem('learneu_shell')===null)localStorage.setItem('learneu_shell','on');}catch(e){}</script>
+<script src="/shell/shell.js?v=020d" defer></script>
 <style>
   :root { --navy:#0F1B2D; --navy-2:#1a3658; --orange:#F26334; --orange-dark:#D44E22; --teal:#2BB4B8; --grey:#3F4A5A; --line:#E3E7EE; --bg:#F5F7FA; }
   * { box-sizing: border-box; }

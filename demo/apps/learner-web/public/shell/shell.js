@@ -58,7 +58,7 @@
         var li = el('li');
         var link = el('a', btn.classList.contains('active') ? 'active' : '');
         link.href = '#';
-        link.innerHTML = '<span class="appshell-ico" aria-hidden="true">' + (ico || '•') + '</span><span>' + label + '</span>';
+        link.innerHTML = (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>';
         link.addEventListener('click', function (ev) {
           ev.preventDefault();
           btn.click();
@@ -124,17 +124,37 @@
   function buildPanel() {
     var panel = el('aside', 'appshell-panel');
     panel.setAttribute('aria-label', 'Profile');
+    var bars = [38, 62, 45, 80, 55, 70, 90].map(function (h) { return '<span style="height:' + h + '%"></span>'; }).join('');
     panel.innerHTML = '<div class="appshell-panel-head"><div class="appshell-avatar" id="appshellAvatar">·</div>' +
       '<div class="appshell-greet"><strong id="appshellName">Your profile</strong><span id="appshellRole"></span></div></div>' +
-      '<div class="appshell-panel-section"><div class="appshell-actions">' +
-      '<a href="/" title="Home">⌂</a><a href="#" id="appshellThemeBtn" title="Theme">◐</a></div></div>' +
-      '<div class="appshell-panel-section" id="appshellContext"><div class="appshell-muted">Welcome back.</div></div>';
-    // Theme toggle hook (reuses the editorial dongle if present).
-    var tBtn = panel.querySelector('#appshellThemeBtn');
-    if (tBtn) tBtn.addEventListener('click', function (ev) {
-      ev.preventDefault();
-      var sw = document.getElementById('themeToggle'); if (sw) sw.click();
-    });
+      '<div class="appshell-panel-sub" id="appshellGreetLine">Continue your learning journey.</div>' +
+      '<div class="appshell-actions"><a href="/" title="Home" aria-label="Home">⌂</a>' +
+      '<a href="#" id="appshellPanelClose" class="appshell-mobileonly" title="Close" aria-label="Close panel">✕</a></div>' +
+      '<div class="appshell-panel-section"><div class="appshell-subtitle">This week</div>' +
+      '<div class="appshell-chart" aria-hidden="true">' + bars + '</div></div>' +
+      '<div class="appshell-panel-section"><div class="appshell-subtitle">Quick links</div>' +
+      '<ul class="appshell-quick" id="appshellQuick"></ul></div>';
+    // Mobile close.
+    var close = panel.querySelector('#appshellPanelClose');
+    if (close) close.addEventListener('click', function (ev) { ev.preventDefault(); document.body.classList.remove('appshell-panel-open'); });
+    // Quick links mirror the workspace sections (click switches the section).
+    try {
+      var quick = panel.querySelector('#appshellQuick');
+      var tabs = document.querySelectorAll('.tabbar .tab-btn, .tabbar [role="tab"]');
+      tabs.forEach(function (btn) {
+        var icoEl = btn.querySelector('.ico');
+        var ico = icoEl ? (icoEl.textContent || '').trim() : '';
+        var label = (btn.textContent || '').trim();
+        if (ico) label = label.replace(ico, '').trim();
+        if (!label) return;
+        var li = el('li');
+        var a = el('a', null, (ico ? '<span class="appshell-ico" aria-hidden="true">' + ico + '</span>' : '') + '<span>' + label + '</span>');
+        a.href = '#';
+        a.addEventListener('click', function (ev) { ev.preventDefault(); btn.click(); document.body.classList.remove('appshell-panel-open'); });
+        li.appendChild(a);
+        quick.appendChild(li);
+      });
+    } catch (e) {}
     // Populate identity from /api/auth/me (best-effort).
     try {
       window.fetch('/api/auth/me', { credentials: 'same-origin' })
@@ -145,6 +165,8 @@
           var name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email || 'Learner';
           var nm = panel.querySelector('#appshellName'); if (nm) nm.textContent = name;
           var rl = panel.querySelector('#appshellRole'); if (rl) rl.textContent = u.role || '';
+          var gl = panel.querySelector('#appshellGreetLine');
+          if (gl) { var h = new Date().getHours(); var part = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); gl.textContent = part + ', ' + (u.firstName || name.split(' ')[0]) + '.'; }
           var av = panel.querySelector('#appshellAvatar');
           if (av) { av.textContent = (name[0] || '·').toUpperCase(); if (u.role) av.className = 'appshell-avatar role-' + u.role; }
         }).catch(function(){});
@@ -155,8 +177,20 @@
   function build() {
     if (document.body.classList.contains('has-appshell')) return;
     if (!document.querySelector('link[data-appshell]')) {
-      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css?v=020b'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
+      var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '/shell/shell.css?v=020c'; lk.setAttribute('data-appshell', '1'); document.head.appendChild(lk);
     }
+    // Center top bar: drop a search field into the existing top nav (Coursue-style).
+    // CSS then hides the now-redundant brand + cross-app links in that nav, keeping
+    // its action buttons (status / sheets / profile) intact with their handlers.
+    try {
+      var topWrap = document.querySelector('nav.top .wrap') || document.querySelector('nav.top');
+      if (topWrap && !topWrap.querySelector('.appshell-search')) {
+        var search = el('div', 'appshell-search');
+        search.innerHTML = '<span class="appshell-search-ico" aria-hidden="true">⌕</span>' +
+          '<input type="search" placeholder="Search…" aria-label="Search">';
+        topWrap.insertBefore(search, topWrap.firstChild);
+      }
+    } catch (e) {}
     var rail = buildRail();
     var panel = buildPanel();
 
