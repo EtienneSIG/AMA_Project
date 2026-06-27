@@ -270,6 +270,7 @@
   <button class="tab-btn" data-tab-btn="child" onclick="setTab('child')" role="tab"><span data-i18n="tab.child">🧒 My child's progress</span></button>
   <button class="tab-btn" data-tab-btn="messages" onclick="setTab('messages')" role="tab"><span data-i18n="tab.messages">✉️ Messages</span> <span id="msgBadge" class="msg-badge" style="display:none;">0</span></button>
   <button class="tab-btn" data-tab-btn="digest" onclick="setTab('digest')" role="tab"><span data-i18n="tab.digest">📊 Weekly digest</span></button>
+  <button class="tab-btn" data-tab-btn="wellbeing" onclick="setTab('wellbeing')" role="tab"><span data-i18n="tab.wellbeing">💛 Well-being</span></button>
 </nav>
 <div data-tab="ask" class="active">
 <main class="grid2 ask-wrap" style="margin-top:0;">
@@ -384,6 +385,24 @@
     <div class="card">
       <h2 style="margin-top:0;" data-i18n="digest.past">Past digests</h2>
       <div id="pastDigests"><div class="sheet-empty">—</div></div>
+    </div>
+  </div>
+</div>
+<div data-tab="wellbeing">
+  <div class="child-wrap">
+    <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">💛 Well-being</h2>
+      <p class="sub" style="margin:.2rem 0 0;color:var(--grey);font-size:.9rem;">A supportive, plain-language heads-up about how your child says they are feeling. Mood is <strong>self-reported</strong> by your child — there is no AI inference of emotions. Notices appear only while your consent is active, are never a diagnosis, and never show raw mood logs (GDPR Art. 8 data minimisation).</p>
+    </div>
+    <div id="wbParentNotices"><div class="sheet-empty">Loading…</div></div>
+    <div class="card" style="margin-top:1rem;">
+      <h2 style="margin-top:0;font-size:1.05rem;">If you would like to help</h2>
+      <ul class="sub" style="margin:.4rem 0 0;color:var(--grey);font-size:.88rem;line-height:1.7;">
+        <li>Find a calm moment and ask how they are doing — listen without judgement.</li>
+        <li>Keep routines predictable (sleep, meals, screen-time) — they support mood.</li>
+        <li>Reach out to your child's teacher through the <a href="#" onclick="setTab('messages');return false;">Messages</a> tab if you would like support.</li>
+        <li>If you are worried about your child's immediate safety, contact your school or local support services directly.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -702,6 +721,7 @@ function setTab(name) {
   document.querySelectorAll('[data-tab]').forEach(d => d.classList.toggle('active', d.dataset.tab === name));
   if (name === 'messages') { const c = document.getElementById('msgChildSel'); if (c && c.value) loadThread(c.value); }
   if (name === 'digest') { const c = document.getElementById('digestChildSel'); if (c && c.value) loadWeeklySummary(c.value); loadPreferences(); }
+  if (name === 'wellbeing') { loadWellbeingTab(); }
 }
 async function loadChildren() {
   const sel = document.getElementById('childSel');
@@ -776,6 +796,32 @@ async function renderWellbeingNotices(childEmail) {
     </div>`).join('');
     box.style.display = '';
   } catch (_) { box.style.display = 'none'; }
+}
+
+// Feature 017 — dedicated parent Well-being tab. Same consent-gated, supportive data
+// as the in-dashboard notice, surfaced as a first-class, always-accessible area.
+async function loadWellbeingTab() {
+  const box = document.getElementById('wbParentNotices');
+  if (!box) return;
+  box.innerHTML = '<div class="sheet-empty">Loading…</div>';
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const nameFor = (email) => { const k = (childrenData || []).find(c => (c.childEmail || '') === email); return (k && k.displayName) ? k.displayName : email; };
+  try {
+    const r = await fetch('/api/mood/parent');
+    if (r.status === 403) { box.innerHTML = '<div class="card"><p class="sub" style="margin:0;color:var(--grey);">Sign in as a parent to view well-being notices.</p></div>'; return; }
+    const j = await r.json();
+    if (j && j.enabled === false) { box.innerHTML = '<div class="card"><p class="sub" style="margin:0;color:var(--grey);">Well-being notices are temporarily unavailable.</p></div>'; return; }
+    const notices = (j && j.notices) || [];
+    if (!notices.length) {
+      box.innerHTML = '<div class="card" style="border-left:4px solid var(--teal);background:#f1fbfb;"><h2 style="margin-top:0;font-size:1.05rem;">All good right now 🌱</h2><p class="sub" style="margin:.2rem 0 0;color:var(--grey);font-size:.9rem;">No well-being concerns have been flagged for your child. We will surface a gentle heads-up here if your child reports feeling low over several days.</p></div>';
+      return;
+    }
+    box.innerHTML = notices.map(n => `<div class="card" style="border-left:4px solid var(--orange);background:#fff7f2;margin-bottom:1rem;">
+      <h2 style="margin-top:0;font-size:1.05rem;">💛 A supportive heads-up · ${esc(nameFor(n.childEmail))}</h2>
+      <p style="margin:.2rem 0 .5rem;">${esc(n.message)}</p>
+      <p class="sub" style="margin:0;color:var(--grey);font-size:.85rem;"><strong>How to help:</strong> ${esc(n.howToHelp)}</p>
+    </div>`).join('');
+  } catch (e) { box.innerHTML = '<div class="card"><p class="sub" style="margin:0;color:var(--grey);">(error loading well-being notices)</p></div>'; }
 }
 
 // ===== Feature 6 US2 — parent ↔ teacher messaging =====

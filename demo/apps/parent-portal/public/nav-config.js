@@ -6,5 +6,6 @@ window.LEARNEU_NAV = [
   { label: "My child's progress", icon: '🧒', tab: 'child' },
   { label: 'Messages', icon: '✉️', tab: 'messages' },
   { label: 'Weekly digest', icon: '📊', tab: 'digest' },
+  { label: 'Well-being', icon: '💛', tab: 'wellbeing' },
   { label: 'Resources', icon: '📚', href: '/resources.html' }
 ];
