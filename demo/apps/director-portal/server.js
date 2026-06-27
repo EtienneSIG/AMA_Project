@@ -135,7 +135,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     const p = filePath.replace(/\\/g, '/');
     if (p.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-    else if (/\/shell\/shell\.(js|css)$|\/nav-config\.js$|\/theme-toggle\.js$/.test(p)) res.setHeader('Cache-Control', 'no-cache');
+    else if (/\/shell\/shell\.(js|css)$|\/nav-config\.js$|\/theme-toggle\.js$|\/sw\.js$/.test(p)) res.setHeader('Cache-Control', 'no-cache');
     else res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
   }
 }));

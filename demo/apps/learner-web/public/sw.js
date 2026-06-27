@@ -1,4 +1,4 @@
-const CACHE_NAME = 'learneu-student-pwa-v2';
+const CACHE_NAME = 'learneu-student-pwa-v3';
 const SHELL_ASSETS = [
   '/mobile.html',
   '/login.html',
@@ -27,6 +27,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  // Always fetch the frequently-updated shell assets from the network (server sends
+  // no-cache) so the rail/menu/footer never get stuck on a cached copy.
+  if (/\/shell\/shell\.(js|css)$|\/nav-config\.js$|\/theme-toggle\.js$|\/sw\.js$/.test(url.pathname)) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
