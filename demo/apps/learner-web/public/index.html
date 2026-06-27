@@ -162,6 +162,11 @@
   .sheet-row .sheet-del { background:transparent; border:none; color:var(--grey); cursor:pointer; font-size:1.1rem; line-height:1; padding:.1rem .35rem; border-radius:4px; }
   .sheet-row .sheet-del:hover { color:var(--orange); background:#FEEBE0; }
   .sheet-empty { color:var(--grey); font-style:italic; padding:1rem; text-align:center; }
+  .sheets-tab-grid { display:grid; grid-template-columns: minmax(220px, 320px) 1fr; gap:1rem; margin-top:.6rem; align-items:start; }
+  @media (max-width: 820px) { .sheets-tab-grid { grid-template-columns: 1fr; } }
+  .sheets-tab-list { display:flex; flex-direction:column; gap:.4rem; max-height:62vh; overflow-y:auto; }
+  .sheets-tab-list .sheet-row.active { border-color:var(--teal); background:#EEF7F7; }
+  .sheets-tab-reader { border:1px solid var(--line); border-radius:12px; padding:1.1rem 1.25rem; background:#fff; min-height:300px; }
   .saved-badge { display:inline-block; background:#E8F5EE; color:#1F8A5C; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; margin-left:.4rem; opacity:0; transition:opacity .25s; }
   .saved-badge.show { opacity:1; }
   /* --- Adaptive item picker: 2-column "example | your answer" --- */
@@ -253,7 +258,7 @@
           <pre id="health">Loading…</pre>
         </div>
       </div>
-      <button class="nav-icon" id="sheetsBtn" onclick="openSheets()" title="Study sheets" aria-label="Study sheets">Sheets</button>
+      <button class="nav-icon" id="sheetsBtn" onclick="setTab('sheets')" title="Study sheets" aria-label="Study sheets" style="display:none">Sheets</button>
       <button class="avatar" id="avatarBtn" onclick="openProfile()" title="Open profile" aria-label="Open profile">··</button>
     </div>
   </div>
@@ -266,6 +271,7 @@
   <button class="tab-btn"        data-tab-btn="activities"  onclick="setTab('activities')"  role="tab" aria-selected="false"><span class="ico">🧩</span> Activities</button>
   <button class="tab-btn"        data-tab-btn="sharing"     onclick="setTab('sharing')"     role="tab" aria-selected="false"><span class="ico">🔗</span> Sharing</button>
   <button class="tab-btn"        data-tab-btn="videos"      onclick="setTab('videos')"      role="tab" aria-selected="false"><span class="ico">📺</span> Videos</button>
+  <button class="tab-btn"        data-tab-btn="sheets"      onclick="setTab('sheets')"      role="tab" aria-selected="false"><span class="ico">📄</span> Study sheets</button>
 </nav>
 <div data-tab="quest" class="active">
 <div class="progress-wrap">
@@ -587,6 +593,21 @@
   </div>
 </div>
 </div><!-- /tab videos -->
+<div data-tab="sheets">
+<div class="progress-wrap">
+  <div class="card">
+    <div class="explhead">
+      <h2>Study sheets <span class="sub" style="font-size:.78rem;color:var(--grey);font-weight:400;">saved explanations · stored in EU Postgres</span></h2>
+      <button class="btn btn-sm secondary" onclick="refreshSheetsTab()">Refresh</button>
+    </div>
+    <p class="sub" style="margin:.25rem 0 .2rem;opacity:.85;font-size:.88rem;">Your saved explanations. Pick a sheet on the left to read it here; generate a revision quiz or delete it.</p>
+    <div class="sheets-tab-grid">
+      <div class="sheets-tab-list" id="sheetsTabList"><div class="sheet-empty">Loading…</div></div>
+      <div class="sheets-tab-reader md-view" id="sheetsTabReader"><div class="sheet-empty">Select a sheet on the left to read it here.</div></div>
+    </div>
+  </div>
+</div>
+</div><!-- /tab sheets -->
 <script>
 // Sharing tab (Feature 013) — inlined as an in-page tab for consistent /?tab=sharing URL.
 (function () {
@@ -1223,6 +1244,61 @@ async function deleteSheet(id) {
   try { await fetch('/api/sheets/' + encodeURIComponent(id), { method:'DELETE' }); refreshSheets(); } catch (e) { alert(String(e)); }
 }
 
+// --- Study sheets as a full center-column section (left-menu tab) ----------
+async function refreshSheetsTab() {
+  const list = document.getElementById('sheetsTabList');
+  if (!list) return;
+  list.innerHTML = '<div class="sheet-empty">Loading…</div>';
+  try {
+    const r = await fetch('/api/sheets', { cache:'no-store' });
+    const j = await r.json();
+    const sheets = (j.sheets || []).slice().reverse();
+    if (!sheets.length) { list.innerHTML = '<div class="sheet-empty">No saved sheets yet. Ask a question, then click “Save to Study sheet”.</div>'; return; }
+    list.innerHTML = '';
+    for (const s of sheets) {
+      const row = document.createElement('div'); row.className = 'sheet-row'; row.setAttribute('data-sheet-id', s.id);
+      const t = document.createElement('div'); t.className = 'sheet-title'; t.textContent = s.title; t.title = s.title; t.onclick = () => openSheetInReader(s.id);
+      const d = document.createElement('div'); d.className = 'sheet-date'; d.textContent = new Date(s.createdAt).toLocaleString();
+      const qz = document.createElement('button'); qz.className = 'btn btn-sm secondary'; qz.textContent = 'Quiz me'; qz.title = 'Generate a 5-question revision quiz from this sheet'; qz.onclick = (ev) => { ev.stopPropagation(); startQuiz(s.id, s.title, qz); };
+      const x = document.createElement('button'); x.className = 'sheet-del'; x.textContent = '×'; x.title = 'Delete'; x.setAttribute('aria-label','Delete sheet'); x.onclick = (ev) => { ev.stopPropagation(); deleteSheetTab(s.id); };
+      row.appendChild(t); row.appendChild(d); row.appendChild(qz); row.appendChild(x); list.appendChild(row);
+    }
+  } catch (e) { list.innerHTML = '<div class="sheet-empty">Error: ' + escapeHtml(String(e)) + '</div>'; }
+}
+async function openSheetInReader(id) {
+  const reader = document.getElementById('sheetsTabReader');
+  if (!reader) return;
+  document.querySelectorAll('#sheetsTabList .sheet-row').forEach(r => r.classList.toggle('active', r.getAttribute('data-sheet-id') === String(id)));
+  reader.innerHTML = '<div class="sheet-empty">Loading…</div>';
+  try {
+    const r = await fetch('/api/sheets/' + encodeURIComponent(id));
+    const j = await r.json();
+    if (!r.ok || !j.sheet) { reader.innerHTML = '<div class="sheet-empty">Could not load this sheet.</div>'; return; }
+    const s = j.sheet;
+    let bodyHtml;
+    if (window.marked && window.DOMPurify) {
+      marked.setOptions({ breaks:true, gfm:true });
+      bodyHtml = DOMPurify.sanitize(marked.parse(s.answer || ''), { ADD_TAGS:['div'], ADD_ATTR:['class'] });
+    } else { bodyHtml = '<pre>' + escapeHtml(s.answer || '') + '</pre>'; }
+    reader.innerHTML = '<div class="explhead" style="margin-bottom:.5rem;"><h2 style="font-size:1.15rem;">' + escapeHtml(s.title || 'Sheet') + '</h2></div>'
+      + '<div class="reply">' + bodyHtml + '</div>'
+      + '<div class="sub" style="font-size:.78rem;margin-top:.7rem;opacity:.7;">Saved ' + escapeHtml(new Date(s.createdAt).toLocaleString()) + '</div>';
+    reader.querySelectorAll('pre code.language-mermaid').forEach((codeEl, idx) => {
+      const wrap = document.createElement('div'); wrap.className = 'mermaid'; wrap.id = 'sm' + Date.now() + '_' + idx; wrap.textContent = codeEl.textContent; codeEl.parentElement.replaceWith(wrap);
+    });
+    if (window.mermaid) { try { await mermaid.run({ querySelector: '#sheetsTabReader .mermaid' }); } catch (e) {} }
+  } catch (e) { reader.innerHTML = '<div class="sheet-empty">Error loading sheet.</div>'; }
+}
+async function deleteSheetTab(id) {
+  if (!confirm('Delete this sheet?')) return;
+  try {
+    await fetch('/api/sheets/' + encodeURIComponent(id), { method:'DELETE' });
+    refreshSheetsTab();
+    const reader = document.getElementById('sheetsTabReader');
+    if (reader) reader.innerHTML = '<div class="sheet-empty">Select a sheet on the left to read it here.</div>';
+  } catch (e) { alert(String(e)); }
+}
+
 window.addEventListener('load', () => {
   if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
   const ta = document.getElementById('prompt');
@@ -1719,6 +1795,7 @@ function setTab(name) {
   if (name === 'ask-teacher') loadTeacherQuestions();
   if (name === 'quest') { loadGamificationDashboard(); loadChampionZone(); loadDuelZone(); }
   if (name === 'videos') loadVideoLibrary();
+  if (name === 'sheets') refreshSheetsTab();
   // Scroll into view in case the user was deep on a page.
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
