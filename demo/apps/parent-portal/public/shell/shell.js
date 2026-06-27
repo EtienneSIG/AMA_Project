@@ -299,6 +299,37 @@
       }
     } catch (e) {}
 
+    // Gather the top-nav action controls (profile / sheets / status) into the right
+    // (3rd) column. The profile button + its icon live in the panel header; the
+    // remaining utilities sit in the panel actions row. Top bar keeps only search.
+    try {
+      var actions = panel.querySelector('.appshell-actions');
+      var head = panel.querySelector('.appshell-panel-head');
+      var avatarBtn = document.querySelector('nav.top .avatar');
+      if (avatarBtn) {
+        var oc = (avatarBtn.getAttribute('onclick') || '');
+        if (/openprofile/i.test(oc) && head) {
+          // Profile button → make the panel identity header open the profile, and
+          // hide the now-duplicate avatar button in the top bar.
+          head.classList.add('appshell-head-clickable');
+          head.setAttribute('title', avatarBtn.getAttribute('title') || 'Open profile');
+          head.setAttribute('role', 'button');
+          head.addEventListener('click', function () { avatarBtn.click(); });
+          avatarBtn.classList.add('appshell-hidden-top');
+        } else if (actions) {
+          // Non-profile avatar (e.g. sign-out) → relocate it into the actions row.
+          avatarBtn.classList.add('appshell-moved');
+          actions.appendChild(avatarBtn);
+        }
+      }
+      var statusWrap = document.querySelector('nav.top .status-wrap');
+      var sheetsBtn = document.querySelector('nav.top #sheetsBtn, nav.top .nav-icon');
+      if (actions) {
+        if (statusWrap) { statusWrap.classList.add('appshell-moved'); actions.appendChild(statusWrap); }
+        if (sheetsBtn) { sheetsBtn.classList.add('appshell-moved'); actions.appendChild(sheetsBtn); }
+      }
+    } catch (e) {}
+
     // Deep-link: if we arrived via /?tab=<id> from another page, open that section
     // and reflect it in the rail's active state.
     try {

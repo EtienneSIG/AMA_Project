@@ -81,8 +81,7 @@ body.has-appshell nav.top .wrap { gap: 0.8rem; }
   display: flex; flex-direction: column; padding: 1.2rem 1.1rem; overflow-y: auto;
   font-family: 'Inter', system-ui, sans-serif;
 }
-.appshell-panel-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.1rem; }
-.appshell-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--teal, #2BB4B8); color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.appshell-panel-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.1rem; }.appshell-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--teal, #2BB4B8); color: #fff; font-weight: 700; font-family: 'Poppins', sans-serif; display: inline-flex; align-items: center; justify-content: center; }
 .appshell-avatar.role-admin { background: var(--orange, #F26334); }
 .appshell-avatar.role-teacher { background: var(--navy, #0F1B2D); }
 .appshell-avatar.role-parent { background: #6B5BFF; }
@@ -94,6 +93,19 @@ body.has-appshell nav.top .wrap { gap: 0.8rem; }
 .appshell-actions { display: flex; gap: 0.5rem; }
 .appshell-actions a { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line, #e3e7ee); display: inline-flex; align-items: center; justify-content: center; color: var(--navy, #0F1B2D); text-decoration: none; }
 .appshell-actions a:hover { border-color: var(--navy, #0F1B2D); }
+
+/* Profile / sheets / status controls gathered from the top bar into this 3rd column. */
+.appshell-actions { flex-wrap: wrap; align-items: center; }
+.appshell-head-clickable { cursor: pointer; border-radius: 12px; margin: -0.3rem -0.4rem 0.9rem; padding: 0.3rem 0.4rem; transition: background 0.15s; }
+.appshell-head-clickable:hover { background: rgba(43,180,184,0.10); }
+.appshell-hidden-top { display: none !important; }
+.appshell-actions .nav-icon { height: 38px; padding: 0 0.85rem; border-radius: 999px; border: 1px solid var(--line, #e3e7ee); background: #fff; color: var(--navy, #0F1B2D); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.appshell-actions .nav-icon:hover { border-color: var(--navy, #0F1B2D); }
+.appshell-actions .avatar { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--teal, #2BB4B8); color: #fff; font-family: 'Poppins', sans-serif; font-weight: 700; cursor: pointer; }
+.appshell-actions .status-wrap { position: relative; display: inline-flex; }
+.appshell-actions .status-btn { height: 38px; padding: 0 0.85rem; border-radius: 999px; border: 1px solid var(--line, #e3e7ee); background: #fff; display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--navy, #0F1B2D); cursor: pointer; }
+.appshell-actions .status-btn:hover { border-color: var(--navy, #0F1B2D); }
+.appshell-actions .status-panel { left: auto; right: 0; top: calc(100% + 8px); max-width: 280px; }
 .appshell-muted { color: var(--grey, #3F4A5A); opacity: 0.75; font-size: 0.86rem; }
 
 /* --- Mobile bar + drawers --- */
