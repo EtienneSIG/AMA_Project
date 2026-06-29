@@ -2,6 +2,8 @@
 
 **Feature**: `018-director-fabric-rayfin` | **Phase 0 gate**
 
+> **T013 deploy (demo)** — App deployed to Azure App Service `app-director-fabric-learneu-demo` (North Europe, EU-resident) as the Rayfin Fabric-app surrogate; visual dashboard (KPIs, school benchmarks, NL map, trend) at `/api/overview`. **T031 RAI+QA sign-off**: APPROVED (demo) 2026-06-29 — cut-over verified (backend=fabric-app, fallbackAvailable=false), suppression/scope/no-cohort-leak/EU-residency confirmed. Production still needs live Rayfin CLI `up` + formal sign-off.
+
 ## T000 — EU residency + Feature 005 suppression reuse (Accountable: EU AI Act CO + GDPR Children's Data Specialist)
 
 - **Status**: APPROVED (demo) — 2026-06-29

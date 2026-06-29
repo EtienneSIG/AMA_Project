@@ -3,47 +3,49 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LearnEU — Director Reporting (Fabric)</title>
+<title>LearnEU — Director Analytics (Fabric)</title>
 <style>
-  :root { --line:#dde3ea; --grey:#5a6675; --ink:#0a2540; }
-  body { font-family: system-ui, sans-serif; color:var(--ink); margin:0; padding:1rem; background:#f6f8fb; }
-  .bar { display:flex; gap:.5rem; align-items:center; margin-bottom:.75rem; flex-wrap:wrap; }
-  select, button { padding:.4rem .6rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:.85rem; margin-bottom:.85rem; }
-  .row { display:flex; justify-content:space-between; font-size:.86rem; padding:.2rem 0; border-bottom:1px dashed var(--line); }
-  .empty { color:var(--grey); font-style:italic; padding:.6rem; }
-  h2 { font-size:1rem; margin:.2rem 0 .6rem; }
-  .src { font-size:.74rem; color:var(--grey); }
+  :root { --line:#dde3ea; --grey:#5a6675; --ink:#0a2540; --teal:#1b9e8a; --navy:#0f1b2d; --orange:#f26334; }
+  *{box-sizing:border-box} body { font-family: system-ui, sans-serif; color:var(--ink); margin:0; padding:1rem; background:#f4f7fb; }
+  .bar { display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; flex-wrap:wrap; }
+  .src { font-size:.72rem; color:var(--grey); margin-left:auto; }
+  select,button { padding:.4rem .6rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.8rem; margin-bottom:1rem; }
+  .kpi { background:#fff; border:1px solid var(--line); border-radius:12px; padding:.9rem 1rem; }
+  .kpi .v { font-size:1.7rem; font-weight:700; color:var(--navy); } .kpi .l { font-size:.78rem; color:var(--grey); }
+  .kpi .v.pos{color:var(--teal)} .kpi .v.neg{color:var(--orange)}
+  .grid { display:grid; grid-template-columns:1.3fr 1fr; gap:1rem; } @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+  h2{font-size:1rem;margin:.1rem 0 .8rem} .barrow{display:flex;align-items:center;gap:.6rem;margin:.35rem 0;font-size:.82rem}
+  .barrow .nm{width:130px;color:var(--grey)} .barrow .track{flex:1;background:#eef2f7;border-radius:999px;height:.7rem}
+  .barrow .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--navy))} .barrow .pct{width:42px;text-align:right;font-weight:600}
+  svg{max-width:100%} .dot{fill:var(--orange);opacity:.85} .schoolname{font-size:9px;fill:var(--navy)}
 </style>
 </head>
 <body>
-  <div class="bar">
-    <strong>Director reporting</strong>
-    <select id="report"><option value="class-evolution">Class outcome evolution</option><option value="establishment-vs-national">Establishment vs national</option></select>
-    <select id="period"><option value="2025-T1">Term 1 2025</option><option value="2025-T2" selected>Term 2 2025</option><option value="2026-T1">Term 1 2026</option></select>
-    <button id="refresh">Refresh</button>
-    <span class="src" id="src"></span>
+  <div class="bar"><strong>Director analytics</strong><span class="src" id="src">Fabric · EU</span></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid">
+    <div class="card"><h2>Establishment mastery vs national</h2><div id="bars"></div></div>
+    <div class="card"><h2>Schools (Netherlands)</h2><div id="map"></div></div>
   </div>
-  <div id="out" class="card"><div class="empty">Loading…</div></div>
+  <div class="card"><h2>Mastery trend (you vs national)</h2><div id="trend"></div></div>
 <script>
-function scopeToken() { const u = new URLSearchParams(location.search); return u.get('scope') || ''; }
-async function load() {
-  const id = document.getElementById('report').value, period = document.getElementById('period').value;
-  const out = document.getElementById('out');
-  out.innerHTML = '<div class="empty">Loading…</div>';
-  try {
-    const r = await fetch(`/api/report/${id}?period=${period}`, { headers: { 'x-scope-context': scopeToken() } });
-    const j = await r.json();
-    document.getElementById('src').textContent = 'Fabric · EU-resident · ' + j.state;
-    if (j.state === 'suppressed_small_cohort') return out.innerHTML = '<div class="empty">Suppressed: cohort below K-anonymity threshold.</div>';
-    if (j.state === 'scope_denied') return out.innerHTML = '<div class="empty">Out of scope.</div>';
-    if (!j.series || !j.series.length) return out.innerHTML = '<div class="empty">No data for this selection.</div>';
-    out.innerHTML = '<h2>' + id + ' — ' + (j.period?.label||period) + '</h2>' + j.series.map(s =>
-      '<div class="card"><strong>'+s.dimension+'</strong>'+ s.points.map(p=>'<div class="row"><span>'+p.periodId+'</span><span>'+Math.round(p.value*100)+'%</span></div>').join('')+'</div>').join('')
-      + '<p class="src">'+(j.notes||'')+'</p>';
-  } catch (e) { out.innerHTML = '<div class="empty">Reporting unavailable.</div>'; }
+function scopeToken(){return new URLSearchParams(location.search).get('scope')||''}
+async function load(){
+  let j; try{ j=await (await fetch('/api/overview',{headers:{'x-scope-context':scopeToken()}})).json(); }catch(e){ document.getElementById('kpis').innerHTML='Unavailable'; return; }
+  document.getElementById('src').textContent='Fabric · EU · '+(j.region||'eu');
+  const k=j.kpis; document.getElementById('kpis').innerHTML=[
+    ['Learners',k.learners,''],['Schools',k.schools,''],['Mastery',Math.round(k.mastery*100)+'%',''],['Engagement',Math.round(k.engagement*100)+'%',''],
+    ['Gap vs national',(k.gapVsNational>=0?'+':'')+k.gapVsNational+' pts',k.gapVsNational>=0?'pos':'neg']
+  ].map(x=>`<div class="kpi"><div class="v ${x[2]}">${x[1]}</div><div class="l">${x[0]}</div></div>`).join('');
+  const nat=j.national.mastery;
+  document.getElementById('bars').innerHTML=j.schools.map(s=>`<div class="barrow"><span class="nm">${s.name}</span><span class="track"><span class="fill" style="width:${Math.round(s.mastery*100)}%"></span></span><span class="pct">${Math.round(s.mastery*100)}%</span></div>`).join('')+`<div class="barrow"><span class="nm">National</span><span class="track"><span class="fill" style="width:${Math.round(nat*100)}%;background:#94a3b8"></span></span><span class="pct">${Math.round(nat*100)}%</span></div>`;
+  const W=380,H=300,x=l=>(l-3.3)/(7.2-3.3)*W,y=l=>H-(l-50.7)/(53.6-50.7)*H;
+  document.getElementById('map').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`+j.schools.map(s=>`<g><circle class="dot" cx="${x(s.lng).toFixed(0)}" cy="${y(s.lat).toFixed(0)}" r="${6+s.learners/60}"/><text class="schoolname" x="${(x(s.lng)+8).toFixed(0)}" y="${(y(s.lat)+3).toFixed(0)}">${s.name} ${Math.round(s.mastery*100)}%</text></g>`).join('')+`</svg>`;
+  const tr=j.schools[0]?j.schools[0].trend:[.6,.63,.65],pts=a=>a.map((v,i)=>`${20+i*160},${120-v*120}`).join(' ');
+  document.getElementById('trend').innerHTML=`<svg viewBox="0 0 360 130" width="360" height="130"><polyline fill="none" stroke="#1b9e8a" stroke-width="2.5" points="${pts(tr)}"/><polyline fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4" points="${pts(j.nationalTrend)}"/></svg><p class="src">Teal = your scope · grey = national</p>`;
 }
-document.getElementById('refresh').onclick = load; document.getElementById('report').onchange = load; document.getElementById('period').onchange = load;
 load();
 </script>
 </body>

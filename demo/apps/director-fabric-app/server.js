@@ -8,6 +8,7 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const model = require('./rayfin/data/model');
+const overview = require('./rayfin/data/overview');
 
 const app = express();
 app.use(express.json({ limit: '32kb' }));
@@ -62,6 +63,15 @@ app.get('/api/report/:id', (req, res) => {
 });
 
 app.get('/api/audit', (_req, res) => res.json({ events: accessLog.slice(-100) }));
+
+// Aggregated dashboard overview (KPIs, per-school benchmarks, map points). Scope-bound.
+app.get('/api/overview', (req, res) => {
+  if (!euResident()) return res.status(503).json({ state: 'fabric_unavailable' });
+  const scope = verifyScope(req.header('x-scope-context') || req.query.scope) || { schoolIds: [], regionIds: [] };
+  audit({ report: 'overview', state: 'ready', subject: scope.directorSubjectId, source: 'fabric-app' });
+  res.json({ ...overview.overview(scope), backend: 'fabric-app', region: REGION });
+});
+
 app.use(express.static(path.join(__dirname, 'src')));
 
 if (require.main === module) app.listen(PORT, () => console.log(`director-fabric-app on :${PORT} (${REGION})`));
