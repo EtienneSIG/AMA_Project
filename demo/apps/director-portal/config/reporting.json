@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "backend": "fabric-app",
-  "migrationState": "pilot",
+  "migrationState": "complete",
   "defaultAggregationLevel": "school-region",
   "fabric": {
     "workspaceName": "EULearn",
@@ -17,7 +17,7 @@
     { "id": "class-evolution", "title": "Class outcome evolution", "kind": "trend", "enabled": true },
     { "id": "establishment-vs-national", "title": "Establishment vs national", "kind": "benchmark", "enabled": true }
   ],
-  "powerbi": { "fallbackEnabled": true },
+  "powerbi": { "fallbackEnabled": false },
   "reports": [
     {
       "reportId": "23ee9466-303c-4a4e-a0e1-4351bcca3010",

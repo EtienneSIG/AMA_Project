@@ -21,8 +21,8 @@
 ## Phase 1: Setup
 
 - [X] T001 EdTech Program Orchestrator: append the theming increment scope + touched files to demo/apps/learner-web/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **DONE: added an "Age-adaptive theming (spec 014)" section.**
-- [ ] T002 [P] Learning Sciences Expert: confirm age-band → theme mapping, readability, and age-appropriateness (under-8 / 8–13 / 14+) and the accessibility baseline in specs/014-age-adaptive-theming/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T003 [P] Content Localisation Lead: confirm original (non-trademarked) illustration/asset strategy per theme; no brand/character IP in demo/apps/learner-web/public/themes/ (Accountable: agents/content-localisation-lead.chatmode.md)
+- [x] T002 [P] Learning Sciences Expert: confirm age-band → theme mapping, readability, and age-appropriateness (under-8 / 8–13 / 14+) and the accessibility baseline in specs/014-age-adaptive-theming/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T003 [P] Content Localisation Lead: confirm original (non-trademarked) illustration/asset strategy per theme; no brand/character IP in demo/apps/learner-web/public/themes/ (Accountable: agents/content-localisation-lead.chatmode.md)
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
@@ -57,7 +57,7 @@
 **Independent Test**: change one token → propagates with no per-screen edits; register a 4th theme without screen markup changes.
 
 - [X] T012 [US2] Demo Deployment Agent: ensure all theme values flow through `tokens.css` (no per-screen hard-coded styles remain) and document how to add a theme in demo/apps/learner-web/README.md (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: age themes remap the existing 8-variable contract (no per-screen styles); "Add a theme" documented in the README.**
-- [ ] T013 [P] [US2] Cross-Agent QA Verifier: add a token-propagation test (one token change reflected app-wide; 4th-theme registration without markup edits) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T013 [P] [US2] Cross-Agent QA Verifier: add a token-propagation test (one token change reflected app-wide; 4th-theme registration without markup edits) to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: token system proven reusable.
 
@@ -71,7 +71,7 @@
 
 - [X] T014 [US3] EdTech Program Orchestrator: persist a per-learner **theme override** (actor + timestamp) on the existing learner preferences and apply it in the resolver in demo/apps/learner-web (server.js + theme-toggle.js) (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **DONE: self-service via PATCH /api/auth/me {themeOverride}; PLUS cross-app teacher override — `learner_theme_override` table + `GET /api/learner/theme-override` (learner reads) + `POST /api/teacher/learner-theme` (teacher/admin sets) + teacher UI `teacher-console/public/learner-theme.html`. Resolver fetches the DB override (precedence over age).**
 - [X] T015 [P] [US3] Demo Deployment Agent: implement **reduced-motion** + **high-contrast** variants for all three themes in demo/apps/learner-web/public/themes/ + theme.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE: `body.theme-reduced-motion` + `body.theme-contrast-high` in themes/age-themes.css; toggled by age-theme.js from prefers-* + explicit prefs.**
-- [ ] T016 [P] [US3] Cross-Agent QA Verifier: add accessibility checks (WCAG AA contrast, reduced-motion, high-contrast, keyboard/landmarks) per theme to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T016 [P] [US3] Cross-Agent QA Verifier: add accessibility checks (WCAG AA contrast, reduced-motion, high-contrast, keyboard/landmarks) per theme to demo/scripts/ verification (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: override + accessibility complete.
 
@@ -79,9 +79,9 @@
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T017 [P] Learning Sciences Expert: final age-appropriateness + Universal Design for Learning review across the three themes (Accountable: agents/learning-sciences-expert.chatmode.md)
-- [ ] T018 [P] Cross-Agent QA Verifier: run the full specs/014-age-adaptive-theming/quickstart.md validation (per-band, parity, override, a11y, fallback) (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T019 EdTech Program Orchestrator: update specs/INDEX.md (014 → planned+tasked) and note the shared token contract for **019 (app shell)** to consume (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T017 [P] Learning Sciences Expert: final age-appropriateness + Universal Design for Learning review across the three themes (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T018 [P] Cross-Agent QA Verifier: run the full specs/014-age-adaptive-theming/quickstart.md validation (per-band, parity, override, a11y, fallback) (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T019 EdTech Program Orchestrator: update specs/INDEX.md (014 → planned+tasked) and note the shared token contract for **019 (app shell)** to consume (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 
 ---
 
