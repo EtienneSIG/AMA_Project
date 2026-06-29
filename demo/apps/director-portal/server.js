@@ -110,8 +110,8 @@ app.get('/api/reporting/health', (_req, res) => {
 
 app.get('/api/reporting/metadata', (req, res) => {
   const authz = req.user && req.user.directorAuthorization;
-  const scope = authz && authz.scope ? authz.scope : { schoolIds: [], regionIds: [] };
-  const granted = Boolean(authz && authz.granted);
+  const scope = (authz && authz.scope) ? authz.scope : (req.user && req.user.reportingScope ? req.user.reportingScope : { schoolIds: [], regionIds: [] });
+  const granted = Boolean((authz && authz.granted) || (scope.schoolIds || []).length || (scope.regionIds || []).length);
   const cfg = loadReportingConfig();
   // fail-closed: if fabric-app requested but residency not EU, fall back to powerbi.
   const fabricOk = cfg.backend === 'fabric-app' && fabricResidencyOk(cfg);
