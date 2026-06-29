@@ -496,7 +496,7 @@ async function loadCards() {
       <div class="stat-row"><span>Location</span><span>${escapeHtml(pgR.payload?.location || '—')}</span></div>
       <div class="actions">
         <button class="btn secondary" onclick="loadPostgresOps();loadCards();">Refresh</button>
-        <button class="btn" onclick="wakeUpPostgres()" ${pgStateLc === 'ready' ? 'disabled' : ''}>Wake up</button>
+        <button class="btn" onclick="wakeUpPostgres(this)" ${pgStateLc === 'ready' ? 'disabled' : ''}>Wake up</button>
       </div>`;
     cards.appendChild(pgCard);
 
@@ -514,7 +514,7 @@ async function loadCards() {
       <div class="stat-row"><span>SKU</span><span>${escapeHtml(fabricR.payload?.sku || '—')}</span></div>
       <div class="actions">
         <button class="btn secondary" onclick="loadFabricOps();loadCards();">Refresh</button>
-        <button class="btn" onclick="wakeUpFabric()" ${fabricStateLc === 'active' ? 'disabled' : ''}>Wake up</button>
+        <button class="btn" onclick="wakeUpFabric(this)" ${fabricStateLc === 'active' ? 'disabled' : ''}>Wake up</button>
       </div>`;
     cards.appendChild(fabricCard);
   } catch (e) {
@@ -615,36 +615,28 @@ async function loadPostgresOps() {
   }
 }
 
-async function wakeUpPostgres() {
-  const wakeBtn = document.getElementById('pgWakeBtn');
-  const outcomeEl = document.getElementById('pg-outcome');
-  if (!wakeBtn || !outcomeEl) return;
+async function wakeUpPostgres(wakeBtn) {
   if (!confirm('Send wake-up request to PostgreSQL?')) return;
-  wakeBtn.disabled = true;
-  wakeBtn.textContent = 'Requesting…';
-  outcomeEl.textContent = 'Sending wake-up request…';
+  if (wakeBtn) { wakeBtn.disabled = true; wakeBtn.textContent = 'Requesting…'; }
   try {
     const r = await fetch('/api/admin/postgres/wakeup', { method: 'POST' });
     const j = await r.json();
     const outcome = j.outcome || 'unknown';
     if (!r.ok || j.ok === false) {
-      outcomeEl.textContent = `Wake-up failed (${outcome}): ${j.detail || j.error || 'unknown error'} · Correlation: ${j.correlationId || '-'}`;
-      toast('PostgreSQL wake-up failed', 'err');
-      await loadPostgresOps();
+      toast(`PostgreSQL wake-up failed: ${j.detail || j.error || 'unknown error'}`, 'err');
+      await loadCards();
       return;
     }
-    outcomeEl.textContent = `${j.message || 'Wake-up request processed.'} · Outcome: ${outcome} · Correlation: ${j.correlationId || '-'}`;
-    toast('PostgreSQL operation sent', 'ok');
-    await loadPostgresOps();
+    toast(`PostgreSQL operation sent (${outcome})`, 'ok');
+    await loadCards();
     if (outcome === 'accepted' || outcome === 'in-progress') {
       if (pgWakePollingTimer) clearInterval(pgWakePollingTimer);
-      pgWakePollingTimer = setInterval(loadPostgresOps, 15000);
+      pgWakePollingTimer = setInterval(loadCards, 15000);
     }
   } catch (e) {
-    outcomeEl.textContent = `Wake-up failed: ${String(e)}`;
-    toast('PostgreSQL wake-up failed', 'err');
+    toast('PostgreSQL wake-up failed: ' + String(e), 'err');
   } finally {
-    wakeBtn.textContent = 'Wake up PostgreSQL';
+    if (wakeBtn) { wakeBtn.disabled = false; wakeBtn.textContent = 'Wake up'; }
   }
 }
 
@@ -687,36 +679,28 @@ async function loadFabricOps() {
   }
 }
 
-async function wakeUpFabric() {
-  const wakeBtn = document.getElementById('fabricWakeBtn');
-  const outcomeEl = document.getElementById('fabric-outcome');
-  if (!wakeBtn || !outcomeEl) return;
+async function wakeUpFabric(wakeBtn) {
   if (!confirm('Send wake-up request to Fabric capacity?')) return;
-  wakeBtn.disabled = true;
-  wakeBtn.textContent = 'Requesting…';
-  outcomeEl.textContent = 'Sending wake-up request…';
+  if (wakeBtn) { wakeBtn.disabled = true; wakeBtn.textContent = 'Requesting…'; }
   try {
     const r = await fetch('/api/admin/fabric/wakeup', { method: 'POST' });
     const j = await r.json();
     const outcome = j.outcome || 'unknown';
     if (!r.ok || j.ok === false) {
-      outcomeEl.textContent = `Wake-up failed (${outcome}): ${j.detail || j.error || 'unknown error'} · Correlation: ${j.correlationId || '-'}`;
-      toast('Fabric wake-up failed', 'err');
-      await loadFabricOps();
+      toast(`Fabric wake-up failed: ${j.detail || j.error || 'unknown error'}`, 'err');
+      await loadCards();
       return;
     }
-    outcomeEl.textContent = `${j.message || 'Wake-up request processed.'} · Outcome: ${outcome} · Correlation: ${j.correlationId || '-'}`;
-    toast('Fabric operation sent', 'ok');
-    await loadFabricOps();
+    toast(`Fabric operation sent (${outcome})`, 'ok');
+    await loadCards();
     if (outcome === 'accepted' || outcome === 'in-progress') {
       if (fabricWakePollingTimer) clearInterval(fabricWakePollingTimer);
-      fabricWakePollingTimer = setInterval(loadFabricOps, 15000);
+      fabricWakePollingTimer = setInterval(loadCards, 15000);
     }
   } catch (e) {
-    outcomeEl.textContent = `Wake-up failed: ${String(e)}`;
-    toast('Fabric wake-up failed', 'err');
+    toast('Fabric wake-up failed: ' + String(e), 'err');
   } finally {
-    wakeBtn.textContent = 'Wake up Fabric';
+    if (wakeBtn) { wakeBtn.disabled = false; wakeBtn.textContent = 'Wake up'; }
   }
 }
 
