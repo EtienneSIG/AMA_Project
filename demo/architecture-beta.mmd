@@ -1,0 +1,67 @@
+architecture-beta
+  group idp(cloud)[Microsoft Entra]
+  service workforce(cloud)[Workforce esig_tenant] in idp
+  service ciam(cloud)[CIAM learneu] in idp
+
+  group apps(internet)[Demo Apps]
+  service lw(internet)[learner web] in apps
+  service lwm(internet)[learner mobile pwa] in apps
+  service pp(internet)[parent portal] in apps
+  service tc(internet)[teacher console] in apps
+  service adm(internet)[admin] in apps
+
+  group rg(cloud)[RG learneu demo westeurope]
+  service apim(cloud)[APIM internal VNet] in rg
+  service kv(disk)[Key Vault] in rg
+  service aoai(server)[Azure OpenAI gpt 5 4 nano] in rg
+  service cs(server)[Content Safety] in rg
+  service srch(server)[AI Search] in rg
+  service aml(database)[Azure ML mlw HBI] in rg
+  service acr(database)[ACR Premium] in rg
+  service sa(database)[Storage AML] in rg
+  service law(cloud)[Log Analytics] in rg
+  service appi(cloud)[App Insights] in rg
+  service vnet(server)[VNet 10 42 0 0 16 with PE APIM AML subnets] in rg
+  service pg(database)[Postgres Flex B1ms learneu db] in rg
+  service fab(cloud)[Fabric F2 capacity] in rg
+  service pbi(server)[Power BI Embedded] in rg
+
+  group gated(cloud)[NOT DEPLOYED group]
+  service prv(cloud)[Purview] in gated
+
+  ciam:B --> T:lw
+  ciam:B --> T:lwm
+  ciam:B --> T:pp
+  workforce:B --> T:tc
+  workforce:B --> T:adm
+
+  lw:B --> T:apim
+  lwm:B --> T:apim
+  pp:B --> T:apim
+  tc:B --> T:apim
+  adm:B --> T:apim
+
+  apim:B --> T:aoai
+  apim:B --> T:cs
+  apim:B --> T:srch
+  apim:R --> L:vnet
+
+  aoai:B --> T:law
+  aml:B --> T:law
+  apim:R --> L:appi
+
+  aml:T --> B:kv
+  aml:T --> B:sa
+  aml:T --> B:acr
+
+  vnet:B --> T:aml
+  lw:R --> L:pg
+  lwm:R --> L:pg
+  pp:R --> L:pg
+  tc:R --> L:pg
+  adm:R --> L:pg
+  pg:B --> T:law
+
+  pg:B --> T:fab
+  fab:B --> T:pbi
+  adm:B --> T:pbi
