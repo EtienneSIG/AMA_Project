@@ -89,3 +89,10 @@ This verifies:
 - Smoke script result: passed (approved scope, blocked no-scope, no-access page).
 - Live PostgreSQL verification: `director_profile=2`, `reporting_scope=3`, `hierarchy_exception=2`, `learner_hierarchy_assignment=10`.
 - Fabric workspace verification: `test director` published in `EULearn` workspace with semantic model `test`.
+
+## Feature 018 — Native Fabric (Rayfin) reporting
+
+- Greenfield Rayfin Fabric app at `demo/apps/director-fabric-app/` (backend `rayfin/data/`, frontend `src/`); EU-resident, aggregated-only, suppression (class ≥ 10 / establishment ≥ 30 / national ≥ 100) + fail-closed row-level scope enforced backend-side; `cohortSize` never leaves the backend.
+- Config-driven switch in `config/reporting.json`: `backend` (`powerbi-embedded`|`fabric-app`), `migrationState`, `rayfinApp{url,fabricItemId,region}`, `fabricReports[]`; Power BI kept as fallback (`migrationState=pilot`).
+- Portal mints a signed `ScopeContext` (HMAC, 30 min) at `/api/reporting/metadata`; the embedded Fabric app verifies it. Residency fail-closed: non-EU `rayfinApp.region` → no fabric-app serving. New `GET /api/reporting/health`.
+- Verify: `demo/scripts/verify-director-portal.ps1` (backend/residency/scopeContext/health/no-cohort-leak). Cut-over (`migrationState=complete`, retire PBI) gated on T030/T031.

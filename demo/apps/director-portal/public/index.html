@@ -172,6 +172,20 @@
   function renderReports(payload) {
     const reportList = document.getElementById('reportList');
     reportList.innerHTML = '';
+    // Fabric-app backend: embed the Rayfin app surface with a portal-signed ScopeContext.
+    if (payload.backend === 'fabric-app' && payload.rayfinApp && payload.rayfinApp.url) {
+      const card = document.createElement('section');
+      card.className = 'report';
+      card.innerHTML = '<div class="name">Director reporting (native Fabric)</div><div class="meta">EU-resident Fabric app · scope-bound, suppressed</div><div class="status">Served by Rayfin Fabric app</div><div class="embed-wrap"></div>';
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('title', 'Director reporting (Fabric)');
+      iframe.setAttribute('loading', 'lazy');
+      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.src = payload.rayfinApp.url + '?scope=' + encodeURIComponent(payload.scopeContext || '');
+      card.querySelector('.embed-wrap').appendChild(iframe);
+      reportList.appendChild(card);
+      return;
+    }
     if (!payload.reports || !payload.reports.length) {
       reportList.innerHTML = '<div class="empty">No approved reports are configured yet. The portal is intentionally fail-closed until the reporting contract is supplied.</div>';
       return;

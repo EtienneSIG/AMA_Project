@@ -45,6 +45,17 @@ app.get('/api/health', (_req, res) => {
 app.use(auth.gateMiddleware(ALLOWED));
 
 // --- Director reporting metadata (Power BI embed) -------------------------
+const EU_REGIONS = new Set(['northeurope', 'westeurope', 'francecentral', 'germanywestcentral', 'swedencentral']);
+const SCOPE_CONTEXT_SECRET = process.env.SCOPE_CONTEXT_SECRET || 'demo-shared-secret';
+const crypto = require('crypto');
+
+function mintScopeContext(scope, subjectId) {
+  const payload = { directorSubjectId: subjectId, schoolIds: scope.schoolIds || [], regionIds: scope.regionIds || [], issuedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 60000).toISOString() };
+  const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', SCOPE_CONTEXT_SECRET).update(b64).digest('base64url');
+  return `${b64}.${sig}`;
+}
+
 function loadReportingConfig() {
   const cfgPath = path.join(__dirname, 'config', 'reporting.json');
   try {
@@ -53,6 +64,11 @@ function loadReportingConfig() {
     return {
       loaded: true,
       path: cfgPath,
+      backend: cfg.backend || 'powerbi-embedded',
+      migrationState: cfg.migrationState || 'pilot',
+      rayfinApp: cfg.rayfinApp || null,
+      fabricReports: Array.isArray(cfg.fabricReports) ? cfg.fabricReports.filter(r => r.enabled !== false) : [],
+      powerbiFallback: !(cfg.powerbi && cfg.powerbi.fallbackEnabled === false),
       defaultAggregationLevel: cfg.defaultAggregationLevel || 'school-region',
       fabric: cfg.fabric || null,
       reports: Array.isArray(cfg.reports) ? cfg.reports : [],
@@ -62,6 +78,11 @@ function loadReportingConfig() {
     return {
       loaded: false,
       path: cfgPath,
+      backend: 'powerbi-embedded',
+      migrationState: 'pilot',
+      rayfinApp: null,
+      fabricReports: [],
+      powerbiFallback: true,
       defaultAggregationLevel: 'school-region',
       fabric: null,
       reports: [],
@@ -70,14 +91,40 @@ function loadReportingConfig() {
   }
 }
 
+// Residency fail-closed: fabric-app only served if rayfinApp.region is EU.
+function fabricResidencyOk(cfg) {
+  return Boolean(cfg.rayfinApp && EU_REGIONS.has(String(cfg.rayfinApp.region || '').toLowerCase()));
+}
+
+app.get('/api/reporting/health', (_req, res) => {
+  const cfg = loadReportingConfig();
+  const euResident = fabricResidencyOk(cfg);
+  res.json({
+    backend: cfg.backend,
+    migrationState: cfg.migrationState,
+    rayfinApp: cfg.rayfinApp ? { url: cfg.rayfinApp.url, fabricItemId: cfg.rayfinApp.fabricItemId, region: cfg.rayfinApp.region } : null,
+    residency: { region: cfg.rayfinApp ? cfg.rayfinApp.region : null, euResident },
+    fallbackAvailable: cfg.powerbiFallback
+  });
+});
+
 app.get('/api/reporting/metadata', (req, res) => {
   const authz = req.user && req.user.directorAuthorization;
   const scope = authz && authz.scope ? authz.scope : { schoolIds: [], regionIds: [] };
   const granted = Boolean(authz && authz.granted);
   const cfg = loadReportingConfig();
+  // fail-closed: if fabric-app requested but residency not EU, fall back to powerbi.
+  const fabricOk = cfg.backend === 'fabric-app' && fabricResidencyOk(cfg);
+  const activeBackend = fabricOk ? 'fabric-app' : (cfg.powerbiFallback ? 'powerbi-embedded' : 'unavailable');
 
   res.json({
     status: granted && cfg.loaded ? 'ready' : 'unavailable',
+    backend: activeBackend,
+    migrationState: cfg.migrationState,
+    rayfinApp: fabricOk ? { url: cfg.rayfinApp.url, fabricItemId: cfg.rayfinApp.fabricItemId } : null,
+    residency: { region: cfg.rayfinApp ? cfg.rayfinApp.region : null, euResident: fabricResidencyOk(cfg) },
+    scopeContext: granted ? mintScopeContext(scope, req.user.email) : null,
+    fabricReports: cfg.fabricReports,
     scope: {
       role: req.user && req.user.role,
       subjectId: req.user && req.user.email,

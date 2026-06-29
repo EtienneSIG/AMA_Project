@@ -1,0 +1,23 @@
+# Rayfin Fabric App — director-fabric-app
+# Microsoft Fabric Apps framework (preview). Backend + data model hosted on Fabric.
+# Pinned to an EU-resident workspace/capacity (residency asserted before serving).
+app:
+  name: director-fabric-app
+  description: LearnEU director aggregated reporting — native Fabric backend
+workspace: EULearn
+capacity: cap-learneu-demo
+region: northeurope
+services:
+  backend:
+    type: fabric-data-app
+    dataModel: ./data
+    routes:
+      - GET /report/:id
+      - GET /metadata
+  frontend:
+    type: staticapp
+    src: ../src
+deploy:
+  staticapp: true
+  db: apply
+# Secrets live in rayfin/.env (excluded from VCS). EU residency enforced fail-closed.

@@ -33,4 +33,19 @@ Write-Host "[3/3] Checking no-access page availability..." -ForegroundColor Cyan
 $noAccess = Invoke-WebRequest -Uri "$BaseUrl/no-access.html" -Method GET
 if ($noAccess.StatusCode -ne 200) { throw "Expected 200 for no-access page, got $($noAccess.StatusCode)" }
 
+Write-Host "[4/6] Checking Fabric reporting backend + EU residency..." -ForegroundColor Cyan
+if ($metaJson.backend -ne 'fabric-app' -and $metaJson.backend -ne 'powerbi-embedded') { throw "Unexpected backend: $($metaJson.backend)" }
+if ($metaJson.backend -eq 'fabric-app') {
+  if (-not $metaJson.residency.euResident) { throw 'fabric-app backend must be EU-resident (fail-closed)' }
+  if (-not $metaJson.scopeContext) { throw 'fabric-app metadata must mint a portal-signed ScopeContext' }
+  if (-not $metaJson.rayfinApp.url) { throw 'fabric-app metadata must expose the embedded Rayfin app URL' }
+}
+
+Write-Host "[5/6] Checking reporting health endpoint..." -ForegroundColor Cyan
+$health = (Invoke-WebRequest -Uri "$BaseUrl/api/reporting/health" -Method GET -WebSession $approved.Session).Content | ConvertFrom-Json
+if (-not $health.fallbackAvailable -and $health.backend -ne 'fabric-app') { throw 'No backend available and no Power BI fallback' }
+
+Write-Host "[6/6] Asserting no learner-level cohort field leaks..." -ForegroundColor Cyan
+if (($meta.Content -match 'cohortSize')) { throw 'cohortSize must never appear in reporting payloads' }
+
 Write-Host "Director portal smoke checks passed." -ForegroundColor Green

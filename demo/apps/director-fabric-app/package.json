@@ -1,0 +1,14 @@
+{
+  "name": "director-fabric-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LearnEU director aggregated reporting — native Fabric (Rayfin) app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

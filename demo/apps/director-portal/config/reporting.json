@@ -1,11 +1,23 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "backend": "powerbi-embedded",
+  "migrationState": "pilot",
   "defaultAggregationLevel": "school-region",
   "fabric": {
     "workspaceName": "EULearn",
     "mirroredDatabaseName": "learneu",
     "sourceConnectionId": "1a26851b-13d2-4b6e-9a8b-cd84be841fbc"
   },
+  "rayfinApp": {
+    "url": "https://app-director-fabric-learneu-demo.azurewebsites.net",
+    "fabricItemId": "director-fabric-app",
+    "region": "northeurope"
+  },
+  "fabricReports": [
+    { "id": "class-evolution", "title": "Class outcome evolution", "kind": "trend", "enabled": true },
+    { "id": "establishment-vs-national", "title": "Establishment vs national", "kind": "benchmark", "enabled": true }
+  ],
+  "powerbi": { "fallbackEnabled": true },
   "reports": [
     {
       "reportId": "23ee9466-303c-4a4e-a0e1-4351bcca3010",

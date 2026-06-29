@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LearnEU — Director Reporting (Fabric)</title>
+<style>
+  :root { --line:#dde3ea; --grey:#5a6675; --ink:#0a2540; }
+  body { font-family: system-ui, sans-serif; color:var(--ink); margin:0; padding:1rem; background:#f6f8fb; }
+  .bar { display:flex; gap:.5rem; align-items:center; margin-bottom:.75rem; flex-wrap:wrap; }
+  select, button { padding:.4rem .6rem; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:.85rem; margin-bottom:.85rem; }
+  .row { display:flex; justify-content:space-between; font-size:.86rem; padding:.2rem 0; border-bottom:1px dashed var(--line); }
+  .empty { color:var(--grey); font-style:italic; padding:.6rem; }
+  h2 { font-size:1rem; margin:.2rem 0 .6rem; }
+  .src { font-size:.74rem; color:var(--grey); }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <strong>Director reporting</strong>
+    <select id="report"><option value="class-evolution">Class outcome evolution</option><option value="establishment-vs-national">Establishment vs national</option></select>
+    <select id="period"><option value="2025-T1">Term 1 2025</option><option value="2025-T2" selected>Term 2 2025</option><option value="2026-T1">Term 1 2026</option></select>
+    <button id="refresh">Refresh</button>
+    <span class="src" id="src"></span>
+  </div>
+  <div id="out" class="card"><div class="empty">Loading…</div></div>
+<script>
+function scopeToken() { const u = new URLSearchParams(location.search); return u.get('scope') || ''; }
+async function load() {
+  const id = document.getElementById('report').value, period = document.getElementById('period').value;
+  const out = document.getElementById('out');
+  out.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const r = await fetch(`/api/report/${id}?period=${period}`, { headers: { 'x-scope-context': scopeToken() } });
+    const j = await r.json();
+    document.getElementById('src').textContent = 'Fabric · EU-resident · ' + j.state;
+    if (j.state === 'suppressed_small_cohort') return out.innerHTML = '<div class="empty">Suppressed: cohort below K-anonymity threshold.</div>';
+    if (j.state === 'scope_denied') return out.innerHTML = '<div class="empty">Out of scope.</div>';
+    if (!j.series || !j.series.length) return out.innerHTML = '<div class="empty">No data for this selection.</div>';
+    out.innerHTML = '<h2>' + id + ' — ' + (j.period?.label||period) + '</h2>' + j.series.map(s =>
+      '<div class="card"><strong>'+s.dimension+'</strong>'+ s.points.map(p=>'<div class="row"><span>'+p.periodId+'</span><span>'+Math.round(p.value*100)+'%</span></div>').join('')+'</div>').join('')
+      + '<p class="src">'+(j.notes||'')+'</p>';
+  } catch (e) { out.innerHTML = '<div class="empty">Reporting unavailable.</div>'; }
+}
+document.getElementById('refresh').onclick = load; document.getElementById('report').onchange = load; document.getElementById('period').onchange = load;
+load();
+</script>
+</body>
+</html>
