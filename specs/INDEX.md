@@ -33,23 +33,23 @@ Each spec folder contains:
 
 | # | Feature | Branch | Status | P0/P1 | Backlog Match |
 |---|---------|--------|--------|-------|---------------|
-| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | 📝 spec only | P1 | Student experience (UI redesign) |
-| **002** | Admin Postgres Wake-Up | `002-admin-postgres-wakeup` | ✅ spec+plan+tasks | P1 | Platform transverse (ops reliability) |
-| **003** | Learner Gamification UX | `003-learner-gamification-ux` | ✅ spec+plan+tasks | P1 | Student gamification (progress/streak/quests) |
-| **004** | Learner Hierarchy Portal | `004-learner-hierarchy-portal` | ✅ spec+plan+tasks | P1 | Director portal (class/learner hierarchy) |
-| **005** | Director Reporting Benchmarks | `005-director-reporting-benchmarks` | ✅ spec+plan+tasks | P1 | Director dashboard (class trends, benchmarks) |
+| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | ✅ spec · impl | P1 | Student experience (UI redesign) |
+| **002** | Admin Postgres Wake-Up | `002-admin-postgres-wakeup` | ✅ spec+plan+tasks · impl | P1 | Platform transverse (ops reliability) |
+| **003** | Learner Gamification UX | `003-learner-gamification-ux` | ✅ spec+plan+tasks · impl | P1 | Student gamification (progress/streak/quests) |
+| **004** | Learner Hierarchy Portal | `004-learner-hierarchy-portal` | ✅ spec+plan+tasks · impl | P1 | Director portal (class/learner hierarchy) |
+| **005** | Director Reporting Benchmarks | `005-director-reporting-benchmarks` | ✅ spec+plan+tasks · impl | P1 | Director dashboard (class trends, benchmarks) |
 
 ### 🆕 NEW SPECS (006–012) — Planned + Tasked
 
 | # | Feature | Branch | Priority | Status | Backlog Feature Area |
 |---|---------|--------|----------|--------|---------------------|
-| **006** | Parent Portal | `006-parent-portal` | P0–P1 | ✅ spec+plan+tasks | Parent Communications, Consent, Digest |
-| **007** | Adaptive Learning | `007-adaptive-learning` | P1 | ✅ spec+plan+tasks | Student → Next-Best-Activity, Catch-Up, Stretch |
-| **008** | Teacher Assessment | `008-teacher-assessment` | P0–P1 | ✅ spec+plan+tasks | Teacher → Authoring, Rubrics, Shared Library |
-| **009** | Interoperability | `009-interoperability-sis` | P1 | ✅ spec+plan+tasks | Platform → SCORM, xAPI, SIS, Calendar, Export |
-| **010** | CMS Versioning | `010-cms-versioning` | P1 | ✅ spec+plan+tasks | Platform → Content Versioning, Approval, Localization |
-| **011** | Multi-School Hierarchy | `011-multi-school-hierarchy` | P1 | ✅ spec+plan+tasks | Director → District View, Benchmarking, Peer Learning |
-| **012** | A/B Testing | `012-ab-testing-framework` | P2 | ✅ spec+plan+tasks | Platform → Experimentation, Product Iteration |
+| **006** | Parent Portal | `006-parent-portal` | P0–P1 | ✅ spec+plan+tasks · impl | Parent Communications, Consent, Digest |
+| **007** | Adaptive Learning | `007-adaptive-learning` | P1 | ✅ spec+plan+tasks · impl | Student → Next-Best-Activity, Catch-Up, Stretch |
+| **008** | Teacher Assessment | `008-teacher-assessment` | P0–P1 | ✅ spec+plan+tasks · impl | Teacher → Authoring, Rubrics, Shared Library |
+| **009** | Interoperability | `009-interoperability-sis` | P1 | ✅ spec+plan+tasks · impl | Platform → SCORM, xAPI, SIS, Calendar, Export |
+| **010** | CMS Versioning | `010-cms-versioning` | P1 | ✅ spec+plan+tasks · impl | Platform → Content Versioning, Approval, Localization |
+| **011** | Multi-School Hierarchy | `011-multi-school-hierarchy` | P1 | ✅ spec+plan+tasks · impl | Director → District View, Benchmarking, Peer Learning |
+| **012** | A/B Testing | `012-ab-testing-framework` | P2 | ✅ spec+plan+tasks · impl | Platform → Experimentation, Product Iteration |
 
 ### 🆕 NEW SPECS (013–020) — Experience, Tutor, Well-Being & Analytics
 
@@ -58,10 +58,10 @@ Each spec folder contains:
 | **013** | Learner Sheet & Item Sharing | `013-learner-sheet-sharing` | P1 | ✅ spec+plan+tasks · impl | Student → Peer sharing of items/sheets (in-class, moderated) |
 | **014** | Age-Adaptive Theming | `014-age-adaptive-theming` | P1 | ✅ spec+plan+tasks · US1 impl | Student → Age-band look & feel (child-drawing / Lego-inspired / game-HUD) |
 | **015** | AI Tutor Video Links | `015-ai-tutor-video-links` | P1 | ✅ spec+plan+tasks · impl | Student → Vetted external explainer videos in tutor answers |
-| **016** | AI Tutor Voice Mode | `016-ai-tutor-voice-mode` | P1 | ✅ spec+plan+tasks | Student → Write/explain + voice-to-voice discussion modes |
+| **016** | AI Tutor Voice Mode | `016-ai-tutor-voice-mode` | P1 | 📝 spec+plan+tasks (not impl) | Student → Write/explain + voice-to-voice discussion modes |
 | **017** | Learner Mood Check-In | `017-learner-mood-checkin` | P1 | ✅ spec+plan+tasks · impl | Student/Parent/Teacher → Self-reported mood + well-being routing |
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks · impl (pilot, PBI fallback) | Director → Native Fabric app replacing Power BI Embedded |
-| **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (opt-in) | All apps → Left nav / center content / right profile redesign |
+| **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (default on) | All apps → Left nav / center content / right profile redesign |
 | **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec+plan+tasks · impl | All apps → Remove Editorial theme toggle + left-align primary menu |
 
 ---

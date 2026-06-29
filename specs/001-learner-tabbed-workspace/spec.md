@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-18
 
-**Status**: Draft (back-ported from `demo/feature/learner feature.md` §"UI redesign")
+**Status**: Implemented (tabbed workspace shipped in learner-web — "Feature 4b": three tabs Test your knowledge / Ask your teacher / My progress + per-chapter grouping)
 
 **Input**: User description: "Split the single-page learner experience into three
 dedicated tabs (Test your knowledge / Ask your teacher / My progress) and

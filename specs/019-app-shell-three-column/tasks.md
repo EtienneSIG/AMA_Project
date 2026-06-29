@@ -21,7 +21,7 @@
 ## Phase 2: Foundational
 - [X] T003 Demo Deployment Agent: build the **shared shell** (CSS Grid: left rail / center outlet / right panel; consumes 014 tokens) in demo/apps/_shared/public/shell/shell.css (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE.**
 - [X] T004 Demo Deployment Agent: shell JS — client-side nav (center-only update), responsive drawers, ARIA landmarks/focus order in demo/apps/_shared/public/shell/shell.js (Accountable: agents/demo-deployment-agent.chatmode.md) — **DONE (opt-in, runtime-built).**
-- [ ] T005 [P] Demo Deployment Agent: define the `NavConfig` + `ProfilePanelConfig` schema (per-role config contract) in demo/apps/_shared/public/shell/ (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T005 [P] Demo Deployment Agent: define the `NavConfig` + `ProfilePanelConfig` schema (per-role config contract) in demo/apps/_shared/public/shell/ (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 **Checkpoint**: shared shell + config contract ready.
 
@@ -30,11 +30,11 @@
 ## Phase 3: User Story 1 — Consistent Three-Column Shell Across All Apps (Priority: P1) 🎯 MVP
 **Goal**: All five apps render the same shell (rail/center/panel) with existing pages re-hosted; routes intact.
 **Independent Test**: sign in to each app → same three-column structure; deep links still work.
-- [ ] T006 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/learner-web/public/ (re-host existing pages in the center outlet) (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T007 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/parent-portal/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T008 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/teacher-console/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T009 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/admin/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T010 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/director-portal/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T006 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/learner-web/public/ (re-host existing pages in the center outlet) (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T007 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/parent-portal/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T008 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/teacher-console/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T009 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/admin/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T010 [P] [US1] Demo Deployment Agent: adopt the shell in demo/apps/director-portal/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
 - [ ] T011 [US1] Cross-Agent QA Verifier: verify three-column render per app + client-side nav + **no broken deep links** in demo/scripts/ (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: unified shell live across all apps (MVP).
@@ -44,8 +44,8 @@
 ## Phase 4: User Story 2 — Role-Tailored Navigation, Content & Panel (Priority: P1)
 **Goal**: Each role gets its menu, center modules, and panel widgets via config (no layout duplication).
 **Independent Test**: each role's nav/center/panel match its config; a new role module added via config without shell edits.
-- [ ] T012 [P] [US2] EdTech Program Orchestrator: author per-role `NavConfig` + `ProfilePanelConfig` for learner/parent/teacher/admin/director in each app's public/ (Accountable: agents/edtech-program-orchestrator.chatmode.md)
-- [ ] T013 [US2] Demo Deployment Agent: render role config (menu groups, pinned Settings/Logout, panel greeting/quick-actions/chart/list) via the shared shell (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T012 [P] [US2] EdTech Program Orchestrator: author per-role `NavConfig` + `ProfilePanelConfig` for learner/parent/teacher/admin/director in each app's public/ (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T013 [US2] Demo Deployment Agent: render role config (menu groups, pinned Settings/Logout, panel greeting/quick-actions/chart/list) via the shared shell (Accountable: agents/demo-deployment-agent.chatmode.md)
 - [ ] T014 [P] [US2] Cross-Agent QA Verifier: verify role-tailored surfaces + add-a-role-via-config (no layout edit) in demo/scripts/ (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 
 **Checkpoint**: role-tailored shell complete.
@@ -66,7 +66,7 @@
 ## Phase 6: Polish & Cross-Cutting
 - [ ] T018 [P] Learning Sciences Expert: final UDL/age-appropriateness review across apps (Accountable: agents/learning-sciences-expert.chatmode.md)
 - [ ] T019 [P] Cross-Agent QA Verifier: run full specs/019-app-shell-three-column/quickstart.md validation across all five apps (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
-- [ ] T020 EdTech Program Orchestrator: update specs/INDEX.md (019 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
+- [x] T020 EdTech Program Orchestrator: update specs/INDEX.md (019 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 
 ---
 
