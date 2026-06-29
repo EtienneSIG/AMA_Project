@@ -8,6 +8,8 @@
 
 **Input**: User description: "Create a new feature specification for AMA_Project to add in the admin app the ability to start (wake up) the Azure PostgreSQL Flexible Server when it is auto-stopped. The feature should include admin backend API endpoint(s) to check postgres state and trigger start via Azure ARM (managed identity), admin UI controls to display postgres state and trigger start, update operational scripts/docs needed so operators can use this flow, keep EU residency/compliance principles and no new data classes."
 
+> **Delivered increment (2026-06-29)** — Scope extended beyond PostgreSQL: admin operations dashboard now also exposes Microsoft Fabric capacity wake-up (FR-011) and monitors the Director Portal site (FR-012). Fixed wake-up buttons that no longer functioned because the click handlers referenced removed `pg/fabric-status` panel IDs; handlers now act on the clicked card button and refresh via `loadCards()`. Director Portal restart requires Website Contributor RBAC for the admin managed identity at the portal scope.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Detect PostgreSQL availability state from admin app (Priority: P1)
@@ -77,6 +79,8 @@ An operator or on-call engineer follows the repository scripts and runbook-style
 - **FR-008**: Repository operational scripts and documentation MUST be updated to include the admin-led wake-up flow and a scripted fallback flow for incident response.
 - **FR-009**: Feature MUST preserve EU residency and existing compliance controls, and MUST NOT introduce new data classes, third-party data egress, or cross-EU data transfer.
 - **FR-010**: Feature MUST define operator-facing failure modes and remediation steps for authorization errors, cloud API errors, and prolonged startup.
+- **FR-011**: Admin backend MUST expose status and wake-up endpoints for the Microsoft Fabric capacity (`GET /api/admin/fabric/status`, `POST /api/admin/fabric/wakeup`) using ARM resume on `Microsoft.Fabric/capacities`, with the same idempotency and audit guarantees as PostgreSQL, so paused/suspended report-serving capacity can be resumed without leaving the admin app.
+- **FR-012**: Admin operations dashboard MUST monitor all managed sibling sites — including the Director Portal (`app-director-portal-learneu-demo`) — showing ARM state, HTTP `/api/health`, last-modified and a restart control; wake-up buttons MUST act on the operator-clicked card element and refresh status via the shared cards loader.
 
 ### Key Entities
 
@@ -84,6 +88,8 @@ An operator or on-call engineer follows the repository scripts and runbook-style
 - **WakeUpRequest**: Operator-initiated command to start a stopped PostgreSQL server (request timestamp, caller role, correlation identifier, requested action).
 - **WakeUpOperationResult**: Outcome record for a wake-up attempt (accepted/in-progress/succeeded/failed/already-running, message, completion timestamp).
 - **OperationalAuditEvent**: Compliance-aligned log record for state checks and wake-up actions (event type, actor role, outcome, correlation identifier, no new PII fields).
+- **FabricCapacityState**: Operational state snapshot for the managed Fabric capacity (state, provisioning state, SKU, location, checked-at) used to resume paused report-serving capacity.
+- **ManagedSiteCard**: Operations dashboard tile per managed App Service (learner, parent, teacher, director portal) showing ARM state, HTTP health, last-modified and restart action.
 
 ## Success Criteria *(mandatory)*
 
