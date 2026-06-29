@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "backend": "powerbi-embedded",
+  "backend": "fabric-app",
   "migrationState": "pilot",
   "defaultAggregationLevel": "school-region",
   "fabric": {
