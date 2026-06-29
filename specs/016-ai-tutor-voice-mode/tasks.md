@@ -17,7 +17,7 @@
 ## Phase 1: Setup & Compliance Gate
 - [x] T000 GDPR Children's Data Specialist + DPO: approve the voice DPIA delta (EU residency, minimal transcript retention, no raw-audio persistence, no Art. 5 inference) and record sign-off in specs/016-ai-tutor-voice-mode/checklists/gdpr-ai-act-compliance.md (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 - [ ] T001 [P] EU AI Act Compliance Officer: author the Annex IV fragment (two modes, logging, transparency, teacher override, no Art. 5) in specs/016-ai-tutor-voice-mode/contracts/annex-iv-fragment.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T002 [P] Privacy-Preserving ML Engineer: select the EU speech service (STT/TTS) + confirm region/retention in specs/016-ai-tutor-voice-mode/research.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T002 [P] Privacy-Preserving ML Engineer: select the EU speech service (STT/TTS) + confirm region/retention in specs/016-ai-tutor-voice-mode/research.md (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 
 ## Phase 2: Foundational
 - [x] T003 GDPR Children's Data Specialist: add `tutor_session`, `tutor_turn` (shared w/015), `voice_consent`, `voice_mode_policy`, `tutor_audit_log` to demo/apps/_shared/db/schema.sql — **no raw-audio/biometric fields** (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
@@ -43,7 +43,7 @@
 **Independent Test**: speak → live transcript → spoken answer with identical text; continue by voice.
 - [x] T008 [US2] Privacy-Preserving ML Engineer: implement POST /api/tutor/voice/turn (EU STT → LLM → TTS), enforce transcript==output, content-safety scan, minimal retention, **no audio persistence** in demo/apps/learner-web/server.js (depends on T002, T003, T004) (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [x] T009 [P] [US2] Demo Deployment Agent: mic control + clear on/off indicator + always-visible live transcript + mode switch (context preserved) in demo/apps/learner-web/public/ (Accountable: agents/demo-deployment-agent.chatmode.md)
-- [ ] T010 [US2] Privacy-Preserving ML Engineer: robustness — poor-recognition repeat, unsupported-language text fallback, immediate mic stop in demo/apps/learner-web (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T010 [US2] Privacy-Preserving ML Engineer: robustness — poor-recognition repeat, unsupported-language text fallback, immediate mic stop in demo/apps/learner-web (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [ ] T011 [P] [US2] Responsible AI Evaluator: verify EU residency, transcript parity, and **0 emotion/biometric inference** against contracts/tutor-voice-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: voice mode functional + compliant.

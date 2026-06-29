@@ -11,6 +11,7 @@
 
 - **Decision**: STT + TTS via an **EU-region** speech service; persist **transcripts** (minimal policy), **not raw audio** beyond session need; never use audio for training/advertising.
 - **Rationale**: Principle I + Art. 10; minimises children's-data footprint.
+- **As-built (2026-06-29)**: **Azure AI Speech** account `spch-learneu-demo` in **North Europe** (S0). STT `POST /speech/recognition/conversation/cognitiveservices/v1`; TTS `POST /cognitiveservices/v1` (voice `en-GB-OliviaNeural`). Auth via **managed identity + AAD** (`aad#<resourceId>#<token>`; key auth disabled by policy). learner-web MI has *Cognitive Services Speech User*. Server module `demo/apps/_shared/speech.js`; routes `/api/tutor/voice/stt` + `/api/tutor/voice/tts`. Audio streamed, transcribed, discarded — only transcript text stored. Browser Web Speech kept only as a fallback when speech is unavailable.
 
 ## R3 — No Art. 5 inference
 

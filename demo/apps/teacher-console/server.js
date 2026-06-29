@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const auth = require('./auth');
 const db = require('./db');
 const cs = require('./contentSafety');
+const speech = require('./speech');
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
@@ -390,7 +391,22 @@ app.get('/api/tutor/voice/status', async (req, res) => {
     policyOk = await db.isVoiceModeEnabled({ learnerEmail: u.email, classId: resolved && resolved.classId }).catch(() => true);
     if (minor) consentOk = await db.hasActiveVoiceConsent({ childEmail: u.email }).catch(() => false);
   }
-  res.json({ available: consentOk && policyOk, consentOk, policyOk, minor, region: TUTOR_REGION, euResident: true });
+  res.json({ available: consentOk && policyOk, consentOk, policyOk, minor, region: TUTOR_REGION, euResident: true, speech: { enabled: speech.enabled, region: speech.region } });
+});
+
+// EU server-side STT: receives recorded audio, returns transcript (no audio stored).
+app.post('/api/tutor/voice/stt', express.raw({ type: ['audio/*', 'application/octet-stream'], limit: '6mb' }), async (req, res) => {
+  if (!speech.enabled) return res.status(503).json({ error: 'speech_unavailable' });
+  const out = await speech.transcribe(req.body, req.get('content-type') || 'audio/webm; codecs=opus').catch(() => ({ text: '' }));
+  res.json({ text: out.text || '', region: speech.region, state: out.text ? 'ok' : 'needs_repeat' });
+});
+
+// EU server-side TTS: returns mp3 for the tutor answer (transcript==spoken parity).
+app.post('/api/tutor/voice/tts', async (req, res) => {
+  if (!speech.enabled) return res.status(503).json({ error: 'speech_unavailable' });
+  const audio = await speech.synthesize(String(req.body?.text || '').slice(0, 2000)).catch(() => null);
+  if (!audio) return res.status(502).json({ error: 'tts_failed' });
+  res.type('audio/mpeg').send(audio);
 });
 
 app.post('/api/tutor/voice/turn', async (req, res) => {

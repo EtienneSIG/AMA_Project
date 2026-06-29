@@ -2000,22 +2000,34 @@ async function setTutorMode(mode) {
     else { warn.style.display='none'; document.getElementById('micBtn').disabled=false; }
   } else { stopMic(); }
 }
-function stopMic(){ micOn=false; if(recog){try{recog.stop()}catch(e){}} document.getElementById('micState').textContent='mic off'; document.getElementById('micBtn').textContent='🎤 Talk'; }
-function toggleMic(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { document.getElementById('micState').textContent='speech not supported — use Write'; return; }
-  if (micOn) return stopMic();
-  recog = new SR(); recog.lang='en-GB'; recog.interimResults=true;
-  micOn=true; document.getElementById('micState').textContent='listening…'; document.getElementById('micBtn').textContent='⏹ Stop';
-  recog.onresult = e => { const t=[...e.results].map(r=>r[0].transcript).join(' '); document.getElementById('transcript').textContent=t; if(e.results[e.results.length-1].isFinal) sendVoice(t); };
-  recog.onend = () => stopMic();
-  recog.start();
+function stopMic(){ micOn=false; if(recog){try{recog.stop()}catch(e){}} if(window._mr&&_mr.state!=='inactive'){try{_mr.stop()}catch(e){}} document.getElementById('micState').textContent='mic off'; document.getElementById('micBtn').textContent='🎤 Talk'; }
+let _mr=null,_chunks=[];
+async function toggleMic(){
+  if(micOn) return stopMic();
+  // Prefer EU server STT via recorded audio; fall back to browser speech.
+  if(navigator.mediaDevices && window.MediaRecorder){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      _mr=new MediaRecorder(stream); _chunks=[];
+      _mr.ondataavailable=e=>_chunks.push(e.data);
+      _mr.onstop=async()=>{ stream.getTracks().forEach(t=>t.stop()); const blob=new Blob(_chunks,{type:'audio/webm'}); document.getElementById('micState').textContent='transcribing…';
+        const r=await fetch('/api/tutor/voice/stt',{method:'POST',headers:{'Content-Type':'audio/webm'},body:blob}); const j=await r.json().catch(()=>({})); if(j.text) sendVoice(j.text); else document.getElementById('micState').textContent='please repeat'; };
+      micOn=true; document.getElementById('micState').textContent='listening (EU)…'; document.getElementById('micBtn').textContent='⏹ Stop'; _mr.start(); return;
+    }catch(e){/* fall back */}
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){document.getElementById('micState').textContent='mic not available — use Write';return;}
+  recog=new SR(); recog.lang='en-GB'; recog.interimResults=true; micOn=true;
+  document.getElementById('micState').textContent='listening…'; document.getElementById('micBtn').textContent='⏹ Stop';
+  recog.onresult=e=>{const t=[...e.results].map(r=>r[0].transcript).join(' ');document.getElementById('transcript').textContent=t;if(e.results[e.results.length-1].isFinal)sendVoice(t);};
+  recog.onend=()=>stopMic(); recog.start();
 }
 async function sendVoice(t){ stopMic();
   const r = await fetch('/api/tutor/voice/turn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcriptIn:t,sessionId:tutorSessionId})});
   if(r.status===403){document.getElementById('voiceUnavailable').style.display='block';document.getElementById('voiceUnavailable').textContent='Voice unavailable. Use Write mode.';return;}
   const j=await r.json(); if(j.sessionId)tutorSessionId=j.sessionId; if(j.state==='needs_repeat'){document.getElementById('micState').textContent='Sorry, please repeat';return;}
   document.getElementById('reply').textContent=j.output; document.getElementById('transcript').textContent='You: '+t;
+  try{ const tts=await fetch('/api/tutor/voice/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:j.output})}); if(tts.ok){const b=await tts.blob();new Audio(URL.createObjectURL(b)).play();return;} }catch(e){}
   if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(j.output);u.lang='en-GB';speechSynthesis.speak(u);}
 }
 </script>

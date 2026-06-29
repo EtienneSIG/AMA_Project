@@ -103,6 +103,7 @@ foreach ($a in $apps) {
     Copy-Item -Force -Path (Join-Path $here 'db/schema.sql') -Destination (Join-Path $dbDest 'schema.sql')
     # Content Safety client (used by both shared server and admin server)
     Copy-Item -Force -Path (Join-Path $here 'contentSafety.js') -Destination (Join-Path $appDir 'contentSafety.js')
+    Copy-Item -Force -Path (Join-Path $here 'speech.js') -Destination (Join-Path $appDir 'speech.js')
     # Reference data (curricula JSON, glossary CSV, synthetic learners) — required for db.init seed
     $dataDest = Join-Path $appDir 'data'
     if (-not (Test-Path $dataDest)) { New-Item -ItemType Directory -Force -Path $dataDest | Out-Null }
