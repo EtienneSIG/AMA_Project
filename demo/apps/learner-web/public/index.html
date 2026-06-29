@@ -195,7 +195,7 @@
   [data-tab] { display:none; }
   [data-tab].active { display:block; }
   /* Tab 1 layout: quest picker (left) | ask+explanation drawer (right, collapsible) */
-  .practice-grid { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; display:grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, .9fr); gap:1.1rem; align-items:stretch; transition:grid-template-columns .25s ease; }
+  .practice-grid { max-width:1320px; margin:0 auto 2rem; padding:0 1.5rem; display:grid; grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr); gap:1.1rem; align-items:stretch; transition:grid-template-columns .25s ease; }
   .practice-grid.expl-collapsed { grid-template-columns: minmax(0, 1fr) 64px; }
   .practice-grid > .card { display:flex; flex-direction:column; height:100%; }
   @media (max-width: 1180px) { .practice-grid, .practice-grid.expl-collapsed { grid-template-columns: 1fr; } .practice-grid #explDrawer { grid-column: 1 / -1; } }
@@ -373,7 +373,7 @@
 </div><!-- /tab quest -->
 
 <div data-tab="practice">
-<div class="practice-grid expl-collapsed">
+<div class="practice-grid">
   <div class="card" id="adaptiveCard">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">
       <div>
@@ -404,8 +404,6 @@
     </div>
   </div>
   <div class="card explcol" id="explDrawer">
-    <button class="drawer-toggle" id="explToggleBtn" onclick="event.stopPropagation();toggleExplDrawer()" title="Show Ask + Explanation" aria-label="Toggle Ask and explanation panel">☰</button>
-    <div class="collapsed-stub" onclick="toggleExplDrawer()" title="Show Ask + Explanation">☰ Ask + Explanation</div>
     <div>
       <h2 style="margin:0;">Ask the AI tutor</h2>
       <p class="sub" style="font-size:.85rem;margin:.35rem 0 .55rem;">Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to send. <em>AI tutor — may be imperfect.</em></p>
@@ -1840,24 +1838,10 @@ document.addEventListener('click', (ev) => {
   const b = ev.target.closest('#videoLibrary button[data-vid]'); if (!b) return;
   watchVideo(b.getAttribute('data-vid'), b.getAttribute('data-url'));
 });
-function toggleExplDrawer() {
-  const grid = document.querySelector('.practice-grid'); if (!grid) return;
-  grid.classList.toggle('expl-collapsed');
-  syncExplDrawerToggle();
-}
-function syncExplDrawerToggle() {
-  const grid = document.querySelector('.practice-grid');
-  const btn = document.getElementById('explToggleBtn');
-  if (!grid || !btn) return;
-  const collapsed = grid.classList.contains('expl-collapsed');
-  btn.textContent = collapsed ? '\u2630' : '\u2715';
-  btn.title = collapsed ? 'Show Ask + Explanation' : 'Hide Ask + Explanation';
-}
-// Auto-open the drawer when a new chat answer arrives (in case the user collapsed it).
-function showExplDrawerIfHidden() {
-  const grid = document.querySelector('.practice-grid');
-  if (grid && grid.classList.contains('expl-collapsed')) toggleExplDrawer();
-}
+function toggleExplDrawer() { /* burger removed: tutor column always visible */ }
+function syncExplDrawerToggle() { /* no-op */ }
+// Tutor column is always visible now; nothing to restore.
+function showExplDrawerIfHidden() { }
 
 // --- Streak + badges (Feature 4) ---------------------------------------
 async function loadStreak() {

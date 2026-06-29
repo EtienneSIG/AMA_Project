@@ -310,6 +310,11 @@
     <div id="wellbeingNotices" style="display:none;margin-bottom:1rem;"></div>
     <div class="kpi-grid" id="childKpis"></div>
     <div class="card" style="margin-bottom:1rem;">
+      <h2 style="margin-top:0;">AI tutor voice mode</h2>
+      <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Voice discussion is processed in the EU and never used for training. Audio is not stored. Write mode always works without voice. You can withdraw at any time.</p>
+      <div id="voiceConsentBox"><div class="sheet-empty">Select a child to manage voice consent.</div></div>
+    </div>
+    <div class="card" style="margin-bottom:1rem;">
       <h2 style="margin-top:0;">Mastery by chapter</h2>
       <p class="sub" style="margin:.2rem 0 .8rem;color:var(--grey);font-size:.85rem;">Read-only view of your child's progress. Updated after each practice attempt.</p>
       <div id="childChapters"><div class="sheet-empty">Select a child to see mastery.</div></div>
@@ -774,6 +779,8 @@ async function loadChildDashboard(childEmail) {
   tqEl.innerHTML = DashboardModel.renderTeacherQuestions((tq && tq.rows) || []);
   // Consent status for this child
   renderConsentStatusInDashboard(childEmail);
+  // Feature 016 — voice consent management for the AI tutor.
+  renderVoiceConsent(childEmail);
   // Feature 017 — consent-gated, supportive well-being notice (never a diagnosis).
   renderWellbeingNotices(childEmail);
 }
@@ -931,10 +938,29 @@ async function loadPastDigests() {
 // ===== GDPR Art. 8 — Consent management =====
 let _consentModalChild = null;
 
-function getChildConsent(childEmail) {
+function getChildConsent(childEmail, type = 'gdpr_art8') {
   const kid = childrenData.find(k => k.childEmail === childEmail);
   if (!kid || !kid.consent) return null;
-  return kid.consent.gdpr_art8 || null;
+  return kid.consent[type] || null;
+}
+
+// Feature 016 — AI tutor voice consent: parent grants/withdraws per child.
+async function renderVoiceConsent(childEmail) {
+  const box = document.getElementById('voiceConsentBox');
+  if (!box) return;
+  const c = getChildConsent(childEmail, 'voice');
+  const active = c && c.granted && !c.withdrawnAt;
+  const name = (childrenData.find(k => k.childEmail === childEmail) || {}).displayName || childEmail;
+  box.innerHTML = active
+    ? `<span class="consent-status granted">✓ Voice consent granted for ${escapeHtml(name)}</span> <button class="consent-withdraw" onclick="setVoiceConsent('${escapeHtml(childEmail)}',false)">Withdraw</button>`
+    : `<span class="consent-status required">⚠ Voice mode disabled</span> <button class="btn-grant" style="background:#F26334;color:#fff;border:0;padding:.35rem .8rem;border-radius:999px;font-weight:600;cursor:pointer;" onclick="setVoiceConsent('${escapeHtml(childEmail)}',true)">Grant voice consent</button>`;
+}
+async function setVoiceConsent(childEmail, granted) {
+  try {
+    await fetch('/api/tutor/voice/consent', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ childEmail, granted }) });
+    await loadChildren();
+    renderVoiceConsent(childEmail);
+  } catch (e) { alert('Could not update voice consent.'); }
 }
 
 function hasActiveConsent(childEmail) {
