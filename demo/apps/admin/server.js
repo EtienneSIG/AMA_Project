@@ -30,7 +30,8 @@ const FABRIC_API_VERSION = process.env.FABRIC_ARM_API_VERSION || '2023-11-01';
 const MANAGED_SITES = [
   `app-learner-web-${ENV_NAME}`,
   `app-parent-portal-${ENV_NAME}`,
-  `app-teacher-console-${ENV_NAME}`
+  `app-teacher-console-${ENV_NAME}`,
+  `app-director-portal-${ENV_NAME}`
 ];
 let cachedFabricCapacityName = FABRIC_CAPACITY || null;
 
