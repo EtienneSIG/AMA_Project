@@ -14,7 +14,7 @@
 
 ## Phase 1: Setup
 - [X] T001 EdTech Program Orchestrator: append the sharing increment scope + touched files to demo/apps/learner-web/README.md + teacher-console/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **EXISTING: append.**
-- [ ] T002 [P] Learning Sciences Expert: confirm ZPD-appropriate in-class peer sharing design (not social media) + recipient/decline UX in specs/013-learner-sheet-sharing/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
+- [x] T002 [P] Learning Sciences Expert: confirm ZPD-appropriate in-class peer sharing design (not social media) + recipient/decline UX in specs/013-learner-sheet-sharing/research.md (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ## Phase 2: Foundational
 - [X] T003 GDPR Children's Data Specialist: add `share`, `shared_artifact_snapshot`, `sharing_policy`, `recipient_block` to demo/apps/_shared/db/schema.sql (reuse `content_safety_results` for moderation) (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
@@ -57,7 +57,7 @@
 ---
 
 ## Phase 6: Polish & Cross-Cutting
-- [ ] T013 [P] Responsible AI Evaluator: verify content-safety + audit + consent guarantees against contracts/sharing-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T013 [P] Responsible AI Evaluator: verify content-safety + audit + consent guarantees against contracts/sharing-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 - [X] T014 [P] Cross-Agent QA Verifier: run full specs/013-learner-sheet-sharing/quickstart.md validation (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 - [X] T015 EdTech Program Orchestrator: update specs/INDEX.md (013 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 

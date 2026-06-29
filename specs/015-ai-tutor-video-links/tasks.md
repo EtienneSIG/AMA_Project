@@ -14,13 +14,13 @@
 
 ## Phase 1: Setup
 - [X] T001 EdTech Program Orchestrator: append the tutor-video increment scope + touched files to demo/apps/learner-web/README.md + teacher-console/README.md (Accountable: agents/edtech-program-orchestrator.chatmode.md) — **EXISTING: append.**
-- [ ] T002 [P] EU AI Act Compliance Officer: author the Annex IV fragment (allow-list bounding, logging, transparency, teacher override, link-health) in specs/015-ai-tutor-video-links/contracts/annex-iv-fragment.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T003 [P] Content Localisation Lead + Learning Sciences Expert: define initial curriculum-aligned, age-appropriate catalogue seed per market in demo/data/ (Accountable: agents/content-localisation-lead.chatmode.md, agents/learning-sciences-expert.chatmode.md)
+- [x] T002 [P] EU AI Act Compliance Officer: author the Annex IV fragment (allow-list bounding, logging, transparency, teacher override, link-health) in specs/015-ai-tutor-video-links/contracts/annex-iv-fragment.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T003 [P] Content Localisation Lead + Learning Sciences Expert: define initial curriculum-aligned, age-appropriate catalogue seed per market in demo/data/ (Accountable: agents/content-localisation-lead.chatmode.md, agents/learning-sciences-expert.chatmode.md)
 
 ## Phase 2: Foundational
 - [X] T004 GDPR Children's Data Specialist: add `video_catalogue`, `video_suggestion_log`, `video_report` tables to demo/apps/_shared/db/schema.sql (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
 - [X] T005 [P] Privacy-Preserving ML Engineer: implement allow-list lookup, suggestion/click logging, and report helpers in demo/apps/_shared/db/index.js (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
-- [ ] T006 Privacy-Preserving ML Engineer: define/confirm the shared `TutorTurn` model (coordinated with Feature 016) in demo/apps/_shared/db (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
+- [x] T006 Privacy-Preserving ML Engineer: define/confirm the shared `TutorTurn` model (coordinated with Feature 016) in demo/apps/_shared/db (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 
 **Checkpoint**: catalogue/log schema + helpers + shared tutor turn ready.
 
@@ -42,7 +42,7 @@
 **Independent Test**: open a video → no identifiers/cookies to third party; under-16 without consent → no video.
 - [X] T010 [US2] Privacy-Preserving ML Engineer: implement privacy-enhanced sandboxed embed (no-cookie host, no autoplay, CSP) + click logging endpoint in demo/apps/learner-web (server.js + public) (Accountable: agents/privacy-preserving-ml-engineer.chatmode.md)
 - [X] T011 [US2] GDPR Children's Data Specialist: gate under-16 presentation on parental consent + restricted mode (reuse Feature 006 consent state) in demo/apps/learner-web/server.js (Accountable: agents/gdpr-children-data-specialist.chatmode.md)
-- [ ] T012 [P] [US2] Responsible AI Evaluator: verify no-PII/no-tracking + under-16 gating against contracts/tutor-video-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T012 [P] [US2] Responsible AI Evaluator: verify no-PII/no-tracking + under-16 gating against contracts/tutor-video-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
 
 **Checkpoint**: privacy-preserving presentation verified.
 
@@ -60,8 +60,8 @@
 ---
 
 ## Phase 6: Polish & Cross-Cutting
-- [ ] T016 [P] EU AI Act Compliance Officer: finalize Annex IV with as-built evidence (Art. 9/10/12/13/14/15) (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
-- [ ] T017 [P] Cross-Agent QA Verifier: run full specs/015-ai-tutor-video-links/quickstart.md validation (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T016 [P] EU AI Act Compliance Officer: finalize Annex IV with as-built evidence (Art. 9/10/12/13/14/15) (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T017 [P] Cross-Agent QA Verifier: run full specs/015-ai-tutor-video-links/quickstart.md validation (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 - [X] T018 EdTech Program Orchestrator: update specs/INDEX.md (015 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 
 ---

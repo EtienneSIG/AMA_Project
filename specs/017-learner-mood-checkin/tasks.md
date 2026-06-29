@@ -15,8 +15,8 @@
 ---
 
 ## Phase 1: Setup & Compliance Gate
-- [ ] T000 GDPR Children's Data Specialist + DPO + Learning Sciences Expert: approve the DPIA delta, consent-gating default, and escalation thresholds; record in specs/017-learner-mood-checkin/checklists/gdpr-ai-act-compliance.md (Accountable: agents/gdpr-children-data-specialist.chatmode.md, agents/learning-sciences-expert.chatmode.md)
-- [ ] T001 [P] EU AI Act Compliance Officer: author the Annex IV fragment (self-report only, no Art. 5, logging, human-only action) in specs/017-learner-mood-checkin/contracts/annex-iv-fragment.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
+- [x] T000 GDPR Children's Data Specialist + DPO + Learning Sciences Expert: approve the DPIA delta, consent-gating default, and escalation thresholds; record in specs/017-learner-mood-checkin/checklists/gdpr-ai-act-compliance.md (Accountable: agents/gdpr-children-data-specialist.chatmode.md, agents/learning-sciences-expert.chatmode.md)
+- [x] T001 [P] EU AI Act Compliance Officer: author the Annex IV fragment (self-report only, no Art. 5, logging, human-only action) in specs/017-learner-mood-checkin/contracts/annex-iv-fragment.md (Accountable: agents/eu-ai-act-compliance-officer.chatmode.md)
 - [X] T002 [P] Learning Sciences Expert: draft supportive copy (acknowledgements, "talk to a trusted adult", parent "how to help") for review in demo/apps/learner-web/public/ (Accountable: agents/learning-sciences-expert.chatmode.md)
 
 ## Phase 2: Foundational
@@ -70,8 +70,8 @@
 ---
 
 ## Phase 7: Polish & Cross-Cutting
-- [ ] T015 [P] Responsible AI Evaluator: verify no-inference, no secondary-use, and human-only action against contracts/mood-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
-- [ ] T016 [P] Cross-Agent QA Verifier: run full specs/017-learner-mood-checkin/quickstart.md validation (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
+- [x] T015 [P] Responsible AI Evaluator: verify no-inference, no secondary-use, and human-only action against contracts/mood-api.md (Accountable: agents/responsible-ai-evaluator.chatmode.md)
+- [x] T016 [P] Cross-Agent QA Verifier: run full specs/017-learner-mood-checkin/quickstart.md validation (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 - [X] T017 EdTech Program Orchestrator: update specs/INDEX.md (017 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 
 ---

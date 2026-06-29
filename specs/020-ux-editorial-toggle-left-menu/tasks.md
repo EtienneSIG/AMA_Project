@@ -41,8 +41,8 @@
 ---
 
 ## Phase 4: Ship
-- [ ] T009 Demo Deployment Agent: commit + push (`feat(ux): remove editorial toggle + left-align primary menu (spec 020)`).
-- [ ] T010 Demo Deployment Agent: deploy the five apps to Azure (toggle removed everywhere; menu fix on learner/parent/teacher); verify `/api/health` 200.
+- [x] T009 Demo Deployment Agent: commit + push (`feat(ux): remove editorial toggle + left-align primary menu (spec 020)`).
+- [x] T010 Demo Deployment Agent: deploy the five apps to Azure (toggle removed everywhere; menu fix on learner/parent/teacher); verify `/api/health` 200.
 
 ---
 
