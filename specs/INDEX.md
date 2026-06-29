@@ -1,11 +1,11 @@
 # Spec Kit Feature Index — LearnEU Platform
 
 **Last Updated**: 2026-06-26  
-**Specs Maintained**: 19 (001–019)
+**Specs Maintained**: 21 (001–021)
 
 ## Overview
 
-This directory contains **19 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
+This directory contains **21 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
 
 ### Workflow
 
@@ -63,6 +63,7 @@ Each spec folder contains:
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks · impl (cut-over, PBI retired) | Director → Native Fabric app replacing Power BI Embedded |
 | **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (default on) | All apps → Left nav / center content / right profile redesign |
 | **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec+plan+tasks · impl | All apps → Remove Editorial theme toggle + left-align primary menu |
+| **021** | AMA Rubric Readiness Gate | `021-ama-rubric-readiness` | P0 | ✅ spec+plan+tasks · impl | Requirement Matrix → Runtime, lockfile, monitoring, agentic evidence, 60/60 gate |
 
 ---
 
@@ -111,13 +112,13 @@ All 19 specs are gated against the [Constitution](../.specify/memory/constitutio
 
 | Principle | Coverage | Notes |
 |-----------|----------|-------|
-| I. EU-Resident, Data-Minimised | ✅ 19/19 | No cross-EU transfer, no profiling |
-| II. GDPR Art. 8 | ✅ 19/19 | Parental consent, data-subject rights, under-16 gating |
-| III. EU AI Act high-risk | ✅ 19/19 | Logging, human override, transparency, accuracy; no Art. 5 emotion/biometric inference |
-| IV. Teacher-in-the-loop | ✅ 19/19 | No autonomous decisions affecting learners |
-| V. Pedagogical sign-off | ✅ 19/19 | ZPD alignment, formative assessment design |
-| VI. Outcome-contract driven | ✅ 19/19 | Maps to outcome KPIs (outcome gap −26%, admin time −45%, localization 12 → 6 weeks) |
-| VII. Reproducible, spec-driven | ✅ 19/19 | Specs first, then code; quickstart runbooks included |
+| I. EU-Resident, Data-Minimised | ✅ 21/21 | No cross-EU transfer, no profiling |
+| II. GDPR Art. 8 | ✅ 21/21 | Parental consent, data-subject rights, under-16 gating |
+| III. EU AI Act high-risk | ✅ 21/21 | Logging, human override, transparency, accuracy; no Art. 5 emotion/biometric inference |
+| IV. Teacher-in-the-loop | ✅ 21/21 | No autonomous decisions affecting learners |
+| V. Pedagogical sign-off | ✅ 21/21 | ZPD alignment, formative assessment design |
+| VI. Outcome-contract driven | ✅ 21/21 | Maps to outcome KPIs (outcome gap −26%, admin time −45%, localization 12 → 6 weeks) |
+| VII. Reproducible, spec-driven | ✅ 21/21 | Specs first, then code; quickstart runbooks included |
 
 ---
 
