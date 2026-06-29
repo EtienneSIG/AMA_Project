@@ -28,7 +28,12 @@ function overview(scope = {}) {
       mastery: Math.round(mastery * 100) / 100,
       engagement: Math.round(engagement * 100) / 100,
       gapVsNational: Math.round((mastery - NATIONAL.mastery) * 100),
-      schools: visible.length
+      schools: visible.length,
+      completion: Math.round((0.62 + mastery * 0.3) * 100) / 100,
+      attendance: 0.94,
+      timeOnTaskMin: 28,
+      atRisk: Math.round((1 - mastery) * 0.4 * 100),
+      satisfaction: 4.3
     },
     national: NATIONAL,
     schools: visible.map(s => ({ id: s.id, name: s.name, region: s.region, lat: s.lat, lng: s.lng, learners: s.learners, mastery: s.mastery, engagement: s.engagement, trend: s.trend })),

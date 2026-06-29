@@ -36,13 +36,17 @@ async function load(){
   let j; try{ j=await (await fetch('/api/overview',{headers:{'x-scope-context':scopeToken()}})).json(); }catch(e){ document.getElementById('kpis').innerHTML='Unavailable'; return; }
   document.getElementById('src').textContent='Fabric · EU · '+(j.region||'eu');
   const k=j.kpis; document.getElementById('kpis').innerHTML=[
-    ['Learners',k.learners,''],['Schools',k.schools,''],['Mastery',Math.round(k.mastery*100)+'%',''],['Engagement',Math.round(k.engagement*100)+'%',''],
+    ['Learners',k.learners,''],['Schools',k.schools,''],['Mastery',Math.round(k.mastery*100)+'%',''],
+    ['Engagement',Math.round(k.engagement*100)+'%',''],['Completion',Math.round(k.completion*100)+'%',''],
+    ['Attendance',Math.round(k.attendance*100)+'%',''],['Time on task',k.timeOnTaskMin+' min',''],
+    ['At-risk',k.atRisk+'%',k.atRisk>20?'neg':'pos'],['Satisfaction',k.satisfaction+'/5',''],
     ['Gap vs national',(k.gapVsNational>=0?'+':'')+k.gapVsNational+' pts',k.gapVsNational>=0?'pos':'neg']
   ].map(x=>`<div class="kpi"><div class="v ${x[2]}">${x[1]}</div><div class="l">${x[0]}</div></div>`).join('');
   const nat=j.national.mastery;
   document.getElementById('bars').innerHTML=j.schools.map(s=>`<div class="barrow"><span class="nm">${s.name}</span><span class="track"><span class="fill" style="width:${Math.round(s.mastery*100)}%"></span></span><span class="pct">${Math.round(s.mastery*100)}%</span></div>`).join('')+`<div class="barrow"><span class="nm">National</span><span class="track"><span class="fill" style="width:${Math.round(nat*100)}%;background:#94a3b8"></span></span><span class="pct">${Math.round(nat*100)}%</span></div>`;
   const W=380,H=300,x=l=>(l-3.3)/(7.2-3.3)*W,y=l=>H-(l-50.7)/(53.6-50.7)*H;
-  document.getElementById('map').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`+j.schools.map(s=>`<g><circle class="dot" cx="${x(s.lng).toFixed(0)}" cy="${y(s.lat).toFixed(0)}" r="${6+s.learners/60}"/><text class="schoolname" x="${(x(s.lng)+8).toFixed(0)}" y="${(y(s.lat)+3).toFixed(0)}">${s.name} ${Math.round(s.mastery*100)}%</text></g>`).join('')+`</svg>`;
+  const NL='M150,18 L210,30 235,70 250,120 240,165 270,210 250,265 175,285 120,260 95,205 70,150 60,95 95,55 Z';
+  document.getElementById('map').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><path d="${NL}" fill="#e8eef6" stroke="#cdd7e3" stroke-width="1.5"/>`+j.schools.map(s=>`<g><circle class="dot" cx="${x(s.lng).toFixed(0)}" cy="${y(s.lat).toFixed(0)}" r="${6+s.learners/60}"/><text class="schoolname" x="${(x(s.lng)+8).toFixed(0)}" y="${(y(s.lat)+3).toFixed(0)}">${s.name} ${Math.round(s.mastery*100)}%</text></g>`).join('')+`</svg>`;
   const tr=j.schools[0]?j.schools[0].trend:[.6,.63,.65],pts=a=>a.map((v,i)=>`${20+i*160},${120-v*120}`).join(' ');
   document.getElementById('trend').innerHTML=`<svg viewBox="0 0 360 130" width="360" height="130"><polyline fill="none" stroke="#1b9e8a" stroke-width="2.5" points="${pts(tr)}"/><polyline fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4" points="${pts(j.nationalTrend)}"/></svg><p class="src">Teal = your scope · grey = national</p>`;
 }
