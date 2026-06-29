@@ -1260,6 +1260,65 @@ async function setVideoPolicy({ scope, scopeId, enabled, setBy }) {
   return r && r.rows[0] ? r.rows[0] : null;
 }
 
+// --- Feature 016: tutor sessions/turns, voice consent/policy, audit ---------
+async function createTutorSession({ learnerRef, mode }) {
+  const r = await q(
+    `INSERT INTO tutor_session (learner_ref, mode) VALUES ($1, $2) RETURNING id`,
+    [String(learnerRef || '').toLowerCase(), mode === 'voice' ? 'voice' : 'text']
+  );
+  return r && r.rows[0] ? r.rows[0].id : null;
+}
+
+async function logTutorTurn({ sessionId, learnerRef, mode, inputText, outputText, csVerdict }) {
+  const r = await q(
+    `INSERT INTO tutor_turn (session_id, learner_ref, mode, input_text, output_text, cs_verdict)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+    [sessionId || null, String(learnerRef || '').toLowerCase(), mode === 'voice' ? 'voice' : 'text',
+     (inputText || '').slice(0, 4000), (outputText || '').slice(0, 8000), csVerdict || null]
+  );
+  return r && r.rows[0] ? r.rows[0].id : null;
+}
+
+async function hasActiveVoiceConsent({ childEmail }) {
+  const r = await q(
+    `SELECT 1 FROM parental_consents WHERE child_email = $1 AND consent_type = 'voice'
+       AND granted = true AND withdrawn_at IS NULL LIMIT 1`,
+    [String(childEmail || '').toLowerCase()]
+  );
+  return !!(r && r.rows && r.rows.length);
+}
+
+async function isVoiceModeEnabled({ learnerEmail, classId }) {
+  const r = await q(
+    `SELECT voice_enabled FROM voice_mode_policy
+      WHERE (scope = 'learner' AND scope_id = $1) OR (scope = 'class' AND scope_id = $2)`,
+    [String(learnerEmail || '').toLowerCase(), classId || '']
+  );
+  if (!r || !r.rows) return true;
+  return !r.rows.some(row => row.voice_enabled === false);
+}
+
+async function setVoicePolicy({ scope, scopeId, enabled, setBy }) {
+  const sc = scope === 'class' ? 'class' : 'learner';
+  const r = await q(
+    `INSERT INTO voice_mode_policy (scope, scope_id, voice_enabled, set_by, set_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (scope, scope_id) DO UPDATE
+       SET voice_enabled = EXCLUDED.voice_enabled, set_by = EXCLUDED.set_by, set_at = now()
+     RETURNING *`,
+    [sc, String(scopeId || '').toLowerCase(), Boolean(enabled), setBy || null]
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+async function logTutorAudit({ learnerRef, turnId, mode, event, region, detail }) {
+  await q(
+    `INSERT INTO tutor_audit_log (learner_ref, turn_id, mode, event, region, detail)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [String(learnerRef || '').toLowerCase(), turnId || null, mode || null, event || 'turn', region || null, (detail || '').slice(0, 512)]
+  ).catch(() => {});
+}
+
 // Keyword-match the prompt to catalogued concepts; return up to `max` active videos.
 async function suggestVideosForPrompt({ prompt, ageBand, max = 3 }) {
   await ensureVideoCatalogueSeed();
@@ -3981,6 +4040,12 @@ module.exports = {
   setVideoPolicy,
   suggestVideosForPrompt,
   logVideoSuggestion,
+  createTutorSession,
+  logTutorTurn,
+  hasActiveVoiceConsent,
+  isVoiceModeEnabled,
+  setVoicePolicy,
+  logTutorAudit,
   reportVideo,
   recordMood,
   eraseMood,

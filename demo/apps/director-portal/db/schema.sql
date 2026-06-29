@@ -1936,3 +1936,50 @@ CREATE TABLE IF NOT EXISTS safeguarding_flag (
   restricted_to TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Feature 016 — AI tutor write/explain + voice discussion modes. Voice consent for
+-- under-16 reuses parental_consents (consent_type='voice'). NO raw audio, NO biometric
+-- or emotion fields ever: only text transcripts (minimal) and traceability metadata.
+CREATE TABLE IF NOT EXISTS tutor_session (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  learner_ref TEXT        NOT NULL,
+  mode        TEXT        NOT NULL DEFAULT 'text' CHECK (mode IN ('text','voice')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tutor_session_learner ON tutor_session (learner_ref, created_at DESC);
+
+-- Shared with Feature 015 (tutor_turn_id). Transcript text only; no audio bytes stored.
+CREATE TABLE IF NOT EXISTS tutor_turn (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id  UUID        REFERENCES tutor_session(id),
+  learner_ref TEXT        NOT NULL,
+  mode        TEXT        NOT NULL CHECK (mode IN ('text','voice')),
+  input_text  TEXT,
+  output_text TEXT,
+  cs_verdict  TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tutor_turn_session ON tutor_turn (session_id, created_at);
+
+-- Teacher control: disable voice mode for a learner or class (text always remains).
+CREATE TABLE IF NOT EXISTS voice_mode_policy (
+  scope         TEXT        NOT NULL CHECK (scope IN ('learner','class')),
+  scope_id      TEXT        NOT NULL,
+  voice_enabled BOOLEAN     NOT NULL DEFAULT true,
+  set_by        TEXT,
+  set_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (scope, scope_id)
+);
+
+-- AI Act Art. 12 traceability: every tutor exchange + escalation; no PII beyond learner ref.
+CREATE TABLE IF NOT EXISTS tutor_audit_log (
+  id          BIGSERIAL   PRIMARY KEY,
+  learner_ref TEXT,
+  turn_id     UUID,
+  mode        TEXT,
+  event       TEXT        NOT NULL CHECK (event IN ('turn','escalation','consent','policy')),
+  region      TEXT,
+  detail      TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tutor_audit_learner ON tutor_audit_log (learner_ref, created_at DESC);

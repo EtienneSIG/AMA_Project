@@ -408,7 +408,19 @@
     <div class="collapsed-stub" onclick="toggleExplDrawer()" title="Show Ask + Explanation">☰ Ask + Explanation</div>
     <div>
       <h2 style="margin:0;">Ask the AI tutor</h2>
-      <p class="sub" style="font-size:.85rem;margin:.35rem 0 .55rem;">Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to send.</p>
+      <p class="sub" style="font-size:.85rem;margin:.35rem 0 .55rem;">Press <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> to send. <em>AI tutor — may be imperfect.</em></p>
+      <div class="row" style="margin-bottom:.5rem;gap:.4rem;">
+        <button class="btn btn-sm" id="modeTextBtn" onclick="setTutorMode('text')" title="Write & explain">✍️ Write</button>
+        <button class="btn btn-sm secondary" id="modeVoiceBtn" onclick="setTutorMode('voice')" title="Voice discussion">🎙️ Discuss</button>
+      </div>
+      <div id="voicePanel" style="display:none;margin-bottom:.6rem;padding:.55rem .65rem;border:1px solid var(--line);border-radius:8px;background:#F8FAFC;">
+        <div class="row" style="gap:.4rem;align-items:center;">
+          <button class="btn btn-sm" id="micBtn" onclick="toggleMic()">🎤 Talk</button>
+          <span id="micState" class="sub" style="font-size:.8rem;color:var(--grey);">mic off</span>
+        </div>
+        <div id="transcript" class="sub" style="font-size:.82rem;color:var(--grey);margin-top:.4rem;min-height:1.1rem;">Live transcript appears here.</div>
+        <div id="voiceUnavailable" style="display:none;font-size:.8rem;color:#b04632;margin-top:.35rem;"></div>
+      </div>
       <textarea id="prompt">Explain fractions to a 12-year-old in two short sentences.</textarea>
       <div class="row">
         <button class="btn" onclick="chat()">Ask</button>
@@ -1970,6 +1982,43 @@ async function answerQuiz(choice, btn) {
   } catch (_) { /* ignore */ }
 }
 function nextQuiz() { if (!_quiz) return; _quiz.current += 1; _quiz.t0 = Date.now(); renderQuizQuestion(); }
+
+// --- Feature 016: AI tutor write/explain + voice discussion modes ---------
+let tutorMode = 'text';
+let tutorSessionId = null;
+let recog = null, micOn = false;
+async function setTutorMode(mode) {
+  tutorMode = mode;
+  document.getElementById('modeTextBtn').className = 'btn btn-sm' + (mode==='text'?'':' secondary');
+  document.getElementById('modeVoiceBtn').className = 'btn btn-sm' + (mode==='voice'?'':' secondary');
+  const panel = document.getElementById('voicePanel');
+  panel.style.display = mode==='voice'?'block':'none';
+  if (mode==='voice') {
+    const s = await (await fetch('/api/tutor/voice/status',{cache:'no-store'})).json().catch(()=>({available:false}));
+    const warn = document.getElementById('voiceUnavailable');
+    if (!s.available) { warn.style.display='block'; warn.textContent = s.minor && !s.consentOk ? 'Voice needs parental consent. Write mode stays available.' : 'Voice is disabled by your teacher. Write mode stays available.'; document.getElementById('micBtn').disabled=true; }
+    else { warn.style.display='none'; document.getElementById('micBtn').disabled=false; }
+  } else { stopMic(); }
+}
+function stopMic(){ micOn=false; if(recog){try{recog.stop()}catch(e){}} document.getElementById('micState').textContent='mic off'; document.getElementById('micBtn').textContent='🎤 Talk'; }
+function toggleMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById('micState').textContent='speech not supported — use Write'; return; }
+  if (micOn) return stopMic();
+  recog = new SR(); recog.lang='en-GB'; recog.interimResults=true;
+  micOn=true; document.getElementById('micState').textContent='listening…'; document.getElementById('micBtn').textContent='⏹ Stop';
+  recog.onresult = e => { const t=[...e.results].map(r=>r[0].transcript).join(' '); document.getElementById('transcript').textContent=t; if(e.results[e.results.length-1].isFinal) sendVoice(t); };
+  recog.onend = () => stopMic();
+  recog.start();
+}
+async function sendVoice(t){ stopMic();
+  const r = await fetch('/api/tutor/voice/turn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcriptIn:t,sessionId:tutorSessionId})});
+  if(r.status===403){document.getElementById('voiceUnavailable').style.display='block';document.getElementById('voiceUnavailable').textContent='Voice unavailable. Use Write mode.';return;}
+  const j=await r.json(); if(j.sessionId)tutorSessionId=j.sessionId; if(j.state==='needs_repeat'){document.getElementById('micState').textContent='Sorry, please repeat';return;}
+  document.getElementById('reply').textContent=j.output; document.getElementById('transcript').textContent='You: '+t;
+  if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(j.output);u.lang='en-GB';speechSynthesis.speak(u);}
+}
 </script>
+
 </body>
 </html>

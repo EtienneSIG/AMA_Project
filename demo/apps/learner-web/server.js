@@ -350,6 +350,92 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// --- Feature 016: AI tutor write/explain + voice discussion modes ----------
+const TUTOR_REGION = process.env.REGION_NAME || 'westeurope';
+const AI_LABEL = 'AI tutor — may be imperfect';
+
+async function callTutorLLM(u, prompt) {
+  if (!APIM || !KEY || KEY.startsWith('@Microsoft.KeyVault')) return { error: 'unavailable' };
+  const inputScan = await cs.analyze(prompt);
+  if (inputScan.ran && inputScan.blocked) return { blocked: 'input', severities: inputScan.severities };
+  const body = { messages: [{ role: 'system', content: buildSystemPrompt(u) }, { role: 'user', content: prompt }], max_completion_tokens: 600 };
+  const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Ocp-Apim-Subscription-Key': KEY }, body: JSON.stringify(body) });
+  if (!r.ok) return { error: 'upstream', status: r.status };
+  const data = await r.json();
+  const answer = data?.choices?.[0]?.message?.content ?? '';
+  const outScan = await cs.analyze(answer);
+  return { answer: outScan.blocked ? '_(Réponse bloquée par Content Safety.)_' : answer, blocked: outScan.blocked ? 'output' : null };
+}
+
+app.post('/api/tutor/turn', async (req, res) => {
+  const u = req.user;
+  const input = String(req.body?.input || '').slice(0, 2000);
+  let sessionId = req.body?.sessionId || null;
+  if (!sessionId && db.enabled) sessionId = await db.createTutorSession({ learnerRef: u.email, mode: 'text' }).catch(() => null);
+  const out = await callTutorLLM(u, input || 'Hello');
+  if (out.blocked === 'input') return res.status(400).json({ error: 'input_blocked' });
+  if (out.error) return res.status(503).json({ error: out.error });
+  const turnId = db.enabled ? await db.logTutorTurn({ sessionId, learnerRef: u.email, mode: 'text', inputText: input, outputText: out.answer, csVerdict: out.blocked ? 'blocked' : 'clean' }).catch(() => null) : null;
+  if (db.enabled) db.logTutorAudit({ learnerRef: u.email, turnId, mode: 'text', event: 'turn', region: TUTOR_REGION }).catch(() => {});
+  res.json({ turnId, sessionId, output: out.answer, csVerdict: out.blocked ? 'blocked' : 'clean', ai: AI_LABEL });
+});
+
+app.get('/api/tutor/voice/status', async (req, res) => {
+  const u = req.user;
+  const minor = u.age != null && u.age < 16;
+  let consentOk = !minor, policyOk = true;
+  if (db.enabled) {
+    const resolved = typeof db.listClassmateEmails === 'function' ? await db.listClassmateEmails({ learnerEmail: u.email }).catch(() => ({})) : {};
+    policyOk = await db.isVoiceModeEnabled({ learnerEmail: u.email, classId: resolved && resolved.classId }).catch(() => true);
+    if (minor) consentOk = await db.hasActiveVoiceConsent({ childEmail: u.email }).catch(() => false);
+  }
+  res.json({ available: consentOk && policyOk, consentOk, policyOk, minor, region: TUTOR_REGION, euResident: true });
+});
+
+app.post('/api/tutor/voice/turn', async (req, res) => {
+  const u = req.user;
+  const minor = u.age != null && u.age < 16;
+  if (db.enabled) {
+    const resolved = typeof db.listClassmateEmails === 'function' ? await db.listClassmateEmails({ learnerEmail: u.email }).catch(() => ({})) : {};
+    const policyOk = await db.isVoiceModeEnabled({ learnerEmail: u.email, classId: resolved && resolved.classId }).catch(() => true);
+    const consentOk = minor ? await db.hasActiveVoiceConsent({ childEmail: u.email }).catch(() => false) : true;
+    if (!policyOk || !consentOk) return res.status(403).json({ error: 'voice_unavailable' });
+  }
+  const transcriptIn = String(req.body?.transcriptIn || '').slice(0, 2000);
+  if (!transcriptIn.trim()) return res.json({ state: 'needs_repeat', ai: AI_LABEL });
+  let sessionId = req.body?.sessionId || (db.enabled ? await db.createTutorSession({ learnerRef: u.email, mode: 'voice' }).catch(() => null) : null);
+  const out = await callTutorLLM(u, transcriptIn);
+  if (out.blocked === 'input') return res.status(400).json({ error: 'input_blocked' });
+  if (out.error) return res.status(503).json({ error: out.error });
+  const turnId = db.enabled ? await db.logTutorTurn({ sessionId, learnerRef: u.email, mode: 'voice', inputText: transcriptIn, outputText: out.answer, csVerdict: out.blocked ? 'blocked' : 'clean' }).catch(() => null) : null;
+  if (db.enabled) db.logTutorAudit({ learnerRef: u.email, turnId, mode: 'voice', event: 'turn', region: TUTOR_REGION }).catch(() => {});
+  res.json({ turnId, sessionId, transcriptIn, output: out.answer, csVerdict: out.blocked ? 'blocked' : 'clean', ai: AI_LABEL });
+});
+
+app.post('/api/tutor/voice/consent', async (req, res) => {
+  if (req.user.role !== 'parent' && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
+  if (!db.enabled) return res.status(503).json({ error: 'db_unavailable' });
+  const childEmail = String(req.body?.childEmail || '').toLowerCase();
+  const granted = Boolean(req.body?.granted);
+  const row = await db.upsertConsent({ parentEmail: req.user.email, childEmail, consentType: 'voice', granted, ip: req.ip, userAgent: req.get('user-agent') }).catch(() => null);
+  db.logTutorAudit({ learnerRef: childEmail, mode: 'voice', event: 'consent', detail: granted ? 'granted' : 'withdrawn' }).catch(() => {});
+  res.json({ ok: Boolean(row), granted });
+});
+
+app.post('/api/tutor/voice/policy', async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
+  if (!db.enabled) return res.status(503).json({ error: 'db_unavailable' });
+  const row = await db.setVoicePolicy({ scope: req.body?.scope, scopeId: req.body?.scopeId, enabled: Boolean(req.body?.enabled), setBy: req.user.email }).catch(() => null);
+  db.logTutorAudit({ learnerRef: req.body?.scopeId, mode: 'voice', event: 'policy', detail: req.body?.enabled ? 'enabled' : 'disabled' }).catch(() => {});
+  res.json({ ok: Boolean(row) });
+});
+
+app.post('/api/tutor/escalate', async (req, res) => {
+  if (db.enabled) db.logTutorAudit({ learnerRef: req.user.email, turnId: req.body?.turnId || null, mode: req.body?.mode || 'text', event: 'escalation', detail: 'teacher_review' }).catch(() => {});
+  res.json({ ok: true, message: 'Routed to your teacher for review.' });
+});
+
 // --- Reference data (read-only, role-gated already by middleware) ----------
 app.get('/api/data/curricula', async (req, res) => {
   if (!db.enabled) return res.json({ enabled: false, rows: [] });
