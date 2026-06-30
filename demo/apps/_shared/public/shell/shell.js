@@ -47,6 +47,7 @@
 
   // --- Favorites: pin pages from the left rail; they appear in the right panel. ---
   var favListEl = null;
+  var shellUser = null;
   function favKey() { return 'learneu_fav_' + (window.LEARNEU_APP || location.host); }
   function favItemKey(item) { return item.tab ? ('tab:' + item.tab) : ('href:' + (item.href || '')); }
   function loadFavs() { try { return JSON.parse(localStorage.getItem(favKey()) || '[]'); } catch (e) { return []; } }
@@ -280,7 +281,7 @@
           if (typeof window.openProfile === 'function') { window.openProfile(); return; }
           var topAvatar = document.querySelector('nav.top .avatar');
           if (topAvatar && /openprofile/i.test(topAvatar.getAttribute('onclick') || '')) { topAvatar.click(); return; }
-          location.href = '/';
+          showShellProfile();
         });
       }
     } catch (e) {}
@@ -301,9 +302,45 @@
           if (gl) { var h = new Date().getHours(); var part = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening'); gl.textContent = part + ', ' + (u.firstName || name.split(' ')[0]) + '.'; }
           var av = panel.querySelector('#appshellAvatar');
           if (av) { av.textContent = (name[0] || '·').toUpperCase(); if (u.role) av.className = 'appshell-avatar role-' + u.role; }
+          shellUser = { name: name, email: u.email || '', role: u.role || '', language: u.language || '' };
         }).catch(function(){});
     } catch (e) {}
     return panel;
+  }
+
+  // Lightweight shell-native profile popup. Used on pages that do NOT define their own
+  // openProfile() (e.g. home/landing pages), so the profile works in place rather than
+  // redirecting elsewhere.
+  function showShellProfile() {
+    var existing = document.getElementById('appshellProfilePop');
+    if (existing) { existing.parentNode.removeChild(existing); return; }
+    var u = shellUser || { name: 'Your profile', email: '', role: '', language: '' };
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+    var ov = el('div'); ov.id = 'appshellProfilePop';
+    ov.setAttribute('style', 'position:fixed;inset:0;z-index:2000;background:rgba(15,27,45,0.35);display:flex;align-items:center;justify-content:center;');
+    ov.innerHTML = '<div role="dialog" aria-label="Profile" style="background:#fff;border-radius:14px;min-width:300px;max-width:380px;padding:1.3rem 1.4rem;box-shadow:0 18px 50px rgba(15,27,45,0.3);font-family:Inter,system-ui,sans-serif;">' +
+      '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;">' +
+      '<div class="appshell-avatar role-' + esc(u.role) + '" style="width:46px;height:46px;">' + esc((u.name[0] || '·').toUpperCase()) + '</div>' +
+      '<div><strong style="font-family:Poppins,sans-serif;color:#0F1B2D;display:block;">' + esc(u.name) + '</strong>' +
+      '<span style="font-size:.82rem;color:#5a6675;text-transform:capitalize;">' + esc(u.role) + '</span></div></div>' +
+      '<div style="font-size:.85rem;color:#3F4A5A;line-height:1.7;border-top:1px solid #e3e7ee;padding-top:.7rem;">' +
+      (u.email ? '<div><strong>Email:</strong> ' + esc(u.email) + '</div>' : '') +
+      (u.language ? '<div><strong>Language:</strong> ' + esc(u.language) + '</div>' : '') +
+      '<div style="margin-top:.4rem;color:#5a6675;">Data stays in West Europe · GDPR Art. 8</div></div>' +
+      '<div style="display:flex;gap:.5rem;margin-top:1.1rem;">' +
+      '<button id="appshellProfileClose" style="flex:1;padding:.55rem;border:1px solid #e3e7ee;border-radius:9px;background:#fff;font:inherit;cursor:pointer;">Close</button>' +
+      '<button id="appshellProfileLogout" style="flex:1;padding:.55rem;border:0;border-radius:9px;background:#0F1B2D;color:#fff;font:inherit;font-weight:600;cursor:pointer;">Sign out</button>' +
+      '</div></div>';
+    document.body.appendChild(ov);
+    var done = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    ov.addEventListener('click', function (e) { if (e.target === ov) done(); });
+    var cb = ov.querySelector('#appshellProfileClose'); if (cb) cb.addEventListener('click', done);
+    var lb = ov.querySelector('#appshellProfileLogout');
+    if (lb) lb.addEventListener('click', function () {
+      window.fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+        .then(function () { location.href = '/login.html'; })
+        .catch(function () { location.href = '/login.html'; });
+    });
   }
 
   function build() {
