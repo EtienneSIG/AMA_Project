@@ -354,10 +354,11 @@
           head.setAttribute('role', 'button');
           head.addEventListener('click', function () { avatarBtn.click(); });
           avatarBtn.classList.add('appshell-hidden-top');
-        } else if (actions) {
-          // Non-profile avatar (e.g. sign-out) → relocate it into the actions row.
-          avatarBtn.classList.add('appshell-moved');
-          actions.appendChild(avatarBtn);
+        } else {
+          // Non-profile avatar (e.g. sign-out on admin) → just hide it so the right
+          // panel header stays identical to the learner reference across every app.
+          // The dedicated Sign out control already lives at the bottom of the panel.
+          avatarBtn.classList.add('appshell-hidden-top');
         }
       }
       var statusWrap = document.querySelector('nav.top .status-wrap');
