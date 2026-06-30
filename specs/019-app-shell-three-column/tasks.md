@@ -68,6 +68,7 @@
 - [x] T019 [P] Cross-Agent QA Verifier: run full specs/019-app-shell-three-column/quickstart.md validation across all five apps (Accountable: agents/cross-agent-qa-verifier.chatmode.md)
 - [x] T020 EdTech Program Orchestrator: update specs/INDEX.md (019 → planned+tasked) (Accountable: agents/edtech-program-orchestrator.chatmode.md)
 - [x] T021 Demo Deployment Agent: cross-app consistency fixes (FR-003a) — identical right-panel profile header on all five apps (hide non-profile top-bar avatars instead of relocating them; learner is the reference); dynamic "This week" chart from `/api/activity/week`; full-width left-aligned center content on non-home pages; director-portal ARM RBAC for the admin ops card (Accountable: agents/demo-deployment-agent.chatmode.md)
+- [x] T022 Demo Deployment Agent: single shell-native editable profile modal on every app+page (FR-003b) — opens from the panel header, loads `GET /api/auth/me`, saves `PATCH /api/auth/me`, Sign out/Close/Save; removes the duplicate relocated avatar and the homepage redirect (Accountable: agents/demo-deployment-agent.chatmode.md)
 
 ---
 

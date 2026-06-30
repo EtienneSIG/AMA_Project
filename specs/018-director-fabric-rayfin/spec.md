@@ -8,6 +8,8 @@
 
 **Input**: User description: "Instead of using Power BI Embedded, use the Rayfin framework to create a Fabric app in the director app on Fabric data."
 
+> **Delivered increment (2026-06-30)** — Cut-over complete (`migrationState=complete`, Power BI fallback off, `PBI_CLIENT_SECRET` removed). The Fabric app (`app-director-fabric-learneu-demo`, North Europe) now ships a **visual director dashboard**: standard EdTech KPIs (learners, schools, mastery, engagement, completion, attendance, time-on-task, at-risk, satisfaction, gap-vs-national), an establishment-vs-national bar chart, a **Google-Maps-style schools map (Leaflet + OpenStreetMap tiles)** with mastery-coloured markers, and a mastery trend line — all from EU-resident aggregates via `/api/overview`. All **Power BI mentions removed** from the director-portal UI. (Demo note: OSM tiles are an external resource; a EU-hosted tile provider would be used for strict prod residency.)
+
 > **Note on the framework**: **Rayfin** is Microsoft's **Fabric Apps** framework/CLI (preview) for building full-stack apps with **Microsoft Fabric as the backend** — scaffolded via `npm create @microsoft/rayfin`, deployed with `npx rayfin up`. Refs: [Fabric Apps — Rayfin](https://www.microsoft.com/en-us/microsoft-fabric/features/rayfin) · [Create & deploy a Fabric app with the Rayfin CLI](https://learn.microsoft.com/fabric/apps/create-app-with-cli). The director analytics app is built as a **Rayfin Fabric App** (Fabric-hosted backend + static frontend) and surfaced inside the director portal, replacing Power BI Embedded.
 
 ## Clarifications
