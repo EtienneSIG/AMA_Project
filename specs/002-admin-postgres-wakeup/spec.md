@@ -10,6 +10,8 @@
 
 > **Delivered increment (2026-06-29)** — Scope extended beyond PostgreSQL: admin operations dashboard now also exposes Microsoft Fabric capacity wake-up (FR-011) and monitors the Director Portal site (FR-012). Fixed wake-up buttons that no longer functioned because the click handlers referenced removed `pg/fabric-status` panel IDs; handlers now act on the clicked card button and refresh via `loadCards()`. Director Portal restart requires Website Contributor RBAC for the admin managed identity at the portal scope.
 
+> **RBAC fix (2026-06-30)** — The admin managed identity had no role on `app-director-portal-learneu-demo`, so the ops card showed `ARM state = ERR` while the site itself was healthy (HTTP `/api/health` 200). Granted *Website Contributor* to the admin MI at the director-portal site scope and restarted the admin app (ARM token cache); state now reads `Running`. TODO: encode this role assignment in Bicep so it is reproducible on redeploy.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Detect PostgreSQL availability state from admin app (Priority: P1)
