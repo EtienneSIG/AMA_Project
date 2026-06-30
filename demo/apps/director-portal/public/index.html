@@ -73,7 +73,7 @@
     <h2>Scope</h2>
     <div class="muted" id="scopeText">Loading your approved scope…</div>
     <div class="scope" id="scopeChips"></div>
-    <div class="muted" style="margin-top:1rem;">Director benchmarks are now part of the Power BI report embedded below.</div>
+    <div class="muted" style="margin-top:1rem;">Director benchmarks are served by the EU-resident Fabric analytics app embedded below.</div>
     <div class="report-list" id="reportList" style="margin-top:1.25rem;">
       <div class="empty">Loading approved reports…</div>
     </div>
@@ -219,13 +219,13 @@
         link.href = report.embedUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.textContent = 'Open in Fabric (fallback)';
+        link.textContent = 'Open report in a new tab';
         actions.appendChild(link);
 
         // Auto-load the report in app to avoid redirect-first behavior.
         inApp.click();
       } else {
-        actions.innerHTML = '<span class="muted">No direct Power BI link configured.</span>';
+        actions.innerHTML = '<span class="muted">No report link configured.</span>';
         embedWrap.innerHTML = '<div class="embed-placeholder">No embed URL configured for this approved report.</div>';
       }
       reportList.appendChild(card);

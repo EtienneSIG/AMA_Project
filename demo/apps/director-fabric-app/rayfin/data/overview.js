@@ -14,6 +14,17 @@ const SCHOOLS = [
 
 const NATIONAL = { mastery: 0.61, engagement: 0.69, learners: 5400 };
 
+// Approximate Netherlands border as [lng, lat] points (projected client-side with the
+// same transform as the school dots, so the outline and the markers always line up).
+const NL_BORDER = [
+  [6.05, 53.50], [6.83, 53.44], [7.21, 53.24], [7.05, 52.64], [6.69, 52.49],
+  [6.95, 52.44], [7.03, 51.99], [6.16, 51.90], [6.11, 51.66], [5.95, 51.83],
+  [6.02, 51.43], [6.17, 51.16], [5.64, 50.84], [5.80, 51.10], [5.13, 51.32],
+  [4.55, 51.42], [3.85, 51.45], [3.36, 51.40], [3.51, 51.62], [4.07, 52.00],
+  [4.20, 52.30], [4.55, 52.46], [4.72, 52.96], [5.04, 52.63], [5.43, 52.90],
+  [5.34, 53.30], [5.86, 53.41], [6.05, 53.50]
+];
+
 function overview(scope = {}) {
   const schoolIds = new Set(scope.schoolIds || []);
   const regionIds = new Set(scope.regionIds || []);
@@ -37,8 +48,9 @@ function overview(scope = {}) {
     },
     national: NATIONAL,
     schools: visible.map(s => ({ id: s.id, name: s.name, region: s.region, lat: s.lat, lng: s.lng, learners: s.learners, mastery: s.mastery, engagement: s.engagement, trend: s.trend })),
-    nationalTrend: [0.56, 0.59, 0.61]
+    nationalTrend: [0.56, 0.59, 0.61],
+    nlBorder: NL_BORDER
   };
 }
 
-module.exports = { SCHOOLS, NATIONAL, overview };
+module.exports = { SCHOOLS, NATIONAL, NL_BORDER, overview };
