@@ -1,11 +1,11 @@
 # Spec Kit Feature Index — LearnEU Platform
 
-**Last Updated**: 2026-06-26  
-**Specs Maintained**: 19 (001–019)
+**Last Updated**: 2026-06-30  
+**Specs Maintained**: 21 (001–021)
 
 ## Overview
 
-This directory contains **19 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
+This directory contains **21 feature specifications** that define the complete LearnEU platform roadmap. Each spec is the **single source of truth** for its feature and maps directly to the [Backlog](../Backlog) and the [Constitution](../.specify/memory/constitution.md).
 
 ### Workflow
 
@@ -33,7 +33,7 @@ Each spec folder contains:
 
 | # | Feature | Branch | Status | P0/P1 | Backlog Match |
 |---|---------|--------|--------|-------|---------------|
-| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | ✅ spec · impl | P1 | Student experience (UI redesign) |
+| **001** | Learner Tabbed Workspace | `001-learner-tabbed-workspace` | ✅ spec+plan+tasks · impl | P1 | Student experience (UI redesign) |
 | **002** | Admin Postgres Wake-Up | `002-admin-postgres-wakeup` | ✅ spec+plan+tasks · impl | P1 | Platform transverse (ops reliability) |
 | **003** | Learner Gamification UX | `003-learner-gamification-ux` | ✅ spec+plan+tasks · impl | P1 | Student gamification (progress/streak/quests) |
 | **004** | Learner Hierarchy Portal | `004-learner-hierarchy-portal` | ✅ spec+plan+tasks · impl | P1 | Director portal (class/learner hierarchy) |

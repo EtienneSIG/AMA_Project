@@ -1,0 +1,25 @@
+{
+  "model": "learneu-adaptive",
+  "versions": [
+    {
+      "version": 1,
+      "tag": "fed-20260630-195541",
+      "trained_utc": "2026-06-30T19:55:41+00:00",
+      "method": "federated-avg + gaussian-dp (synthetic)",
+      "clients": 5,
+      "rounds": 8,
+      "metrics": {
+        "logloss": 0.5734,
+        "accuracy": 0.716
+      },
+      "dp": {
+        "epsilon": 3.3058,
+        "delta": 1e-05,
+        "noise_multiplier": 1.1,
+        "clip": 1.0
+      },
+      "weights_artifact": "learner_fed_fed-20260630-195541.npz",
+      "registry_target": "mock-aml (offline); prod target = Azure ML model registry"
+    }
+  ]
+}
