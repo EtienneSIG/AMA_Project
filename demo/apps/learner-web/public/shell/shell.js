@@ -399,12 +399,11 @@
       var actions = panel.querySelector('.appshell-actions');
       var head = panel.querySelector('.appshell-panel-head');
       var avatarBtn = document.querySelector('nav.top .avatar');
-      if (avatarBtn && actions) {
-        // The profile affordance lives on the panel header (wired in buildPanel, works on
-        // every page). Here we just relocate the legacy top-bar avatar into the actions
-        // row so it stays visible/usable and identically placed across apps.
-        avatarBtn.classList.add('appshell-moved');
-        actions.appendChild(avatarBtn);
+      if (avatarBtn) {
+        // The panel identity header is now the universal profile control (works on every
+        // page, opens the app modal or the shell popup). The legacy top-bar avatar would
+        // duplicate it in the actions row, so hide it for a consistent layout everywhere.
+        avatarBtn.classList.add('appshell-hidden-top');
       }
       var statusWrap = document.querySelector('nav.top .status-wrap');
       var sheetsBtn = document.querySelector('nav.top #sheetsBtn, nav.top .nav-icon');
