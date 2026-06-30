@@ -165,6 +165,13 @@ async function auditFabricEvent(req, eventType, outcome, correlationId, detail) 
 
 // --- Admin endpoints (admin role enforced by gateMiddleware) ---
 
+// Shell "This week" activity series (7 days, old→new). Real per-user data.
+app.get('/api/activity/week', async (req, res) => {
+  if (!db.enabled || !req.user) return res.json({ counts: [] });
+  const counts = await db.weeklyActivity({ email: req.user.email }).catch(() => []);
+  res.json({ counts });
+});
+
 // List managed sites with state + hostname + last-deployed timestamp.
 app.get('/api/admin/sites', async (_req, res) => {
   try {

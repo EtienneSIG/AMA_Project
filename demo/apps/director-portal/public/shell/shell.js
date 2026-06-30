@@ -249,9 +249,20 @@
       '<div class="appshell-actions"><a href="/" title="Home" aria-label="Home">⌂</a>' +
       '<a href="#" id="appshellPanelClose" class="appshell-mobileonly" title="Close" aria-label="Close panel">✕</a></div>' +
       '<div class="appshell-panel-section"><div class="appshell-subtitle">This week</div>' +
-      '<div class="appshell-chart" aria-hidden="true">' + bars + '</div></div>' +
+      '<div class="appshell-chart" id="appshellChart" aria-hidden="true">' + bars + '</div></div>' +
       '<div class="appshell-panel-section"><div class="appshell-subtitle">Favorites</div>' +
       '<ul class="appshell-quick" id="appshellFav"></ul></div>';
+    // Real weekly activity (7 days, old→new). Falls back to the static bars on error/empty.
+    try {
+      window.fetch('/api/activity/week', { credentials: 'same-origin' })
+        .then(function (r) { return r && r.ok ? r.json() : null; })
+        .then(function (d) {
+          var c = d && d.counts; if (!c || !c.length) return;
+          var max = Math.max.apply(null, c.concat([1]));
+          var chart = panel.querySelector('#appshellChart');
+          if (chart) chart.innerHTML = c.map(function (v) { return '<span style="height:' + Math.max(6, Math.round((v / max) * 100)) + '%"></span>'; }).join('');
+        }).catch(function () {});
+    } catch (e) {}
     // Mobile close.
     var close = panel.querySelector('#appshellPanelClose');
     if (close) close.addEventListener('click', function (ev) { ev.preventDefault(); document.body.classList.remove('appshell-panel-open'); });

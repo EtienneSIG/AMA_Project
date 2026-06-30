@@ -44,6 +44,13 @@ app.get('/api/health', (_req, res) => {
 
 app.use(auth.gateMiddleware(ALLOWED));
 
+// Shell "This week" activity series (7 days, old→new). Real per-user data.
+app.get('/api/activity/week', async (req, res) => {
+  if (!db.enabled || !req.user) return res.json({ counts: [] });
+  const counts = await db.weeklyActivity({ email: req.user.email }).catch(() => []);
+  res.json({ counts });
+});
+
 // --- Director reporting metadata (Power BI embed) -------------------------
 const EU_REGIONS = new Set(['northeurope', 'westeurope', 'francecentral', 'germanywestcentral', 'swedencentral']);
 const SCOPE_CONTEXT_SECRET = process.env.SCOPE_CONTEXT_SECRET || 'demo-shared-secret';

@@ -453,6 +453,12 @@ app.post('/api/tutor/escalate', async (req, res) => {
 });
 
 // --- Reference data (read-only, role-gated already by middleware) ----------
+// Shell "This week" activity series (7 days, old→new). Role-agnostic, real data.
+app.get('/api/activity/week', async (req, res) => {
+  if (!db.enabled || !req.user) return res.json({ counts: [] });
+  const counts = await db.weeklyActivity({ email: req.user.email }).catch(() => []);
+  res.json({ counts });
+});
 app.get('/api/data/curricula', async (req, res) => {
   if (!db.enabled) return res.json({ enabled: false, rows: [] });
   const rows = await db.listCurricula({ country: req.query.country, subject: req.query.subject });

@@ -1812,6 +1812,36 @@ async function listLearnerActivity({ email, days = 30 }) {
   return r ? r.rows : null;
 }
 
+// Last-7-days activity counts for the shell "This week" chart. Role-agnostic: prefers
+// learner practice attempts (learner_activity); falls back to connection/event counts
+// (connection_logs) so every role gets a real, moving series. Returns 7 ints (old→new).
+async function weeklyActivity({ email }) {
+  const zero = [0, 0, 0, 0, 0, 0, 0];
+  if (!email) return zero;
+  try {
+    const la = await q(
+      `SELECT (CURRENT_DATE - day)::int AS ago, attempts
+         FROM learner_activity
+        WHERE email = $1 AND day >= CURRENT_DATE - 6`,
+      [email]
+    );
+    let counts = zero.slice();
+    let any = false;
+    if (la && la.rows) for (const r of la.rows) { const i = 6 - r.ago; if (i >= 0 && i < 7) { counts[i] = Number(r.attempts) || 0; any = true; } }
+    if (any) return counts;
+    const cl = await q(
+      `SELECT (CURRENT_DATE - created_at::date)::int AS ago, count(*) AS n
+         FROM connection_logs
+        WHERE email = $1 AND created_at >= CURRENT_DATE - 6
+        GROUP BY 1`,
+      [email]
+    );
+    counts = zero.slice();
+    if (cl && cl.rows) for (const r of cl.rows) { const i = 6 - Number(r.ago); if (i >= 0 && i < 7) counts[i] = Number(r.n) || 0; }
+    return counts;
+  } catch { return zero; }
+}
+
 // Streak + totals + badges (Feature 4). Returns null if DB unavailable.
 async function getLearnerStreak({ email, windowDays = 30 }) {
   const rows = await listLearnerActivity({ email, days: windowDays });
@@ -4083,6 +4113,7 @@ module.exports = {
   listParentsForChild,
   listTeacherQuestionsForLearnerReadOnly,
   listLearnerActivity,
+  weeklyActivity,
   listLearnerHierarchyAssignments,
   resolveLearnerHierarchy,
   listHierarchyRollups,

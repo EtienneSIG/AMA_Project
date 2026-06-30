@@ -18,7 +18,17 @@ try {
         $entryName = $f.FullName.Substring($rootLen).Replace('\','/')
         $entry = $zip.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
         $es = $entry.Open()
-        try { $bs = [System.IO.File]::OpenRead($f.FullName); try { $bs.CopyTo($es) } finally { $bs.Dispose() } }
+        try {
+            # Open with ReadWrite share + retry: tolerates transient AV/indexer locks so a
+            # single briefly-locked file cannot abort the whole archive (and silently ship
+            # an incomplete zip). Throws only after exhausting retries.
+            $bs = $null
+            for ($try = 1; $try -le 8; $try++) {
+                try { $bs = [System.IO.File]::Open($f.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite); break }
+                catch { if ($try -eq 8) { throw }; Start-Sleep -Milliseconds 400 }
+            }
+            try { $bs.CopyTo($es) } finally { $bs.Dispose() }
+        }
         finally { $es.Dispose() }
     }
 } finally { $zip.Dispose(); $fs.Dispose() }
