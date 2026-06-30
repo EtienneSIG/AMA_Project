@@ -266,6 +266,24 @@
     // Mobile close.
     var close = panel.querySelector('#appshellPanelClose');
     if (close) close.addEventListener('click', function (ev) { ev.preventDefault(); document.body.classList.remove('appshell-panel-open'); });
+    // Universal profile affordance: the panel identity header is ALWAYS the profile
+    // control on EVERY page (not just pages whose legacy top bar has an avatar). If the
+    // page exposes openProfile(), it opens the modal; otherwise it navigates to the main
+    // app workspace where the profile is available.
+    try {
+      var headEl = panel.querySelector('.appshell-panel-head');
+      if (headEl) {
+        headEl.classList.add('appshell-head-clickable');
+        headEl.setAttribute('role', 'button');
+        headEl.setAttribute('title', 'Open profile');
+        headEl.addEventListener('click', function () {
+          if (typeof window.openProfile === 'function') { window.openProfile(); return; }
+          var topAvatar = document.querySelector('nav.top .avatar');
+          if (topAvatar && /openprofile/i.test(topAvatar.getAttribute('onclick') || '')) { topAvatar.click(); return; }
+          location.href = '/';
+        });
+      }
+    } catch (e) {}
     // Favorites — pages the user pinned from the left rail (📌). Persisted per app.
     favListEl = panel.querySelector('#appshellFav');
     renderFavorites();
@@ -344,23 +362,12 @@
       var actions = panel.querySelector('.appshell-actions');
       var head = panel.querySelector('.appshell-panel-head');
       var avatarBtn = document.querySelector('nav.top .avatar');
-      if (avatarBtn) {
-        var oc = (avatarBtn.getAttribute('onclick') || '');
-        if (/openprofile/i.test(oc) && head) {
-          // Profile button → ALSO make the panel identity header open the profile,
-          // for a large click target, but keep the avatar button VISIBLE in the
-          // actions row so every app shows the same profile control in the same place.
-          head.classList.add('appshell-head-clickable');
-          head.setAttribute('title', avatarBtn.getAttribute('title') || 'Open profile');
-          head.setAttribute('role', 'button');
-          head.addEventListener('click', function () { avatarBtn.click(); });
-        }
-        if (actions) {
-          // Always relocate the top-bar avatar into the right-panel actions row so the
-          // profile / account control is present and identically placed across all apps.
-          avatarBtn.classList.add('appshell-moved');
-          actions.appendChild(avatarBtn);
-        }
+      if (avatarBtn && actions) {
+        // The profile affordance lives on the panel header (wired in buildPanel, works on
+        // every page). Here we just relocate the legacy top-bar avatar into the actions
+        // row so it stays visible/usable and identically placed across apps.
+        avatarBtn.classList.add('appshell-moved');
+        actions.appendChild(avatarBtn);
       }
       var statusWrap = document.querySelector('nav.top .status-wrap');
       var sheetsBtn = document.querySelector('nav.top #sheetsBtn, nav.top .nav-icon');
