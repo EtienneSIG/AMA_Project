@@ -278,9 +278,7 @@
         headEl.setAttribute('role', 'button');
         headEl.setAttribute('title', 'Open profile');
         headEl.addEventListener('click', function () {
-          if (typeof window.openProfile === 'function') { window.openProfile(); return; }
-          var topAvatar = document.querySelector('nav.top .avatar');
-          if (topAvatar && /openprofile/i.test(topAvatar.getAttribute('onclick') || '')) { topAvatar.click(); return; }
+          // Single, identical profile window on every app/page (shell-native modal).
           showShellProfile();
         });
       }
@@ -308,38 +306,57 @@
     return panel;
   }
 
-  // Lightweight shell-native profile popup. Used on pages that do NOT define their own
-  // openProfile() (e.g. home/landing pages), so the profile works in place rather than
-  // redirecting elsewhere.
+  // Full shell-native profile modal — identical on EVERY app and page. Loads the user
+  // from /api/auth/me and saves via PATCH /api/auth/me (firstName/lastName/age/social/
+  // language), with Sign out / Close / Save. This is the single profile window everywhere.
   function showShellProfile() {
-    var existing = document.getElementById('appshellProfilePop');
-    if (existing) { existing.parentNode.removeChild(existing); return; }
-    var u = shellUser || { name: 'Your profile', email: '', role: '', language: '' };
+    if (document.getElementById('appshellProfilePop')) return;
     var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
     var ov = el('div'); ov.id = 'appshellProfilePop';
-    ov.setAttribute('style', 'position:fixed;inset:0;z-index:2000;background:rgba(15,27,45,0.35);display:flex;align-items:center;justify-content:center;');
-    ov.innerHTML = '<div role="dialog" aria-label="Profile" style="background:#fff;border-radius:14px;min-width:300px;max-width:380px;padding:1.3rem 1.4rem;box-shadow:0 18px 50px rgba(15,27,45,0.3);font-family:Inter,system-ui,sans-serif;">' +
-      '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;">' +
-      '<div class="appshell-avatar role-' + esc(u.role) + '" style="width:46px;height:46px;">' + esc((u.name[0] || '·').toUpperCase()) + '</div>' +
-      '<div><strong style="font-family:Poppins,sans-serif;color:#0F1B2D;display:block;">' + esc(u.name) + '</strong>' +
-      '<span style="font-size:.82rem;color:#5a6675;text-transform:capitalize;">' + esc(u.role) + '</span></div></div>' +
-      '<div style="font-size:.85rem;color:#3F4A5A;line-height:1.7;border-top:1px solid #e3e7ee;padding-top:.7rem;">' +
-      (u.email ? '<div><strong>Email:</strong> ' + esc(u.email) + '</div>' : '') +
-      (u.language ? '<div><strong>Language:</strong> ' + esc(u.language) + '</div>' : '') +
-      '<div style="margin-top:.4rem;color:#5a6675;">Data stays in West Europe · GDPR Art. 8</div></div>' +
-      '<div style="display:flex;gap:.5rem;margin-top:1.1rem;">' +
-      '<button id="appshellProfileClose" style="flex:1;padding:.55rem;border:1px solid #e3e7ee;border-radius:9px;background:#fff;font:inherit;cursor:pointer;">Close</button>' +
-      '<button id="appshellProfileLogout" style="flex:1;padding:.55rem;border:0;border-radius:9px;background:#0F1B2D;color:#fff;font:inherit;font-weight:600;cursor:pointer;">Sign out</button>' +
+    ov.setAttribute('style', 'position:fixed;inset:0;z-index:2000;background:rgba(15,27,45,0.4);display:flex;align-items:center;justify-content:center;padding:1rem;');
+    var langs = [['en', 'English (en)'], ['nl', 'Nederlands (nl)'], ['de', 'Deutsch (de)'], ['fr', 'Français (fr)']];
+    var inp = function (id, label) { return '<div style="flex:1;min-width:140px;"><label style="font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6675;">' + label + '</label><input id="' + id + '" style="width:100%;margin-top:.25rem;padding:.5rem .65rem;border:1px solid #e3e7ee;border-radius:8px;font:inherit;box-sizing:border-box;"></div>'; };
+    ov.innerHTML = '<div role="dialog" aria-label="Your profile" style="background:#fff;border-radius:16px;width:540px;max-width:100%;padding:1.5rem 1.6rem;box-shadow:0 24px 60px rgba(15,27,45,0.35);font-family:Inter,system-ui,sans-serif;">' +
+      '<h2 style="margin:0 0 .2rem;font-family:Poppins,sans-serif;color:#0F1B2D;">Your profile</h2>' +
+      '<div style="font-size:.84rem;color:#5a6675;margin-bottom:1rem;">Signed in as <code id="apEmail" style="background:#f1f4f8;padding:.05rem .3rem;border-radius:4px;"></code> · role <code id="apRole" style="background:#f1f4f8;padding:.05rem .3rem;border-radius:4px;"></code></div>' +
+      '<div style="display:flex;gap:.8rem;flex-wrap:wrap;">' + inp('apFirst', 'First name') + inp('apLast', 'Last name') + '</div>' +
+      '<div style="display:flex;gap:.8rem;flex-wrap:wrap;margin-top:.7rem;">' + inp('apAge', 'Age') + inp('apSocial', 'Social handle') + '</div>' +
+      '<div style="margin-top:.7rem;"><label style="font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6675;">Preferred language (drives assistant response)</label>' +
+      '<select id="apLang" style="width:100%;margin-top:.25rem;padding:.55rem .65rem;border:1px solid #e3e7ee;border-radius:8px;font:inherit;box-sizing:border-box;">' + langs.map(function (l) { return '<option value="' + l[0] + '">' + l[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div id="apSaved" style="display:none;color:#1b9e8a;font-size:.82rem;margin-top:.6rem;">Saved ✓</div>' +
+      '<div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.2rem;">' +
+      '<button id="apLogout" style="padding:.55rem 1.1rem;border:1px solid #e3e7ee;border-radius:999px;background:#fff;font:inherit;cursor:pointer;">Sign out</button>' +
+      '<button id="apClose" style="padding:.55rem 1.1rem;border:1px solid #e3e7ee;border-radius:999px;background:#fff;font:inherit;cursor:pointer;">Close</button>' +
+      '<button id="apSave" style="padding:.55rem 1.3rem;border:0;border-radius:999px;background:#F26334;color:#fff;font:inherit;font-weight:600;cursor:pointer;">Save</button>' +
       '</div></div>';
     document.body.appendChild(ov);
     var done = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
     ov.addEventListener('click', function (e) { if (e.target === ov) done(); });
-    var cb = ov.querySelector('#appshellProfileClose'); if (cb) cb.addEventListener('click', done);
-    var lb = ov.querySelector('#appshellProfileLogout');
-    if (lb) lb.addEventListener('click', function () {
-      window.fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
-        .then(function () { location.href = '/login.html'; })
-        .catch(function () { location.href = '/login.html'; });
+    ov.querySelector('#apClose').addEventListener('click', done);
+    ov.querySelector('#apLogout').addEventListener('click', function () {
+      window.fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).then(function () { location.href = '/login.html'; }).catch(function () { location.href = '/login.html'; });
+    });
+    var fill = function (u) {
+      ov.querySelector('#apEmail').textContent = u.email || '';
+      ov.querySelector('#apRole').textContent = u.role || '';
+      ov.querySelector('#apFirst').value = u.firstName || '';
+      ov.querySelector('#apLast').value = u.lastName || '';
+      ov.querySelector('#apAge').value = u.age || '';
+      ov.querySelector('#apSocial').value = u.social || '';
+      ov.querySelector('#apLang').value = u.language || 'en';
+    };
+    window.fetch('/api/auth/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d && d.user) fill(d.user); }).catch(function () {});
+    ov.querySelector('#apSave').addEventListener('click', function () {
+      var payload = { firstName: ov.querySelector('#apFirst').value, lastName: ov.querySelector('#apLast').value, age: ov.querySelector('#apAge').value, social: ov.querySelector('#apSocial').value, language: ov.querySelector('#apLang').value };
+      window.fetch('/api/auth/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) { alert((res.j && res.j.error) || 'save failed'); return; }
+          var sv = ov.querySelector('#apSaved'); sv.style.display = 'block';
+          var u = res.j.user || {}; var name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+          var nm = document.querySelector('#appshellName'); if (nm && name) nm.textContent = name;
+          var av = document.querySelector('#appshellAvatar'); if (av && name) av.textContent = name[0].toUpperCase();
+        }).catch(function (e) { alert(String(e)); });
     });
   }
 
