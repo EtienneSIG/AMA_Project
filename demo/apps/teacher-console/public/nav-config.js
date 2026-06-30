@@ -16,5 +16,6 @@ window.LEARNEU_NAV = [
   { label: 'Moderation', icon: '🚦', tab: 'moderation' },
   { label: 'Sharing', icon: '🔗', tab: 'sharing' },
   { label: 'Videos', icon: '📺', tab: 'videos' },
-  { label: 'Well-being', icon: '💛', tab: 'wellbeing' }
+  { label: 'Well-being', icon: '💛', tab: 'wellbeing' },
+  { label: 'Study sheets', icon: '📄', tab: 'sheets' }
 ];
