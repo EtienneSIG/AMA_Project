@@ -347,18 +347,19 @@
       if (avatarBtn) {
         var oc = (avatarBtn.getAttribute('onclick') || '');
         if (/openprofile/i.test(oc) && head) {
-          // Profile button → make the panel identity header open the profile, and
-          // hide the now-duplicate avatar button in the top bar.
+          // Profile button → ALSO make the panel identity header open the profile,
+          // for a large click target, but keep the avatar button VISIBLE in the
+          // actions row so every app shows the same profile control in the same place.
           head.classList.add('appshell-head-clickable');
           head.setAttribute('title', avatarBtn.getAttribute('title') || 'Open profile');
           head.setAttribute('role', 'button');
           head.addEventListener('click', function () { avatarBtn.click(); });
-          avatarBtn.classList.add('appshell-hidden-top');
-        } else {
-          // Non-profile avatar (e.g. sign-out on admin) → just hide it so the right
-          // panel header stays identical to the learner reference across every app.
-          // The dedicated Sign out control already lives at the bottom of the panel.
-          avatarBtn.classList.add('appshell-hidden-top');
+        }
+        if (actions) {
+          // Always relocate the top-bar avatar into the right-panel actions row so the
+          // profile / account control is present and identically placed across all apps.
+          avatarBtn.classList.add('appshell-moved');
+          actions.appendChild(avatarBtn);
         }
       }
       var statusWrap = document.querySelector('nav.top .status-wrap');
