@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $demoRoot = Split-Path -Parent $PSScriptRoot
 $repoRoot = Split-Path -Parent $demoRoot
 $matrixRoot = Join-Path $repoRoot 'RequirementMatrix'
+$evidenceDate = Get-Date -Format 'yyyy-MM-dd'
 $pass = 0
 $fail = 0
 
@@ -74,10 +75,10 @@ foreach ($file in $jsFiles) {
 Check 'python -m compileall -q demo' ($LASTEXITCODE -eq 0)
 
 Require-File (Join-Path $matrixRoot 'AMA_Rubric_EMEA.extracted.md') 'AMA rubric extraction evidence'
-Require-File (Join-Path $matrixRoot 'requirement-analysis-2026-06-30.md') 'daily requirement analysis'
-Require-File (Join-Path $matrixRoot 'remediation-60-60-2026-06-30.md') '60/60 remediation closure matrix'
-Require-File (Join-Path $matrixRoot 'monitoring-evidence-2026-06-30.md') 'monitoring evidence'
-Require-File (Join-Path $matrixRoot 'agentic-handoff-evidence-2026-06-30.md') 'agentic handoff evidence'
+Require-File (Join-Path $matrixRoot "requirement-analysis-$evidenceDate.md") 'daily requirement analysis'
+Require-File (Join-Path $matrixRoot "remediation-60-60-$evidenceDate.md") '60/60 remediation closure matrix'
+Require-File (Join-Path $matrixRoot "monitoring-evidence-$evidenceDate.md") 'monitoring evidence'
+Require-File (Join-Path $matrixRoot "agentic-handoff-evidence-$evidenceDate.md") 'agentic handoff evidence'
 
 Write-Host ''
 Write-Host "Result: $pass passed, $fail failed"
