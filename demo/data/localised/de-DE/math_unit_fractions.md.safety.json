@@ -1,0 +1,14 @@
+{
+  "mode": "offline-synthetic",
+  "source": "data/math_unit_fractions.md",
+  "target_lang": "de-DE",
+  "output": "data/localised/de-DE/math_unit_fractions.md",
+  "content_safety": {
+    "Hate": 0,
+    "SelfHarm": 0,
+    "Sexual": 0,
+    "Violence": 0
+  },
+  "blocked": false,
+  "generated_utc": "2026-06-30T19:54:13+00:00"
+}
