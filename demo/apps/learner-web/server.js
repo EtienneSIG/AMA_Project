@@ -202,6 +202,19 @@ try {
   console.warn('[experiments] routes not mounted:', e && e.message);
 }
 
+// Runtime agentic planner: drafts multi-day study plans from mastery signals,
+// then routes them through explicit teacher approval before learner use.
+try {
+  require('./server-study-plan')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[study-plan-agent] routes not mounted:', e && e.message);
+}
+
+// Default landing page after login: serve the homepage (home.html) at the root
+// instead of the app dashboard (index.html). Registered before express.static so
+// it wins over the static index fallback.
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {

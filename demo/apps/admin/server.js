@@ -54,6 +54,12 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use(auth.gateMiddleware(ALLOWED));
+
+// Default landing page after login: serve the homepage (home.html) at the root
+// instead of the app dashboard (index.html). Registered before express.static so
+// it wins over the static index fallback.
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- ARM helper ---
