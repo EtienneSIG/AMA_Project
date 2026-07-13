@@ -202,6 +202,14 @@ try {
   console.warn('[experiments] routes not mounted:', e && e.message);
 }
 
+// Runtime agentic planner: drafts multi-day study plans from mastery signals,
+// then routes them through explicit teacher approval before learner use.
+try {
+  require('./server-study-plan')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[study-plan-agent] routes not mounted:', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
