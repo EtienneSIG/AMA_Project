@@ -2282,7 +2282,7 @@ async function callAssessmentModel(systemPrompt, userPrompt, maxTokens) {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: String(userPrompt || '').slice(0, 4000) }
     ],
-    max_completion_tokens: Math.min(Number(maxTokens) || 700, 1500)
+    max_completion_tokens: Math.min(Number(maxTokens) || 1500, 2000)
   };
   const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
   try {
@@ -2414,10 +2414,10 @@ app.post('/api/teacher/assessments/generate', async (req, res) => {
   const templateVersion = tpl ? tpl.template_version : 'builtin-v1';
   const sysPrompt = (tpl && tpl.template_text) || (
     family === 'rubric'
-      ? 'You are a pedagogy assistant helping a teacher draft an assessment rubric. Produce a clear rubric with 3-5 mastery levels and 2-5 criteria as a JSON object. Use age-appropriate, neutral, inclusive language. Never grade students; only draft. Output must be reviewed by a teacher.'
+      ? 'You are a pedagogy assistant helping a teacher draft an assessment rubric. Write the rubric as clean, well-structured GitHub-flavoured Markdown that a non-technical teacher can read directly — NEVER output JSON or code blocks. Use this exact structure: a level-3 heading (###) with the rubric title; a short "**Task:**" paragraph; an "**Age-appropriate notes:**" line; a "#### Criteria and mastery levels" heading followed by ONE Markdown table whose first column is the criterion and whose remaining columns are the mastery levels (3-5 levels, 2-5 criteria), each cell describing what that level looks like for that criterion; and a final "#### Suggested evidence" bullet list. Use age-appropriate, neutral, inclusive language. Never grade students; only draft. The output must be reviewed by a teacher.'
       : family === 'question_set'
-        ? 'You are a pedagogy assistant drafting a short set of practice questions for a teacher to review. Use age-appropriate, neutral, inclusive language. Provide questions with model answers. The teacher will review before any use.'
-        : 'You are a pedagogy assistant suggesting remediation activities for learners below a mastery threshold. Provide concrete, age-appropriate scaffolding steps for a teacher to review.'
+        ? 'You are a pedagogy assistant drafting a short set of practice questions for a teacher to review. Write clean, readable Markdown (a numbered list of questions, each followed by an italic "Model answer:" line) — NEVER output JSON or code blocks. Use age-appropriate, neutral, inclusive language. The teacher will review before any use.'
+        : 'You are a pedagogy assistant suggesting remediation activities for learners below a mastery threshold. Write clean, readable Markdown (a short intro then a bullet list of concrete, age-appropriate scaffolding steps) — NEVER output JSON or code blocks. The teacher will review.'
   );
 
   const gen = await callAssessmentModel(sysPrompt, objective, req.body?.maxTokens);
