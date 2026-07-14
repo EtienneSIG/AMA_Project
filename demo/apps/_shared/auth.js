@@ -25,7 +25,7 @@ const SEED_USERS = [
   { email: 'admin@learneu.demo',    role: 'admin',   firstName: 'Alex',     lastName: 'Admin',    age: 35, social: '@alex.admin',     language: 'en' },
   { email: 'teacher@learneu.demo',  role: 'teacher', firstName: 'Klaus',    lastName: 'Klein',    age: 42, social: '@klaus.klein',    language: 'de' },
   { email: 'parent@learneu.demo',   role: 'parent',  firstName: 'Sophie',   lastName: 'De Vries', age: 40, social: '@sophie.dv',      language: 'nl' },
-  { email: 'student@learneu.demo',  role: 'student', firstName: 'Lucas',    lastName: 'Janssen',  age: 12, social: '@lucas12',        language: 'fr' },
+  { email: 'student@learneu.demo',  role: 'student', firstName: 'Lucas',    lastName: 'Janssen',  age: 12, social: '@lucas12',        language: 'en' },
   { email: 'director@learneu.demo', role: 'director', firstName: 'Ines',     lastName: 'Bakker',   age: 46, social: '@ines.director',  language: 'en', reportingScope: { schoolIds: ['SCH-AMSTERDAM-01'], regionIds: ['REG-NL-NORTH'], grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', effectiveFrom: '2026-06-01T00:00:00Z' } },
   { email: 'director.noscope@learneu.demo', role: 'director', firstName: 'Noa', lastName: 'Scope', age: 47, social: '@noa.noscope', language: 'en', reportingScope: { schoolIds: [], regionIds: [], grantedBy: 'admin@learneu.demo', grantedAt: '2026-06-01T09:00:00Z', effectiveFrom: '2026-06-01T00:00:00Z' } },
   // --- extended teachers ---------------------------------------------------
