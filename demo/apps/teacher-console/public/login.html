@@ -144,7 +144,7 @@
           password: document.getElementById('password').value
         })
       });
-      if (r.ok) { location.href = '/'; return false; }
+      if (r.ok) { location.href = '/home.html'; return false; }
       const j = await r.json().catch(()=>({}));
       errEl.textContent = j.error || ('HTTP '+r.status);
     } catch (err) {

@@ -184,11 +184,6 @@ if (APP_ROLE === 'student') {
   });
 }
 
-// Default landing page after login: serve the homepage (home.html) at the root
-// instead of the app dashboard (index.html). Registered before express.static so
-// it wins over the static index fallback.
-app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
-
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
