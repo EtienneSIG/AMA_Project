@@ -272,7 +272,10 @@ app.post('/api/chat', async (req, res) => {
       { role: 'system', content: buildSystemPrompt(u) },
       { role: 'user', content: userPrompt }
     ],
-    max_completion_tokens: Math.min(Number(req.body?.max_tokens) || 500, 1500)
+    // Educator answers (curriculum activities, worked examples, full lesson plans)
+    // run long; a 500-token default truncated them mid-sentence, so default to 2000
+    // and allow up to 4000.
+    max_completion_tokens: Math.min(Number(req.body?.max_tokens) || 2000, 4000)
   };
   const url = `${APIM}/aoai/openai/deployments/${encodeURIComponent(DEP)}/chat/completions?api-version=2024-08-01-preview`;
   const t0 = Date.now();
