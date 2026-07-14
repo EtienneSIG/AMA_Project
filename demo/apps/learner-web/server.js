@@ -405,7 +405,7 @@ app.get('/api/tutor/voice/status', async (req, res) => {
 // EU server-side STT: receives recorded audio, returns transcript (no audio stored).
 app.post('/api/tutor/voice/stt', express.raw({ type: ['audio/*', 'application/octet-stream'], limit: '6mb' }), async (req, res) => {
   if (!speech.enabled) return res.status(503).json({ error: 'speech_unavailable' });
-  const out = await speech.transcribe(req.body, req.get('content-type') || 'audio/webm; codecs=opus').catch(() => ({ text: '' }));
+  const out = await speech.transcribe(req.body, req.get('content-type') || 'audio/wav').catch(() => ({ text: '' }));
   res.json({ text: out.text || '', region: speech.region, state: out.text ? 'ok' : 'needs_repeat' });
 });
 
