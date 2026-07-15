@@ -63,6 +63,7 @@ Each spec folder contains:
 | **018** | Director Fabric (Rayfin) App | `018-director-fabric-rayfin` | P1 | ✅ spec+plan+tasks · impl (cut-over, PBI retired) | Director → Native Fabric app replacing Power BI Embedded |
 | **019** | Unified Three-Column App Shell | `019-app-shell-three-column` | P1 | ✅ spec+plan+tasks · impl (default on) | All apps → Left nav / center content / right profile redesign |
 | **020** | UX Fixes — Editorial Toggle & Left Menu | `020-ux-editorial-toggle-left-menu` | P1 | ✅ spec+plan+tasks · impl | All apps → Remove Editorial theme toggle + left-align primary menu |
+| **022** | Director Fabric App — Dashboard in AppBackend | `022-director-fabric-app-dashboard` | P1 | ✅ spec+plan+tasks · delivered | Director → Dashboard reproduced natively in the `Director` Fabric App (EULearn, F16) |
 
 ---
 
@@ -93,6 +94,7 @@ Each spec folder contains:
 - ✅ 005 Reporting Benchmarks
 - ✅ 011 **[NEW]** Multi-School Hierarchy
 - ✅ 018 **[NEW]** Fabric (Rayfin) Analytics App
+- ✅ 022 **[NEW]** Fabric App Dashboard in the Director AppBackend (EULearn)
 
 **Platform Transverse** (5 specs)
 - ✅ 002 Postgres Wake-Up
