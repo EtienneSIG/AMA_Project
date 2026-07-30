@@ -1,0 +1,45 @@
+table 'Model Routing'
+
+	measure 'Routed Requests' = SUM('Model Routing'[Requests])
+		formatString: #,0
+
+	measure 'Model Cost (EUR)' = SUM('Model Routing'[Cost EUR])
+		formatString: \€#,0
+
+	measure 'Cost Share %' = DIVIDE([Model Cost (EUR)], CALCULATE([Model Cost (EUR)], ALL('Model Routing')))
+		formatString: 0.0%
+
+	measure 'Request Share %' = DIVIDE([Routed Requests], CALCULATE([Routed Requests], ALL('Model Routing')))
+		formatString: 0.0%
+
+	column Model
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Model
+
+	column Requests
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: Requests
+
+	column 'Cost EUR'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Cost EUR
+
+	partition model-routing = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Model = text, Requests = Int64.Type, #"Cost EUR" = number],
+				        {
+				            {"gpt-4o-mini", 620000, 1240.00},
+				            {"gpt-4o", 180000, 2160.00},
+				            {"o4-mini", 90000, 900.00},
+				            {"phi-3.5 (SLM)", 410000, 205.00},
+				            {"embedding-3-small", 300000, 90.00}
+				        }
+				    )
+				in
+				    Source

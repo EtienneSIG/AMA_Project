@@ -1,0 +1,63 @@
+table 'Governance Register'
+
+	measure 'Days Since Review' = MAXX('Governance Register', DATEDIFF('Governance Register'[Last Reviewed], TODAY(), DAY))
+		formatString: #,0
+
+	measure 'Avg Days Since Review' = AVERAGEX('Governance Register', DATEDIFF('Governance Register'[Last Reviewed], TODAY(), DAY))
+		formatString: #,0
+
+	measure 'Overdue Reviews' =
+			COUNTROWS(
+			    FILTER(
+			        'Governance Register',
+			        DATEDIFF('Governance Register'[Last Reviewed], TODAY(), DAY) > 'Governance Register'[Interval Days]
+			    )
+			)
+		formatString: #,0
+
+	measure 'Registered Artefacts' = COUNTROWS('Governance Register')
+		formatString: #,0
+
+	column Artefact
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artefact
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+	column 'Last Reviewed'
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: Last Reviewed
+
+	column 'Interval Days'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Interval Days
+
+	column Owner
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Owner
+
+	partition governance-register = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Artefact = text, Type = text, #"Last Reviewed" = DateTime.Type, #"Interval Days" = Int64.Type, Owner = text],
+				        {
+				            {"Programme DPIA", "DPIA", #datetime(2026,2,10,0,0,0), 180, "DPO"},
+				            {"Annex IV - AI Tutor", "AI Act Annex IV", #datetime(2026,5,20,0,0,0), 180, "EU AI Act CO"},
+				            {"Annex IV - Adaptive Engine", "AI Act Annex IV", #datetime(2026,1,15,0,0,0), 180, "EU AI Act CO"},
+				            {"Records of Processing (Art.30)", "RoPA", #datetime(2026,6,1,0,0,0), 365, "DPO"},
+				            {"RAI Evaluation Report", "RAI", #datetime(2026,7,5,0,0,0), 90, "RAI Evaluator"},
+				            {"Children's Data Assessment", "DPIA", #datetime(2025,12,20,0,0,0), 180, "GDPR Specialist"}
+				        }
+				    )
+				in
+				    Source

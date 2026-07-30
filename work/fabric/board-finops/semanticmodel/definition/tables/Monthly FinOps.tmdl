@@ -1,0 +1,67 @@
+table 'Monthly FinOps'
+
+	measure 'Total Cost (EUR)' = SUM('Monthly FinOps'[Cost EUR])
+		formatString: \€#,0
+
+	measure 'Active Users' = SUM('Monthly FinOps'[ActiveUsers])
+		formatString: #,0
+
+	measure 'Total Tokens' = SUM('Monthly FinOps'[Tokens])
+		formatString: #,0
+
+	measure 'Cost per Active User (EUR)' = DIVIDE([Total Cost (EUR)], [Active Users])
+		formatString: \€#,0.00
+
+	measure 'Latest Cost per Active User (EUR)' =
+			VAR latestMonth = CALCULATE(MAX('Monthly FinOps'[Month]), ALL('Monthly FinOps'))
+			RETURN CALCULATE([Cost per Active User (EUR)], 'Monthly FinOps'[Month] = latestMonth)
+		formatString: \€#,0.00
+
+	measure 'Latest Monthly Cost (EUR)' =
+			VAR latestMonth = CALCULATE(MAX('Monthly FinOps'[Month]), ALL('Monthly FinOps'))
+			RETURN CALCULATE([Total Cost (EUR)], 'Monthly FinOps'[Month] = latestMonth)
+		formatString: \€#,0
+
+	measure 'Latest Active Users' =
+			VAR latestMonth = CALCULATE(MAX('Monthly FinOps'[Month]), ALL('Monthly FinOps'))
+			RETURN CALCULATE([Active Users], 'Monthly FinOps'[Month] = latestMonth)
+		formatString: #,0
+
+	column Month
+		dataType: dateTime
+		formatString: yyyy-mm
+		summarizeBy: none
+		sourceColumn: Month
+
+	column ActiveUsers
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: ActiveUsers
+
+	column 'Cost EUR'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Cost EUR
+
+	column Tokens
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: Tokens
+
+	partition monthly-finops = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Month = DateTime.Type, ActiveUsers = Int64.Type, #"Cost EUR" = number, Tokens = Int64.Type],
+				        {
+				            {#datetime(2026,2,1,0,0,0), 3800, 5320.00, 38000000},
+				            {#datetime(2026,3,1,0,0,0), 4200, 5460.00, 42000000},
+				            {#datetime(2026,4,1,0,0,0), 4650, 5580.00, 46500000},
+				            {#datetime(2026,5,1,0,0,0), 5100, 5610.00, 51000000},
+				            {#datetime(2026,6,1,0,0,0), 5600, 5320.00, 56000000},
+				            {#datetime(2026,7,1,0,0,0), 6100, 5185.00, 61000000}
+				        }
+				    )
+				in
+				    Source
