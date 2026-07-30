@@ -1472,6 +1472,65 @@ function mdToHtml(text) {
 function typesetMath(el) {
   if (window.MathJax && MathJax.typesetPromise) { MathJax.typesetPromise(el ? [el] : undefined).catch(() => {}); }
 }
+// Some AI drafts (or older stored ones) come back as a JSON object instead of prose.
+// Render such objects as a classic, readable layout (headings + tables) so a
+// non-technical teacher never sees raw JSON. Anything else falls back to markdown.
+function _looksLikeJson(t) {
+  const s = String(t || '').trim().replace(/^```(?:json)?/i, '').trim();
+  return s.startsWith('{') || s.startsWith('[');
+}
+function _parseLooseJson(t) {
+  let s = String(t || '').trim().replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+  try { return JSON.parse(s); } catch (_) {}
+  // Tolerate truncated output: try progressively shorter prefixes that end on a
+  // closing bracket, appending any missing closers, until one parses.
+  for (let i = s.length; i > 0; i--) {
+    const c = s[i - 1];
+    if (c !== '}' && c !== ']') continue;
+    const head = s.slice(0, i);
+    const opens = (head.match(/[{[]/g) || []).length;
+    const closes = (head.match(/[}\]]/g) || []).length;
+    let candidate = head;
+    for (let k = 0; k < opens - closes; k++) candidate += (s.indexOf('[') > -1 && s.indexOf('[') < s.indexOf('{') ? ']' : '}');
+    try { return JSON.parse(head); } catch (_) {}
+    try { return JSON.parse(candidate); } catch (_) {}
+  }
+  return null;
+}
+function renderAssessment(text) {
+  if (!_looksLikeJson(text)) return mdToHtml(text);
+  const o = _parseLooseJson(text);
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return mdToHtml(text);
+  const e = (s) => escapeHtml(String(s == null ? '' : s));
+  const cellTd = 'border:1px solid #e2e8f0;padding:.4rem .55rem;vertical-align:top;';
+  let h = '<div class="assessment-view" style="font-size:.9rem;line-height:1.5;">';
+  if (o.title) h += '<h3 style="margin:.1rem 0 .5rem;">' + e(o.title) + '</h3>';
+  if (o.taskDescription) h += '<p style="margin:.3rem 0;"><strong>Task:</strong> ' + e(o.taskDescription) + '</p>';
+  if (o.ageAppropriateNotes) h += '<p style="margin:.3rem 0;color:var(--grey);"><strong>Age-appropriate notes:</strong> ' + e(o.ageAppropriateNotes) + '</p>';
+  if (Array.isArray(o.criteria) && o.criteria.length) {
+    h += '<h4 style="margin:.7rem 0 .3rem;">Criteria</h4><table style="width:100%;border-collapse:collapse;">';
+    o.criteria.forEach(c => { h += '<tr><td style="' + cellTd + 'font-weight:600;white-space:nowrap;">' + e(c.name || c.criterion) + '</td><td style="' + cellTd + '">' + e(c.description) + '</td></tr>'; });
+    h += '</table>';
+  }
+  if (Array.isArray(o.masteryLevels) && o.masteryLevels.length) {
+    h += '<h4 style="margin:.9rem 0 .3rem;">Mastery levels</h4><table style="width:100%;border-collapse:collapse;">';
+    o.masteryLevels.forEach(l => {
+      const inds = Array.isArray(l.indicators) ? l.indicators : [];
+      const cell = inds.length ? '<ul style="margin:.2rem 0 .2rem 1rem;padding:0;">' + inds.map(i => '<li>' + e(i) + '</li>').join('') + '</ul>' : e(l.description);
+      h += '<tr><td style="' + cellTd + 'font-weight:600;white-space:nowrap;">' + e(l.level || l.name) + '</td><td style="' + cellTd + '">' + cell + '</td></tr>';
+    });
+    h += '</table>';
+  }
+  const eg = o.evidenceGuidance;
+  if (eg) {
+    const tasks = Array.isArray(eg.suggestedTasks) ? eg.suggestedTasks : (Array.isArray(eg) ? eg : []);
+    h += '<h4 style="margin:.9rem 0 .3rem;">Suggested evidence</h4>';
+    if (tasks.length) h += '<ul style="margin:.2rem 0 .2rem 1rem;padding:0;">' + tasks.map(t => '<li>' + e(t) + '</li>').join('') + '</ul>';
+    else if (typeof eg === 'string') h += '<p>' + e(eg) + '</p>';
+  }
+  h += '</div>';
+  return DOMPurify.sanitize(h, { ADD_ATTR: ['style'] });
+}
 function toggleGenEdit() {
   const pv = document.getElementById('genPreview'); const ta = document.getElementById('genEditArea'); const btn = document.getElementById('genEditToggle');
   if (!pv || !ta) return;
@@ -1513,7 +1572,7 @@ async function generateArtifact() {
     +   '<span>' + escapeHtml(a.artifactType || '') + ' · safety: ' + escapeHtml(a.safetyStatus || '') + ' · <strong style="color:#9A3412;">UNAPPROVED</strong></span>'
     +   (raw ? '<button class="btn btn-sm secondary" id="genEditToggle" onclick="toggleGenEdit()">✏️ Edit</button>' : '')
     + '</div>'
-    + '<div class="md-view" id="genPreview">' + (raw ? mdToHtml(raw) : '<em>(content withheld by Content Safety)</em>') + '</div>'
+    + '<div class="md-view" id="genPreview">' + (raw ? renderAssessment(raw) : '<em>(content withheld by Content Safety)</em>') + '</div>'
     + '<textarea id="genEditArea" style="display:none;width:100%;min-height:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;padding:.55rem .65rem;border:1px solid var(--line);border-radius:6px;" oninput="syncGenPreview()">' + escapeHtml(raw) + '</textarea>'
     + '<div class="sub" style="font-size:.8rem;color:#9A3412;margin-top:.4rem;">' + escapeHtml(data.notice || '') + '</div></div>';
   typesetMath(document.getElementById('genPreview'));
@@ -1542,7 +1601,7 @@ async function loadArtifacts() {
         : '<span style="color:#9A3412;font-weight:700;">⏳ Unapproved</span>';
       return '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:.6rem;">'
         + '<div class="sub" style="font-size:.8rem;">' + escapeHtml(a.artifact_type) + ' · safety ' + escapeHtml(a.safety_status) + ' · ' + escapeHtml(status) + ' · ' + badge + '</div>'
-        + '<div class="md-view" style="margin:.4rem 0;max-height:260px;overflow:auto;border:1px solid #eef2f7;border-radius:6px;padding:.5rem .6rem;background:#fff;">' + (a.generated_text ? mdToHtml(a.generated_text) : '<em>(no content)</em>') + '</div>'
+        + '<div class="md-view" style="margin:.4rem 0;max-height:260px;overflow:auto;border:1px solid #eef2f7;border-radius:6px;padding:.5rem .6rem;background:#fff;">' + (a.generated_text ? renderAssessment(a.generated_text) : '<em>(no content)</em>') + '</div>'
         + '<div style="display:flex;gap:.4rem;flex-wrap:wrap;">' + btns + '</div></div>';
     }).join('');
     typesetMath(list);
@@ -1883,7 +1942,9 @@ function tcEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;
   async function loadMoods(){
     const tb=$('wbMoodRows'); const agg=$('wbAgg'); if(!tb)return; tb.innerHTML='<tr><td colspan="4" class="hint">Loading…</td></tr>';
     try{
-      const r=await fetch('/api/mood/teacher?classId='+encodeURIComponent(classId())); const d=await r.json();
+      const r=await fetch('/api/mood/teacher?classId='+encodeURIComponent(classId()));
+      if(r.status===401||r.status===403){ tb.innerHTML='<tr><td colspan="4" class="hint">Please sign in as a teacher to view this.</td></tr>'; agg.innerHTML=''; return; }
+      const d=await r.json();
       if(!d.enabled){ tb.innerHTML='<tr><td colspan="4" class="hint">Database offline.</td></tr>'; agg.innerHTML=''; return; }
       const a=d.aggregate||{}; agg.innerHTML=`<div>😀 ${a.happy||0}</div><div>😐 ${a.medium||0}</div><div>😟 ${a.sad||0}</div>`;
       const rows=d.rows||[]; if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="hint">No check-ins yet.</td></tr>'; return; }
@@ -1893,7 +1954,9 @@ function tcEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;
   async function loadRecs(){
     const tb=$('wbRecRows'); if(!tb)return; tb.innerHTML='<tr><td colspan="4" class="hint">Loading…</td></tr>';
     try{
-      const r=await fetch('/api/mood/teacher/recommendations?classId='+encodeURIComponent(classId())); const d=await r.json();
+      const r=await fetch('/api/mood/teacher/recommendations?classId='+encodeURIComponent(classId()));
+      if(r.status===401||r.status===403){ tb.innerHTML='<tr><td colspan="4" class="hint">Please sign in as a teacher to view this.</td></tr>'; return; }
+      const d=await r.json();
       if(!d.enabled){ tb.innerHTML='<tr><td colspan="4" class="hint">Database offline.</td></tr>'; return; }
       const rows=d.rows||[]; if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="hint">No recommendations.</td></tr>'; return; }
       tb.innerHTML=rows.map(x=>`<tr><td>${tcEsc(x.trigger)}</td><td>${tcEsc(x.suggestion)}</td><td>${tcEsc(x.decision)}</td><td>${x.decision==='pending'?`<button class="btn btn-sm secondary recBtn" data-id="${tcEsc(x.id)}" data-dec="accepted">Accept</button> <button class="btn btn-sm secondary recBtn" data-id="${tcEsc(x.id)}" data-dec="dismissed">Dismiss</button>`:''}</td></tr>`).join('');
@@ -1904,7 +1967,9 @@ function tcEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;
   async function loadSafeguarding(){
     const tb=$('wbSgRows'); if(!tb)return; tb.innerHTML='<tr><td colspan="5" class="hint">Loading…</td></tr>';
     try{
-      const r=await fetch('/api/mood/safeguarding'); const d=await r.json();
+      const r=await fetch('/api/mood/safeguarding');
+      if(r.status===401||r.status===403){ tb.innerHTML='<tr><td colspan="5" class="hint">Please sign in as a teacher to view this.</td></tr>'; return; }
+      const d=await r.json();
       if(!d.enabled){ tb.innerHTML='<tr><td colspan="5" class="hint">Database offline.</td></tr>'; return; }
       const flags=d.flags||[]; if(!flags.length){ tb.innerHTML='<tr><td colspan="5" class="hint">No open flags.</td></tr>'; return; }
       tb.innerHTML=flags.map(f=>`<tr><td>${tcEsc(f.learner_ref)}</td><td>${tcEsc(f.reason)}</td><td>${tcEsc(String(f.created_at).slice(0,10))}</td><td><span class="pill ${tcEsc(f.status)}">${tcEsc(f.status)}</span></td><td>${f.status!=='resolved'?`<button class="btn btn-sm secondary sgBtn" data-id="${tcEsc(f.id)}" data-st="in_review">In review</button> <button class="btn btn-sm secondary sgBtn" data-id="${tcEsc(f.id)}" data-st="resolved">Resolve</button>`:''}</td></tr>`).join('');

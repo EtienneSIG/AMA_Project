@@ -7,7 +7,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check db/index.js && node --check auth.js && node --check contentSafety.js",
+    "check": "node --check server.js && node --check server-study-plan.js && node --check db/index.js && node --check auth.js && node --check contentSafety.js",
+    "build": "npm run check",
     "seed": "node -e \"require('./db').init().then(()=>{console.log('schema+seed ready');process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})\"",
     "digests": "node ../../scripts/send_digests.js"
   },

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+  "version": "4.0",
+  "datasetReference": {
+    "byConnection": {
+      "connectionString": "Data Source=powerbi://api.powerbi.com/v1.0/myorg/EULearn;initial catalog=\"LearnEU - Director Reporting (Postgres VNG Final)\";integrated security=ClaimsToken;semanticmodelid=5f98fc5b-0d8d-4efa-9444-a07913691776"
+    }
+  }
+}

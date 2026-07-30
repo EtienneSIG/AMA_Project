@@ -1473,24 +1473,24 @@ async function loadGamificationDashboard() {
     const bossPct = Math.min(100, Math.round((d.bossBattle.currentStreak / d.bossBattle.target) * 100));
 
     grid.innerHTML = ''
-      + metricCard('Challenge du jour',
+      + metricCard('Daily challenge',
         '<div style="font-weight:700;color:var(--navy);">' + escapeHtml(d.mission.objective) + '</div>'
         + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + missionPct + '%;background:linear-gradient(90deg,var(--teal),var(--orange));"></div></div>'
         + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.mission.progress + ' / ' + d.mission.target + ' attempts today</div>')
-      + metricCard('Objectif de la classe',
+      + metricCard('Class objective',
         '<div style="font-weight:700;color:var(--navy);">' + escapeHtml(d.guildObjective.title) + '</div>'
         + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + guildPct + '%;background:linear-gradient(90deg,var(--teal),var(--navy));"></div></div>'
         + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.guildObjective.progress + ' / ' + d.guildObjective.target + ' · contributors: ' + d.guildObjective.contributors + '</div>')
-      + metricCard('Quetes collaboratives',
+      + metricCard('Collaborative quests',
         (d.collaborativeQuests || []).map(q => '<div style="padding:.25rem 0;border-bottom:1px dashed var(--line);">'
           + '<strong style="font-size:.86rem;color:var(--navy);">' + escapeHtml(q.title) + '</strong>'
           + '<div class="sub" style="font-size:.74rem;color:var(--grey);">' + q.progress + '/' + q.target + (q.completed ? ' · complete' : '') + '</div>'
           + '</div>').join(''))
-      + metricCard('Paliers (season)',
+      + metricCard('Season tiers',
         '<div style="font-weight:700;color:var(--navy);">Tier ' + d.season.tier + ' · ' + escapeHtml(d.season.tierName) + '</div>'
         + '<div style="margin:.45rem 0;background:#F1F5F9;height:.5rem;border-radius:999px;overflow:hidden;"><div style="height:100%;width:' + seasonPct + '%;background:linear-gradient(90deg,var(--orange),var(--navy));"></div></div>'
         + '<div class="sub" style="font-size:.78rem;color:var(--grey);">' + d.season.progress + ' / ' + d.season.target + ' attempts</div>')
-      + metricCard('Coffres du jour',
+      + metricCard('Daily chest',
         '<div style="font-weight:700;color:var(--navy);">Reward: ' + escapeHtml(d.chest.rewardPreview.label) + '</div>'
         + '<div class="sub" style="font-size:.78rem;color:var(--grey);margin:.35rem 0;">'
         + (d.chest.claimed ? 'Already claimed today.' : (d.chest.eligible ? 'Eligible now.' : 'Complete mission to unlock.'))
@@ -1984,27 +1984,97 @@ async function setTutorMode(mode) {
     else { warn.style.display='none'; document.getElementById('micBtn').disabled=false; }
   } else { stopMic(); }
 }
-function stopMic(){ micOn=false; if(recog){try{recog.stop()}catch(e){}} if(window._mr&&_mr.state!=='inactive'){try{_mr.stop()}catch(e){}} document.getElementById('micState').textContent='mic off'; document.getElementById('micBtn').textContent='🎤 Talk'; }
-let _mr=null,_chunks=[];
+function stopMic(){ micOn=false; if(recog){try{recog.stop()}catch(e){} recog=null;} _teardownWavCapture(); if(_ac){try{_ac.close()}catch(e){} _ac=null;} _pcmBuf=[]; const ms=document.getElementById('micState'); if(ms)ms.textContent='mic off'; const mb=document.getElementById('micBtn'); if(mb)mb.textContent='🎤 Talk'; }
+
+// EU-compliant mic capture: Azure Speech's short-audio STT REST API only accepts
+// WAV/PCM or OGG/Opus — NOT the browser MediaRecorder's webm/opus — so we capture
+// the mic with Web Audio and encode 16 kHz mono 16-bit PCM WAV in-browser, then
+// send it to the in-region /api/tutor/voice/stt. The browser recognizer is used
+// only as a last resort if Web Audio capture cannot start.
+let _ac=null,_proc=null,_src=null,_micStream=null,_pcmBuf=[];
+async function _startWavCapture(){
+  _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  _ac=new (window.AudioContext||window.webkitAudioContext)();
+  _src=_ac.createMediaStreamSource(_micStream);
+  _proc=_ac.createScriptProcessor(4096,1,1);
+  _pcmBuf=[];
+  _proc.onaudioprocess=(e)=>{ _pcmBuf.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+  _src.connect(_proc); _proc.connect(_ac.destination);
+}
+function _teardownWavCapture(){
+  try{ if(_proc){_proc.onaudioprocess=null;_proc.disconnect();} }catch(e){}
+  try{ if(_src)_src.disconnect(); }catch(e){}
+  try{ if(_micStream)_micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+  _proc=null;_src=null;_micStream=null;
+}
+function _finishWavCapture(){
+  if(!_ac) return null;
+  const srcRate=_ac.sampleRate||48000;
+  _teardownWavCapture();
+  let len=0; _pcmBuf.forEach(a=>len+=a.length);
+  const flat=new Float32Array(len); let off=0; _pcmBuf.forEach(a=>{flat.set(a,off);off+=a.length;});
+  _pcmBuf=[]; try{_ac.close()}catch(e){} _ac=null;
+  if(!flat.length) return null;
+  const down=_downsample(flat,srcRate,16000);
+  return _encodeWav(down,16000);
+}
+function _downsample(buf,inRate,outRate){
+  if(outRate>=inRate) return buf;
+  const ratio=inRate/outRate, outLen=Math.floor(buf.length/ratio), out=new Float32Array(outLen);
+  let iOut=0,iIn=0;
+  while(iOut<outLen){ const next=Math.floor((iOut+1)*ratio); let sum=0,cnt=0; for(let i=iIn;i<next&&i<buf.length;i++){sum+=buf[i];cnt++;} out[iOut++]=cnt?sum/cnt:0; iIn=next; }
+  return out;
+}
+function _encodeWav(samples,rate){
+  const buf=new ArrayBuffer(44+samples.length*2), v=new DataView(buf);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,'RIFF'); v.setUint32(4,36+samples.length*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,rate,true); v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,samples.length*2,true);
+  let o=44; for(let i=0;i<samples.length;i++){ const s=Math.max(-1,Math.min(1,samples[i])); v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true); o+=2; }
+  return new Blob([buf],{type:'audio/wav'});
+}
 async function toggleMic(){
-  if(micOn) return stopMic();
-  // Prefer EU server STT via recorded audio; fall back to browser speech.
-  if(navigator.mediaDevices && window.MediaRecorder){
+  if(micOn){
+    // User pressed Stop → finalise the utterance and transcribe it in-region.
+    micOn=false;
+    document.getElementById('micBtn').textContent='🎤 Talk';
+    if(recog){ try{recog.stop()}catch(e){} return; } // browser-SR path finalises via onresult
+    const wav=_finishWavCapture();
+    if(!wav){ document.getElementById('micState').textContent='mic off'; return; }
+    document.getElementById('micState').textContent='transcribing (EU)…';
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      _mr=new MediaRecorder(stream); _chunks=[];
-      _mr.ondataavailable=e=>_chunks.push(e.data);
-      _mr.onstop=async()=>{ stream.getTracks().forEach(t=>t.stop()); const blob=new Blob(_chunks,{type:'audio/webm'}); document.getElementById('micState').textContent='transcribing…';
-        const r=await fetch('/api/tutor/voice/stt',{method:'POST',headers:{'Content-Type':'audio/webm'},body:blob}); const j=await r.json().catch(()=>({})); if(j.text) sendVoice(j.text); else document.getElementById('micState').textContent='please repeat'; };
-      micOn=true; document.getElementById('micState').textContent='listening (EU)…'; document.getElementById('micBtn').textContent='⏹ Stop'; _mr.start(); return;
-    }catch(e){/* fall back */}
+      const r=await fetch('/api/tutor/voice/stt',{method:'POST',headers:{'Content-Type':'audio/wav'},body:wav});
+      const j=await r.json().catch(()=>({}));
+      if(j.text){ sendVoice(j.text); } else { document.getElementById('micState').textContent='Sorry, please repeat'; }
+    }catch(e){ document.getElementById('micState').textContent='Sorry, please repeat'; }
+    return;
   }
+  // Start listening. Use the browser recognizer as the primary path (real-time and
+  // reliable in this deployment); fall back to WAV capture + EU server STT if it is
+  // unavailable.
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){document.getElementById('micState').textContent='mic not available — use Write';return;}
-  recog=new SR(); recog.lang='en-GB'; recog.interimResults=true; micOn=true;
-  document.getElementById('micState').textContent='listening…'; document.getElementById('micBtn').textContent='⏹ Stop';
-  recog.onresult=e=>{const t=[...e.results].map(r=>r[0].transcript).join(' ');document.getElementById('transcript').textContent=t;if(e.results[e.results.length-1].isFinal)sendVoice(t);};
-  recog.onend=()=>stopMic(); recog.start();
+  if(SR){
+    try{
+      recog=new SR(); recog.lang='en-GB'; recog.interimResults=true; micOn=true;
+      document.getElementById('transcript').textContent='Listening…';
+      document.getElementById('micState').textContent='listening…'; document.getElementById('micBtn').textContent='⏹ Stop';
+      recog.onresult=e=>{const t=[...e.results].map(r=>r[0].transcript).join(' ');document.getElementById('transcript').textContent=t;if(e.results[e.results.length-1].isFinal)sendVoice(t);};
+      recog.onerror=()=>{document.getElementById('micState').textContent='Sorry, please repeat';};
+      recog.onend=()=>{ if(micOn){micOn=false;document.getElementById('micBtn').textContent='🎤 Talk';} recog=null; };
+      recog.start();
+      return;
+    }catch(e){ recog=null; micOn=false; }
+  }
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext||window.webkitAudioContext)){
+    try{
+      await _startWavCapture();
+      micOn=true;
+      document.getElementById('transcript').textContent='Listening… press Stop when you are done.';
+      document.getElementById('micState').textContent='listening (EU)…';
+      document.getElementById('micBtn').textContent='⏹ Stop';
+      return;
+    }catch(e){ _teardownWavCapture(); }
+  }
+  document.getElementById('micState').textContent='Microphone not available — use Write mode.';
 }
 async function sendVoice(t){ stopMic();
   const r = await fetch('/api/tutor/voice/turn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcriptIn:t,sessionId:tutorSessionId})});

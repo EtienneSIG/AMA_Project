@@ -4,9 +4,14 @@
   "private": true,
   "description": "LearnEU director aggregated reporting — native Fabric (Rayfin) app",
   "main": "server.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check": "node --check server.js",
+    "build": "npm run check"
   },
   "dependencies": {
     "express": "^4.19.2"

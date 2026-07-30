@@ -107,6 +107,7 @@ async function loadMoods() {
   tb.innerHTML = '<tr><td colspan="4" class="hint">Loading…</td></tr>';
   try {
     const r = await fetch('/api/mood/teacher?classId=' + encodeURIComponent(classId()));
+    if (r.status === 401 || r.status === 403) { tb.innerHTML = '<tr><td colspan="4" class="hint">Please sign in as a teacher to view this.</td></tr>'; agg.innerHTML = ''; return; }
     const d = await r.json();
     if (!d.enabled) { tb.innerHTML = '<tr><td colspan="4" class="hint">Database offline.</td></tr>'; agg.innerHTML = ''; return; }
     const a = d.aggregate || {};
@@ -127,6 +128,7 @@ async function loadRecs() {
   tb.innerHTML = '<tr><td colspan="4" class="hint">Loading…</td></tr>';
   try {
     const r = await fetch('/api/mood/teacher/recommendations?classId=' + encodeURIComponent(classId()));
+    if (r.status === 401 || r.status === 403) { tb.innerHTML = '<tr><td colspan="4" class="hint">Please sign in as a teacher to view this.</td></tr>'; return; }
     const d = await r.json();
     if (!d.enabled) { tb.innerHTML = '<tr><td colspan="4" class="hint">Database offline.</td></tr>'; return; }
     const rows = d.rows || [];
@@ -156,6 +158,7 @@ async function loadSafeguarding() {
   tb.innerHTML = '<tr><td colspan="5" class="hint">Loading…</td></tr>';
   try {
     const r = await fetch('/api/mood/safeguarding');
+    if (r.status === 401 || r.status === 403) { tb.innerHTML = '<tr><td colspan="5" class="hint">Please sign in as a teacher to view this.</td></tr>'; return; }
     const d = await r.json();
     if (!d.enabled) { tb.innerHTML = '<tr><td colspan="5" class="hint">Database offline.</td></tr>'; return; }
     const flags = d.flags || [];

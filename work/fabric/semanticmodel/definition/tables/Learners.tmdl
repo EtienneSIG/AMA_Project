@@ -1,0 +1,42 @@
+table Learners
+
+	column learner_id
+		dataType: string
+		isKey
+		summarizeBy: none
+		sourceColumn: learner_id
+
+	column pseudonym
+		dataType: string
+		summarizeBy: none
+		sourceColumn: pseudonym
+
+	column market
+		dataType: string
+		summarizeBy: none
+		sourceColumn: market
+
+	column grade
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: grade
+
+	column decile
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: decile
+
+	column sen
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: sen
+
+	partition learners-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.learners")
+				in
+				    Data
+

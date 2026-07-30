@@ -7,6 +7,23 @@
 Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subject/case-study-33-edtech-personalised-learning.md)
 
 ---
+## Use case at a glance
+
+**LearnEU** is a privacy-preserving personalised-learning platform for a Dutch EdTech group serving **4.1 M learners** (K-12 + vocational) across **NL, BE, DE, PL, RO**.
+
+**Three AI capabilities** (all EU AI Act **high-risk**, Annex III §3):
+
+| Capability | What it does | Guardrail |
+|---|---|---|
+| **Adaptive learning** | Adapts content difficulty & pacing to each learner's mastery | On-device / privacy-preserving model — no identifiable data centralised |
+| **Curriculum localisation** | Translates & adapts content to national standards (12 mo → 6 weeks) | Human editorial + pedagogical sign-off |
+| **Automated assessment** | Grades structured work + gives formative feedback | Teacher-in-the-loop, no autonomous grading |
+
+**Non-negotiable constraints:** EU regions only · consent age 16 (guardian consent under 16) · human oversight on every learner-affecting decision · no facial/emotion recognition · pedagogical sign-off before technical sign-off.
+
+**Azure services (committed by the case study):** Azure OpenAI · Azure Machine Learning · Microsoft Fabric · Power BI · Azure AI Search · Azure Content Safety · Azure API Management · Entra External ID (B2C/CIAM) · Microsoft Purview (gated).
+
+---
 ## Reproduce this project with Spec Kit
 
 This repository is driven by [GitHub Spec Kit](https://github.com/github/spec-kit).
@@ -61,31 +78,33 @@ AMA_Project/
 ├── .github/
 │   ├── copilot-instructions.md  ← LearnEU agent guidance & hard constraints
 │   └── prompts/             ← installed /speckit.* slash-command prompts
-├── specs/                   ← one folder per feature (NNN-short-name/spec.md, plan.md, tasks.md)
-├── agents/                  ← 9 specialist Copilot chat modes for this case
-│   ├── edtech-program-orchestrator.chatmode.md
-│   ├── eu-ai-act-compliance-officer.chatmode.md
-│   ├── gdpr-children-data-specialist.chatmode.md
-│   ├── privacy-preserving-ml-engineer.chatmode.md
-│   ├── learning-sciences-expert.chatmode.md
-│   ├── content-localisation-lead.chatmode.md
-│   ├── responsible-ai-evaluator.chatmode.md
-│   ├── cross-agent-qa-verifier.chatmode.md  ← audits the others' deliverables
-│   └── demo-deployment-agent.chatmode.md   ← deploys the demo end-to-end on your tenant
-├── demo/
-│   ├── .env.template            ← copy to .env.local and fill in your tenant info
-│   └── .gitignore
-└── plan/                    ← end-to-end transformation plan
-    ├── 00-program-charter.md
-    ├── 01-phases-roadmap.md
-    ├── 02-workstreams.md
-    ├── 03-target-architecture.md
-    ├── 04-compliance-eu-ai-act-gdpr.md
-    ├── 05-kpis-outcomes.md
-    ├── 06-risks-register.md
-    ├── 07-governance-rai.md
-    ├── 08-demo-on-azure.md   ← deployable demo on the Case Study 33 stack
-    └── 09-step-by-step-tutorial.md  ← Day-0 → Day-10 hands-on build guide
+├── Subject/                 ← the source case study + AMA rubric & evaluation
+├── specs/                   ← 22 feature specs (NNN-short-name/spec.md, plan.md, tasks.md) + INDEX.md
+├── agents/                  ← 11 specialist Copilot chat modes for this case
+├── plan/                    ← end-to-end transformation plan (charter → governance)
+│   ├── 00-program-charter.md
+│   ├── 01-phases-roadmap.md
+│   ├── 02-workstreams.md
+│   ├── 03-target-architecture.md
+│   ├── 04-compliance-eu-ai-act-gdpr.md
+│   ├── 05-kpis-outcomes.md
+│   ├── 06-risks-register.md
+│   ├── 07-governance-rai.md
+│   ├── 08-demo-on-azure.md
+│   └── 09-step-by-step-tutorial.md
+├── demo/                    ← the deployable Azure demo (✅ fully deployed)
+│   ├── ARCHITECTURE.md          ← Mermaid architecture of the live rg-learneu-demo
+│   ├── azure.yaml               ← azd entrypoint (5 app services)
+│   ├── infra/                   ← Bicep (single-subscription deployment)
+│   ├── apps/                    ← learner-web / parent-portal / teacher-console / admin / director-portal (+ _shared)
+│   ├── ml/                      ← adaptive + assessment models (ONNX client-side)
+│   ├── data/                    ← synthetic personas, curricula, glossaries
+│   ├── pipelines/               ← localisation, content-safety, continuous-eval
+│   ├── scripts/                 ← seed_*, run_demo, acceptance_tests, verify-*
+│   ├── DEPLOYMENT-REPORT.md     ← what was deployed + live URLs
+│   └── DEPLOYMENT-STATE.md      ← resumable stage checklist
+├── restitution/             ← final deck, storyboard, speaker notes, coverage matrix
+└── RequirementMatrix/       ← AMA rubric coverage & agentic-handoff evidence
 ```
 
 ---
@@ -105,6 +124,9 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 | 7 | **Responsible AI Evaluator** | Owns the model release gate; fairness/safety/transparency | Every release; quarterly re-evaluation |
 | 8 | **Cross-Agent QA & Verifier** | Independent auditor of every other agent's deliverables | After each specialist output; before any phase gate |
 | 9 | **Demo Deployment Agent** | Autonomous build-and-deploy of the full demo on your tenant (reads `demo/.env.local`) | When you want to actually run the demo end-to-end |
+| 10 | **AMA Rubric Evaluator** | Scores deliverables against the AMA / EMEA rubric | Evidence collection, rubric coverage, restitution prep |
+| 11 | **Restitution Deck Builder** | Assembles the final restitution deck & storyboard | Producing the executive readout in [restitution/](restitution/) |
+| 12 | **Scale (4 → 1M → 4.1M)** | Scaling the demo architecture to full learner population | Capacity / cost / multi-region planning |
 
 > 💡 The general-purpose chat modes from `AMA/.github/chatmodes/` (Solution Architect, AMA Reviewer, Security & Compliance, FinOps, CxO Challenger, Orchestrator) remain useful for non-EdTech-specific questions.
 
@@ -146,6 +168,49 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 
 ---
 
+## Feature specifications (22)
+
+The platform roadmap is expressed as **22 Spec Kit features** under [specs/](specs/). Each folder is the single source of truth for its feature (spec + plan + tasks + compliance checklists). See [specs/INDEX.md](specs/INDEX.md) for the full catalog, backlog-coverage map and cross-spec dependencies.
+
+| Role | Specs |
+|---|---|
+| **Learner (Student)** | 001 Tabbed Workspace · 003 Gamification · 007 Adaptive Learning · 013 Sheet & Item Sharing · 014 Age-Adaptive Theming · 015 AI Tutor Video Links · 016 AI Tutor Voice Mode · 021 Rubric Readiness Gate |
+| **Parent** | 006 Parent Portal + Digest |
+| **Teacher** | 008 Assessment + Shared Library |
+| **Director** | 004 Hierarchy Portal · 005 Reporting Benchmarks · 011 Multi-School Hierarchy · 018 Fabric (Rayfin) App · 022 Fabric App Dashboard (EULearn) |
+| **Well-being (cross-role)** | 017 Learner Mood Check-In |
+| **Platform / cross-cutting** | 002 Postgres Wake-Up · 009 Interoperability (SCORM/xAPI/SIS) · 010 CMS Versioning · 012 A/B Testing · 019 Three-Column App Shell · 020 UX Editorial Toggle & Left Menu |
+
+All 22 specs are gated against the seven [constitution](.specify/memory/constitution.md) principles (EU-resident · GDPR Art. 8 · AI Act high-risk · teacher-in-the-loop · pedagogical sign-off · outcome-contract · spec-driven).
+
+---
+
+## Deployed demo (Azure)
+
+The [demo/](demo/) folder is **fully deployed** to `rg-learneu-demo` (`westeurope`) via `azd up`. Architecture: [demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) · deployment details: [demo/DEPLOYMENT-REPORT.md](demo/DEPLOYMENT-REPORT.md).
+
+**Live apps** (seed users below):
+
+| App | URL |
+|---|---|
+| Learner Web | <https://app-learner-web-learneu-demo.azurewebsites.net> |
+| Parent Portal | <https://app-parent-portal-learneu-demo.azurewebsites.net> |
+| Teacher Console | <https://app-teacher-console-learneu-demo.azurewebsites.net> |
+| Admin Console | <https://app-admin-learneu-demo.azurewebsites.net> |
+
+Seed users (password `DemoPass2026!`): `admin@learneu.demo` · `teacher@learneu.demo` · `parent@learneu.demo` · `student@learneu.demo`.
+
+**Runtime shape:** five App Services front an **APIM** (internal VNet) that fronts **Azure OpenAI** (`gpt-5.4-nano`), **Content Safety** and **AI Search**; **PostgreSQL Flexible Server** (private endpoint) is the app data store and mirrors to **Fabric F2** → **Power BI Embedded**; **Azure ML** (HBI) backs the adaptive/assessment models. Public network access is disabled on every backend — only APIM has ingress. Identity is split: workforce tenant for staff, **CIAM `learneu`** for learners/parents.
+
+```powershell
+# Redeploy from scratch
+cd demo
+azd auth login
+azd up
+```
+
+---
+
 ## Conventions
 - All personal data processed in **EU regions only**
 - Age default for digital consent: **16** (strictest of the 5 markets)
@@ -156,13 +221,13 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 ---
 
 ## Status
-- ✅ Specialist agents drafted
-- ✅ Plan documents drafted (charter → governance)
-- ✅ Demo blueprint on Azure ([plan/08-demo-on-azure.md](plan/08-demo-on-azure.md)) using the Case Study 33 services (B2C, APIM, Fabric, AML, Azure OpenAI, AI Search, Content Safety, Purview, Power BI)
-- ✅ Step-by-step build tutorial ([plan/09-step-by-step-tutorial.md](plan/09-step-by-step-tutorial.md)) — from empty subscription to running demo in 10 days
-- ⏳ Phase 0 kickoff pending sponsor approval
+- ✅ Specialist agents drafted (12 chat modes in [agents/](agents/))
+- ✅ Plan documents drafted (charter → governance) in [plan/](plan/)
+- ✅ **22 feature specs** authored, planned and tasked ([specs/INDEX.md](specs/INDEX.md)) — all constitution-gated
+- ✅ **Demo fully deployed on Azure** ([demo/DEPLOYMENT-REPORT.md](demo/DEPLOYMENT-REPORT.md)) — 5 apps live, Postgres seeded (6 curricula, 50 synthetic learners), APIM → Azure OpenAI chat path verified, ONNX adaptive model running client-side
+- ✅ Architecture documented ([demo/ARCHITECTURE.md](demo/ARCHITECTURE.md)) and restitution deck drafted ([restitution/](restitution/))
 - ⏳ DPIAs per market — owner: DPO
-- ⏳ AI Act Annex IV file skeleton — owner: AI Act CO
-- ⏳ Demo `infra/` Bicep + apps — owner: Platform team
+- ⏳ AI Act Annex IV conformity dossier — owner: AI Act CO
+- ⏳ Production hardening (Premium APIM, PTU, multi-region) beyond demo SKUs
 
 > The plan is intentionally **opinionated** but **revisable**. Update the plan documents after each phase gate.

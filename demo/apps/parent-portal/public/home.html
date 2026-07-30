@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>LearnEU — Accueil (Portail Parents)</title>
+<title>LearnEU — Home (Parent Portal)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="/csrf.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,54 +46,90 @@
 <nav class="top"><div class="wrap">
   <img src="/logo.svg" alt="LearnEU" />
   <div class="links">
-    <a href="/home.html">Accueil</a>
-    <a href="/index.html">Tableau de bord</a>
+    <a href="/home.html" data-i18n="home.navHome">Home</a>
+    <a href="/index.html" data-i18n="home.navDashboard">Dashboard</a>
   </div>
 </div></nav>
 <section class="hero"><div class="wrap">
-  <span class="pill">Portail Parents</span>
-  <h1>Restez proche du parcours d'apprentissage de votre enfant.</h1>
-  <p>Gérez le consentement parental (RGPD art. 8), suivez les progrès de votre enfant et échangez avec les enseignants — entièrement hébergé dans l'UE.</p>
+  <span class="pill" data-i18n="hero.pill">Parent Portal</span>
+  <h1 data-i18n="hero.title">Stay close to your child's learning journey.</h1>
+  <p data-i18n="hero.subtitle">Manage parental consent (GDPR Art. 8), follow your child's progress, and message teachers — fully EU-hosted.</p>
 </div></section>
 <main>
-  <div class="section-title">Accès rapide</div>
+  <div class="section-title" data-i18n="home.quickAccess">Quick access</div>
   <div class="grid">
     <a class="tile" href="/?tab=child">
       <span class="ico">🧒</span>
-      <h2>Progrès de votre enfant</h2>
-      <p>Maîtrise par chapitre, activité récente et badges.</p>
+      <h2 data-i18n="home.child.t">Your child's progress</h2>
+      <p data-i18n="home.child.d">Mastery by chapter, recent activity and badges.</p>
     </a>
     <a class="tile" href="/?tab=messages">
       <span class="ico">✉️</span>
-      <h2>Messages</h2>
-      <p>Échangez avec les enseignants de votre enfant.</p>
+      <h2 data-i18n="home.messages.t">Messages</h2>
+      <p data-i18n="home.messages.d">Message your child's teachers.</p>
     </a>
     <a class="tile" href="/?tab=digest">
       <span class="ico">📊</span>
-      <h2>Bilan hebdomadaire</h2>
-      <p>Un résumé clair des progrès, chaque semaine.</p>
+      <h2 data-i18n="home.digest.t">Weekly digest</h2>
+      <p data-i18n="home.digest.d">A clear summary of progress, every week.</p>
     </a>
     <a class="tile" href="/?tab=wellbeing">
       <span class="ico">💛</span>
-      <h2>Bien-être</h2>
-      <p>Un point bienveillant sur le ressenti de votre enfant.</p>
+      <h2 data-i18n="home.wellbeing.t">Well-being</h2>
+      <p data-i18n="home.wellbeing.d">A caring check-in on how your child feels.</p>
     </a>
     <a class="tile" href="/?tab=ask">
       <span class="ico">💬</span>
-      <h2>Poser une question</h2>
-      <p>L'assistant répond sur la progression et la confidentialité.</p>
+      <h2 data-i18n="home.ask.t">Ask a question</h2>
+      <p data-i18n="home.ask.d">The assistant answers about progress and privacy.</p>
     </a>
     <a class="tile" href="/resources.html">
       <span class="ico">📚</span>
-      <h2>Ressources</h2>
-      <p>Conseils et guides pour accompagner à la maison.</p>
+      <h2 data-i18n="home.resources.t">Resources</h2>
+      <p data-i18n="home.resources.d">Tips and guides to support learning at home.</p>
     </a>
     <a class="tile" href="/?tab=child">
       <span class="ico">🛡️</span>
-      <h2>Consentement (RGPD art. 8)</h2>
-      <p>Accordez ou retirez le consentement à tout moment.</p>
+      <h2 data-i18n="home.consent.t">Consent (GDPR Art. 8)</h2>
+      <p data-i18n="home.consent.d">Grant or withdraw consent at any time.</p>
     </a>
   </div>
 </main>
+<script>
+  // Localise the homepage to the signed-in parent's language (same source of
+  // truth as index.html: parent preferences, then account language). Strings in
+  // the markup are the English defaults; data-i18n keys are overlaid at runtime.
+  let _i18n = null;
+  async function loadTranslations() {
+    if (_i18n) return _i18n;
+    try { _i18n = await (await fetch('/models/translations.json', { cache: 'no-store' })).json(); }
+    catch (e) { _i18n = {}; }
+    return _i18n;
+  }
+  async function applyI18n(lang) {
+    await loadTranslations();
+    const dict = (_i18n && _i18n[lang]) || (_i18n && _i18n.en) || {};
+    if (!Object.keys(dict).length) return;
+    document.documentElement.lang = lang || 'en';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n');
+      if (dict[k] != null) el.textContent = dict[k];
+    });
+  }
+  (async function initLang() {
+    let lang = null;
+    try {
+      const j = await (await fetch('/api/parent/preferences', { cache: 'no-store' })).json();
+      if (j && j.preferences && j.preferences.language) lang = j.preferences.language;
+    } catch (e) { /* ignore */ }
+    if (!lang) {
+      try {
+        const m = await (await fetch('/api/auth/me', { cache: 'no-store' })).json();
+        if (m && m.user && m.user.language) lang = m.user.language;
+      } catch (e) { /* ignore */ }
+    }
+    applyI18n(lang || 'en');
+  })();
+</script>
 </body>
 </html>

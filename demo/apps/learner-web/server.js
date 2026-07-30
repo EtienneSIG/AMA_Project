@@ -202,6 +202,14 @@ try {
   console.warn('[experiments] routes not mounted:', e && e.message);
 }
 
+// Runtime agentic planner: drafts multi-day study plans from mastery signals,
+// then routes them through explicit teacher approval before learner use.
+try {
+  require('./server-study-plan')(app, { db, auth, cs, APP_ROLE });
+} catch (e) {
+  console.warn('[study-plan-agent] routes not mounted:', e && e.message);
+}
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   setHeaders: (res, filePath) => {
@@ -397,7 +405,7 @@ app.get('/api/tutor/voice/status', async (req, res) => {
 // EU server-side STT: receives recorded audio, returns transcript (no audio stored).
 app.post('/api/tutor/voice/stt', express.raw({ type: ['audio/*', 'application/octet-stream'], limit: '6mb' }), async (req, res) => {
   if (!speech.enabled) return res.status(503).json({ error: 'speech_unavailable' });
-  const out = await speech.transcribe(req.body, req.get('content-type') || 'audio/webm; codecs=opus').catch(() => ({ text: '' }));
+  const out = await speech.transcribe(req.body, req.get('content-type') || 'audio/wav').catch(() => ({ text: '' }));
   res.json({ text: out.text || '', region: speech.region, state: out.text ? 'ok' : 'needs_repeat' });
 });
 
@@ -1088,7 +1096,7 @@ async function buildGamificationDashboard(email) {
   return {
     mission: {
       id: 'daily-quest-fractions',
-      title: 'Mission du jour',
+      title: 'Daily mission',
       objective: 'Complete 10 practice attempts today',
       target: 10,
       progress: todayAttempts,
@@ -1097,7 +1105,7 @@ async function buildGamificationDashboard(email) {
     },
     guildObjective: {
       classKey: 'class-y7-fractions',
-      title: 'Objectif de la classe',
+      title: 'Class objective',
       target: 300,
       progress: classAttempts,
       contributors: classContributors
@@ -1105,7 +1113,7 @@ async function buildGamificationDashboard(email) {
     collaborativeQuests: [
       {
         id: 'cq-duo-help',
-        title: 'Duo entraide',
+        title: 'Peer support duo',
         description: 'Two learners each complete 8 attempts this week',
         target: 16,
         progress: Math.min(16, classAttempts),

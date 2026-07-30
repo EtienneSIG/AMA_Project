@@ -58,6 +58,7 @@ body.has-appshell .tabbar { display: none; }
 /* Heroless pages (dashboards, after the hero banner was removed) need breathing
    room between the top search bar and the first content block. Pages that still
    have a hero (the home pages) keep their overlap and are excluded via :not(:has). */
+body.has-appshell:not(:has(.hero)) .consent-banner,
 body.has-appshell:not(:has(.hero)) main,
 body.has-appshell:not(:has(.hero)) main.grid2,
 body.has-appshell:not(:has(.hero)) .progress-wrap,
@@ -70,6 +71,7 @@ body.has-appshell:not(:has(.hero)) .child-wrap { margin-top: 1.5rem !important; 
 body.has-appshell:not(:has(.hero)) .practice-grid,
 body.has-appshell:not(:has(.hero)) .progress-wrap,
 body.has-appshell:not(:has(.hero)) .askteacher-wrap,
+body.has-appshell:not(:has(.hero)) .consent-banner,
 body.has-appshell:not(:has(.hero)) .child-wrap,
 body.has-appshell:not(:has(.hero)) main { max-width: none; padding-left: 1.25rem; padding-right: 1.25rem; }
 

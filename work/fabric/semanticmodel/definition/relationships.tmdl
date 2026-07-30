@@ -1,0 +1,13 @@
+relationship Learner_to_ItemAttempts
+	fromColumn: 'Item Attempts'.pseudonym
+	toColumn: Learners.pseudonym
+
+relationship DirectorProfiles_to_ReportingScope
+	fromColumn: 'Reporting Scope'.director_subject_id
+	toColumn: 'Director Profiles'.director_subject_id
+
+relationship Learners_to_HierarchyAssignments
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Hierarchy Assignments'.learner_id
+	toColumn: Learners.pseudonym
+
