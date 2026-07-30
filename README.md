@@ -7,6 +7,15 @@
 Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subject/case-study-33-edtech-personalised-learning.md)
 
 ---
+## Marketing video
+
+<video src="https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing.mp4" controls muted width="100%"></video>
+
+> If the player above does not load (e.g. in an editor that doesn't render HTML, or without repo access),
+> watch it here: **[▶ LearnEU_Marketing.mp4](video/LearnEU_Marketing.mp4)**
+> · [open raw](https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing.mp4)
+
+---
 ## Use case at a glance
 
 **LearnEU** is a privacy-preserving personalised-learning platform for a Dutch EdTech group serving **4.1 M learners** (K-12 + vocational) across **NL, BE, DE, PL, RO**.
