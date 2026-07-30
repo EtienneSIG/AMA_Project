@@ -9,10 +9,11 @@ Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subj
 ---
 ## Marketing video
 
-<video src="https://github.com/EtienneSIG/AMA_Project/releases/download/media-assets/LearnEU_Marketing.mp4" controls muted width="100%"></video>
+<video src="https://github.com/EtienneSIG/AMA_Project/releases/download/media-assets/LearnEU_Marketing-compressed.mp4" controls muted width="100%"></video>
 
 > If the player above does not load, watch it here:
-> **[▶ LearnEU_Marketing.mp4](https://github.com/EtienneSIG/AMA_Project/releases/download/media-assets/LearnEU_Marketing.mp4)**
+> **[▶ LearnEU_Marketing (compressed)](https://github.com/EtienneSIG/AMA_Project/releases/download/media-assets/LearnEU_Marketing-compressed.mp4)**
+> · full quality: [LearnEU_Marketing.mp4](https://github.com/EtienneSIG/AMA_Project/releases/download/media-assets/LearnEU_Marketing.mp4)
 > (also in the repo: [video/LearnEU_Marketing.mp4](video/LearnEU_Marketing.mp4))
 
 ---
