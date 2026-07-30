@@ -9,13 +9,12 @@ Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subj
 ---
 ## Marketing video
 
-https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing-compressed.mp4
+<video src="https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4" poster="video/LearnEU_Marketing-poster.jpg" controls muted width="100%"></video>
 
-<video src="https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing-compressed.mp4" poster="video/LearnEU_Marketing-poster.jpg" controls muted width="100%"></video>
+[![Watch the LearnEU marketing video](video/LearnEU_Marketing-poster.jpg)](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4)
 
-> If the player does not load, watch it here:
-> ▶ **[Play the marketing video](https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing-compressed.mp4)**
-> · full quality: [LearnEU_Marketing.mp4](https://github.com/EtienneSIG/AMA_Project/raw/main/video/LearnEU_Marketing.mp4)
+> ▶ **[Play the marketing video](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4)**
+> · full quality: [LearnEU_Marketing.mp4](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing.mp4)
 
 ---
 ## Use case at a glance
