@@ -9,12 +9,14 @@ Source brief: [../Subject/case-study-33-edtech-personalised-learning.md](../Subj
 ---
 ## Marketing video
 
+[![LearnEU marketing video preview](video/LearnEU_Marketing-preview.gif)](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing.mp4)
+
+*Animated preview (loops automatically). Click it — or the link below — for the full video **with sound**.*
+
+> ▶ **[Play the full marketing video (with sound)](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing.mp4)**
+> · compressed: [LearnEU_Marketing-compressed.mp4](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4)
+
 <video src="https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4" controls></video>
-
-[![Watch the LearnEU marketing video](video/LearnEU_Marketing-poster.jpg)](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4)
-
-> ▶ **[Play the marketing video](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing-compressed.mp4)**
-> · full quality: [LearnEU_Marketing.mp4](https://raw.githubusercontent.com/EtienneSIG/AMA_Project/main/video/LearnEU_Marketing.mp4)
 
 ---
 ## Use case at a glance
