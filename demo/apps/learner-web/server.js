@@ -1096,7 +1096,7 @@ async function buildGamificationDashboard(email) {
   return {
     mission: {
       id: 'daily-quest-fractions',
-      title: 'Mission du jour',
+      title: 'Daily mission',
       objective: 'Complete 10 practice attempts today',
       target: 10,
       progress: todayAttempts,
@@ -1105,7 +1105,7 @@ async function buildGamificationDashboard(email) {
     },
     guildObjective: {
       classKey: 'class-y7-fractions',
-      title: 'Objectif de la classe',
+      title: 'Class objective',
       target: 300,
       progress: classAttempts,
       contributors: classContributors
@@ -1113,7 +1113,7 @@ async function buildGamificationDashboard(email) {
     collaborativeQuests: [
       {
         id: 'cq-duo-help',
-        title: 'Duo entraide',
+        title: 'Peer support duo',
         description: 'Two learners each complete 8 attempts this week',
         target: 16,
         progress: Math.min(16, classAttempts),

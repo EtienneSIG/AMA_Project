@@ -1,0 +1,74 @@
+table 'Item Attempts'
+
+	measure 'Total Attempts' = COUNTROWS('Item Attempts')
+
+	measure 'Correct Attempts' = COUNTROWS(FILTER('Item Attempts', 'Item Attempts'[correct] = TRUE()))
+
+	measure 'Correctness Rate' = DIVIDE([Correct Attempts], [Total Attempts], 0)
+		formatString: 0.0%
+
+	measure 'National Correctness Rate' = CALCULATE([Correctness Rate], REMOVEFILTERS('Hierarchy Assignments'), REMOVEFILTERS('Learners'))
+		formatString: 0.0%
+
+	measure 'Delta vs National (pts)' = VAR establishmentRate = [Correctness Rate] VAR nationalRate = [National Correctness Rate] RETURN IF(OR(ISBLANK(establishmentRate), ISBLANK(nationalRate)), BLANK(), ROUND((establishmentRate - nationalRate) * 100, 1))
+		formatString: 0.0
+
+	measure 'Recent Trend (pts)' = VAR recentRate = CALCULATE([Correctness Rate], FILTER(ALL('Item Attempts'[created_at]), DATEVALUE('Item Attempts'[created_at]) >= TODAY() - 6)) VAR priorRate = CALCULATE([Correctness Rate], FILTER(ALL('Item Attempts'[created_at]), DATEVALUE('Item Attempts'[created_at]) >= TODAY() - 13 && DATEVALUE('Item Attempts'[created_at]) < TODAY() - 6)) RETURN IF(OR(ISBLANK(recentRate), ISBLANK(priorRate)), BLANK(), ROUND((recentRate - priorRate) * 100, 1))
+		formatString: 0.0
+
+	column id
+		dataType: int64
+		isKey
+		summarizeBy: none
+		sourceColumn: id
+
+	column email
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: email
+
+	column pseudonym
+		dataType: string
+		summarizeBy: none
+		sourceColumn: pseudonym
+
+	column item_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: item_id
+
+	column difficulty
+		dataType: double
+		summarizeBy: average
+		sourceColumn: difficulty
+
+	column predicted
+		dataType: double
+		summarizeBy: average
+		sourceColumn: predicted
+
+	column correct
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: correct
+
+	column latency_ms
+		dataType: int64
+		summarizeBy: average
+		sourceColumn: latency_ms
+
+	column created_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: created_at
+
+	partition item-attempts-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.item_attempts")
+				in
+				    Data
+

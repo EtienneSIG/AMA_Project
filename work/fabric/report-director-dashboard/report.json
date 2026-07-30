@@ -1,0 +1,169 @@
+{
+  "config": "{\"publicCustomVisuals\":[],\"themeCollection\":{\"baseTheme\":{\"reportVersionAtImport\":\"5.53\",\"type\":2,\"name\":\"CY24SU06\"}},\"defaultDrillFilterOtherVisuals\":true,\"activeSectionIndex\":0,\"version\":\"5.53\",\"objects\":{\"page\":[{\"properties\":{\"background\":{\"solid\":{\"color\":{\"expr\":{\"Literal\":{\"Value\":\"'#F0F4F8'\"}}}}}}}]}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "displayName": "Director Analytics",
+      "displayOption": 1,
+      "height": 720,
+      "name": "page1",
+      "visualContainers": [
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"},\"value\":\"Director Analytics - LearnEU (Fabric . EU . Postgres mirror)\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":1200,\"z\":9999,\"height\":40,\"x\":20,\"tabOrder\":0,\"y\":12}}],\"name\":\"vc1-4507f15218c3\"}",
+          "filters": "[]",
+          "height": 40,
+          "width": 1200,
+          "x": 20,
+          "y": 12,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.Correctness Rate\",\"Measure\":{\"Property\":\"Correctness Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Item Attempts.Correctness Rate\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc2-5fbb0306232a\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 20,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.National Correctness Rate\",\"Measure\":{\"Property\":\"National Correctness Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Item Attempts.National Correctness Rate\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":266,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc3-ecb8c54c0dc0\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 266,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.Delta vs National (pts)\",\"Measure\":{\"Property\":\"Delta vs National (pts)\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Item Attempts.Delta vs National (pts)\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":512,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc4-615e2573547c\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 512,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.Recent Trend (pts)\",\"Measure\":{\"Property\":\"Recent Trend (pts)\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Item Attempts.Recent Trend (pts)\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":758,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc5-73eb4c693bc7\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 758,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.Assigned Learners\",\"Measure\":{\"Property\":\"Assigned Learners\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ha\",\"Entity\":\"Hierarchy Assignments\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Assignments.Assigned Learners\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":1004,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc6-09b954a8ee9a\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 1004,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.Total Attempts\",\"Measure\":{\"Property\":\"Total Attempts\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Item Attempts.Total Attempts\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc7-be54d96e54dc\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 20,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.Schools In Scope\",\"Measure\":{\"Property\":\"Schools In Scope\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ha\",\"Entity\":\"Hierarchy Assignments\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Assignments.Schools In Scope\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":266,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc8-cbff6bb60cb7\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 266,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\",\"Measure\":{\"Property\":\"Open Hierarchy Exceptions\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"he\",\"Entity\":\"Hierarchy Exceptions\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":512,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc9-61a2cf0fcc08\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 512,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.Hierarchy Exception Rate\",\"Measure\":{\"Property\":\"Hierarchy Exception Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ha\",\"Entity\":\"Hierarchy Assignments\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Assignments.Hierarchy Exception Rate\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":758,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc10-b22740243e83\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 758,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Reporting Scope.Active Scope Grants\",\"Measure\":{\"Property\":\"Active Scope Grants\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"rs\",\"Entity\":\"Reporting Scope\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Reporting Scope.Active Scope Grants\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":1004,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc11-0da589d17f7b\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 1004,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"},\"value\":\"Mastery by school (correctness rate)\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":600,\"z\":9999,\"height\":28,\"x\":20,\"tabOrder\":0,\"y\":300}}],\"name\":\"vc12-bc3035135f1c\"}",
+          "filters": "[]",
+          "height": 28,
+          "width": 600,
+          "x": 20,
+          "y": 300,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.school_id\",\"Column\":{\"Property\":\"school_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}},{\"Name\":\"Item Attempts.Correctness Rate\",\"Measure\":{\"Property\":\"Correctness Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ha\",\"Entity\":\"Hierarchy Assignments\"},{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Hierarchy Assignments.school_id\"}],\"Y\":[{\"queryRef\":\"Item Attempts.Correctness Rate\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":320,\"x\":20,\"tabOrder\":0,\"y\":330}}],\"name\":\"vc13-a6fb0ec59efd\"}",
+          "filters": "[]",
+          "height": 320,
+          "width": 610,
+          "x": 20,
+          "y": 330,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"},\"value\":\"Mastery by region\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":9999,\"height\":28,\"x\":650,\"tabOrder\":0,\"y\":300}}],\"name\":\"vc14-1bf579a734af\"}",
+          "filters": "[]",
+          "height": 28,
+          "width": 590,
+          "x": 650,
+          "y": 300,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.region_id\",\"Column\":{\"Property\":\"region_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}},{\"Name\":\"Item Attempts.Correctness Rate\",\"Measure\":{\"Property\":\"Correctness Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ha\",\"Entity\":\"Hierarchy Assignments\"},{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Hierarchy Assignments.region_id\"}],\"Y\":[{\"queryRef\":\"Item Attempts.Correctness Rate\"}]},\"visualType\":\"clusteredColumnChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":0,\"height\":150,\"x\":650,\"tabOrder\":0,\"y\":330}}],\"name\":\"vc15-b5f145a179d6\"}",
+          "filters": "[]",
+          "height": 150,
+          "width": 590,
+          "x": 650,
+          "y": 330,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"},\"value\":\"Mastery trend (correctness rate over time)\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":9999,\"height\":28,\"x\":650,\"tabOrder\":0,\"y\":490}}],\"name\":\"vc16-a771bbd36fae\"}",
+          "filters": "[]",
+          "height": 28,
+          "width": 590,
+          "x": 650,
+          "y": 490,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Item Attempts.created_at\",\"Column\":{\"Property\":\"created_at\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}},{\"Name\":\"Item Attempts.Correctness Rate\",\"Measure\":{\"Property\":\"Correctness Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ia\"}}}}],\"Version\":2,\"From\":[{\"Type\":0,\"Name\":\"ia\",\"Entity\":\"Item Attempts\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Item Attempts.created_at\"}],\"Y\":[{\"queryRef\":\"Item Attempts.Correctness Rate\"}]},\"visualType\":\"lineChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":0,\"height\":130,\"x\":650,\"tabOrder\":0,\"y\":520}}],\"name\":\"vc17-bc78bf9dbe17\"}",
+          "filters": "[]",
+          "height": 130,
+          "width": 590,
+          "x": 650,
+          "y": 520,
+          "z": 0
+        }
+      ],
+      "width": 1280
+    }
+  ]
+}

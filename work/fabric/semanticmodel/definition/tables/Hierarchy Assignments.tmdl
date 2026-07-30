@@ -1,0 +1,80 @@
+table 'Hierarchy Assignments'
+
+	measure 'Hierarchy Rows' = COUNTROWS('Hierarchy Assignments')
+
+	measure 'Assigned Learners' = DISTINCTCOUNT('Hierarchy Assignments'[learner_id])
+
+	measure 'Schools In Scope' = DISTINCTCOUNT('Hierarchy Assignments'[school_id])
+
+	measure 'Regions In Scope' = DISTINCTCOUNT('Hierarchy Assignments'[region_id])
+
+	measure 'Exception Count' = COUNTROWS(FILTER('Hierarchy Assignments', 'Hierarchy Assignments'[exception_flag] = TRUE()))
+
+	measure 'Hierarchy Exception Rate' = DIVIDE(COUNTROWS(FILTER('Hierarchy Assignments', 'Hierarchy Assignments'[exception_flag] = TRUE())), COUNTROWS('Hierarchy Assignments'), 0)
+		formatString: 0.0%
+
+	column id
+		dataType: int64
+		isKey
+		summarizeBy: none
+		sourceColumn: id
+
+	column learner_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: learner_id
+
+	column class_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: class_id
+
+	column school_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: school_id
+
+	column region_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: region_id
+
+	column effective_from
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: effective_from
+
+	column effective_to
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: effective_to
+
+	column source_system
+		dataType: string
+		summarizeBy: none
+		sourceColumn: source_system
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+	column exception_flag
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: exception_flag
+
+	column created_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: created_at
+
+	partition hierarchy-assignments-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.learner_hierarchy_assignment")
+				in
+				    Data
+

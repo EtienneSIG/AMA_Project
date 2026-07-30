@@ -1,0 +1,61 @@
+table 'Hierarchy Exceptions'
+
+	measure 'Open Hierarchy Exceptions' = COUNTROWS(FILTER('Hierarchy Exceptions', 'Hierarchy Exceptions'[status] = "open"))
+
+	measure 'High Severity Exceptions' = COUNTROWS(FILTER('Hierarchy Exceptions', 'Hierarchy Exceptions'[severity] = "high" && 'Hierarchy Exceptions'[status] = "open"))
+
+	column id
+		dataType: int64
+		isKey
+		summarizeBy: none
+		sourceColumn: id
+
+	column learner_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: learner_id
+
+	column issue_type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: issue_type
+
+	column issue_detail
+		dataType: string
+		summarizeBy: none
+		sourceColumn: issue_detail
+
+	column severity
+		dataType: string
+		summarizeBy: none
+		sourceColumn: severity
+
+	column detected_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: detected_at
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+	column resolved_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: resolved_at
+
+	column resolved_by
+		dataType: string
+		summarizeBy: none
+		sourceColumn: resolved_by
+
+	partition hierarchy-exceptions-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.hierarchy_exception")
+				in
+				    Data
+

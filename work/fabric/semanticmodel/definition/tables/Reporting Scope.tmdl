@@ -1,0 +1,66 @@
+table 'Reporting Scope'
+
+	measure 'Active Scope Grants' = COUNTROWS(FILTER('Reporting Scope', 'Reporting Scope'[status] = "active"))
+
+	measure 'Directors With Scope' = DISTINCTCOUNT('Reporting Scope'[director_subject_id])
+
+	column id
+		dataType: int64
+		isKey
+		summarizeBy: none
+		sourceColumn: id
+
+	column director_subject_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: director_subject_id
+
+	column school_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: school_id
+
+	column region_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: region_id
+
+	column role
+		dataType: string
+		summarizeBy: none
+		sourceColumn: role
+
+	column effective_from
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: effective_from
+
+	column effective_to
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: effective_to
+
+	column granted_by
+		dataType: string
+		summarizeBy: none
+		sourceColumn: granted_by
+
+	column granted_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: granted_at
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+	partition reporting-scope-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.reporting_scope")
+				in
+				    Data
+

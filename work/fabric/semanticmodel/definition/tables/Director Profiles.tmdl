@@ -1,0 +1,47 @@
+table 'Director Profiles'
+
+	column director_subject_id
+		dataType: string
+		isKey
+		summarizeBy: none
+		sourceColumn: director_subject_id
+
+	column director_email
+		dataType: string
+		summarizeBy: none
+		sourceColumn: director_email
+
+	column display_name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: display_name
+
+	column primary_school_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: primary_school_id
+
+	column primary_region_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: primary_region_id
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+	column created_at
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: created_at
+
+	partition director-profile-import = m
+		mode: import
+		source =
+				let
+				    Source = AzurePostgreSQL.Database("pg-learneu-demo.postgres.database.azure.com", "learneu"),
+				    Data = Value.NativeQuery(Source, "select * from public.director_profile")
+				in
+				    Data
+

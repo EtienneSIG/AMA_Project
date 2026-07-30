@@ -116,6 +116,7 @@ flowchart TB
 ```
 
 ## Notes
+
 - **Legend:** solid bold arrows = user HTTPS traffic; solid thin arrows = service-to-service calls / private-endpoint data access; dotted arrows = telemetry and networking associations. Each tier is colour-coded (identity, apps, gateway, AI, data, ML, observability).
 - **Gated off (dashed grey):** Purview is **not** provisioned in this run. Documented as follow-up in `DEPLOYMENT-REPORT.md`. Fabric F2 capacity and Power BI Embedded are deployed and connected to director-portal for reporting.
 - **Public network access:** disabled on Key Vault, OpenAI, Content Safety, AI Search, AML, Storage, ACR. Only APIM has public ingress, fronting all backends.
@@ -127,6 +128,7 @@ flowchart TB
 - **App data store:** Azure Database for PostgreSQL Flexible Server (`pg-learneu-demo`), Burstable B1ms, PostgreSQL 16, 32 GB, public access disabled, private endpoint in `snet-pe`, TLS required. Three tables: `connection_logs`, `ask_history`, `sheets`. Admin password generated at deploy time and stored in Key Vault as `pg-admin-password` — every App Service consumes it via `@Microsoft.KeyVault` reference. Auto-applied schema lives in `apps/_shared/db/schema.sql`.
 
 ## How to render
+
 - VS Code with the Mermaid preview extension, or
 - `mmdc -i ARCHITECTURE.md -o ARCHITECTURE.svg`, or
-- Push to GitHub — Mermaid is rendered natively in fenced ```mermaid blocks.
+- Push to GitHub — Mermaid is rendered natively in fenced \`\`\`mermaid blocks.

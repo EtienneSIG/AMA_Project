@@ -1,0 +1,167 @@
+{
+  "config": "{\"publicCustomVisuals\":[],\"themeCollection\":{\"baseTheme\":{\"reportVersionAtImport\":\"5.53\",\"type\":2,\"name\":\"CY24SU06\"}},\"defaultDrillFilterOtherVisuals\":true,\"activeSectionIndex\":0,\"version\":\"5.53\",\"objects\":{\"page\":[{\"properties\":{\"background\":{\"solid\":{\"color\":{\"expr\":{\"Literal\":{\"Value\":\"'#F0F4F8'\"}}}}}}}]}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "displayName": "Director Overview",
+      "displayOption": 1,
+      "height": 720.00,
+      "name": "page1",
+      "visualContainers": [
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"value\":\"Director Governance Overview\",\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"}}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":700,\"z\":9999,\"height\":50,\"x\":20,\"tabOrder\":0,\"y\":12}}],\"name\":\"729d679a-4859-4f52-82e1-8ec6b89dd806\"}",
+          "filters": "[]",
+          "height": 50.00,
+          "width": 700.00,
+          "x": 20.00,
+          "y": 12.00,
+          "z": 9999.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"director_subject_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}},\"Name\":\"Reporting Scope.director_subject_id\"},{\"Column\":{\"Property\":\"school_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}},\"Name\":\"Reporting Scope.school_id\"},{\"Column\":{\"Property\":\"region_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}},\"Name\":\"Reporting Scope.region_id\"},{\"Column\":{\"Property\":\"status\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}},\"Name\":\"Reporting Scope.status\"}],\"Version\":2,\"From\":[{\"Entity\":\"Reporting Scope\",\"Type\":0,\"Name\":\"rs\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Reporting Scope.director_subject_id\"},{\"queryRef\":\"Reporting Scope.school_id\"},{\"queryRef\":\"Reporting Scope.region_id\"},{\"queryRef\":\"Reporting Scope.status\"}]},\"visualType\":\"tableEx\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":1220,\"z\":0,\"height\":250,\"x\":20,\"tabOrder\":0,\"y\":470}}],\"name\":\"4d1130b8-4393-4760-83db-3d3541b73547\"}",
+          "filters": "[]",
+          "height": 250.00,
+          "queryBinary": "H4sIAAAAAAAEAK1SwU7CQBD9FTPnjWkhXnoU0YPRIBg8GEKWdoQ1baeZ3Y0Q0n93piVKDOGCp87svHnvTfr2MKKqsnXhIXvfwwylDi5/ici7OxvsbGMbPEAg20M30GKO7B3VkA0M3DNV3fqzrRAyYA8GxsITBApTbIiDq9dXs5walNHrTj5Z0i6MCJaYh255RGWsauUebxtG39OLJ4qc4xQ/fpteo20NTFgoudMpHAsV8dLH1adUS1eAIA6e/ri4Po2+3IXPN0Tlee1jzOWKjGvZOK94jPmHG4MN0Z878ABYCOTW1YVMlHLCrrJ9fB6YYiPPfeyEW/+B2NA+MakZmKGmI64CBVtClnZcmsgpFrGDKo0+zPUacTE0xwJvIktfWo0o1pKwmyRp9Y6f4KbSjLeYRyV7wsAu949OY562ovYNbSx7IhoDAAA=",
+          "width": 1220.00,
+          "x": 20.00,
+          "y": 470.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"region_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}},\"Name\":\"Hierarchy Assignments.region_id\"},{\"Name\":\"Hierarchy Assignments.Hierarchy Rows\",\"Measure\":{\"Property\":\"Hierarchy Rows\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Assignments\",\"Type\":0,\"Name\":\"ha\"}]},\"projections\":{\"Y\":[{\"queryRef\":\"Hierarchy Assignments.Hierarchy Rows\"}],\"Category\":[{\"queryRef\":\"Hierarchy Assignments.region_id\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":0,\"height\":260,\"x\":650,\"tabOrder\":0,\"y\":190}}],\"name\":\"39c9c623-e3ae-4d21-87f9-c87291063c09\"}",
+          "filters": "[]",
+          "height": 260.00,
+          "queryBinary": "H4sIAAAAAAAEAK2STUsDMRCG/4rMOciueNqb/VBBqrWVepAiYXdsI02yTDbUZcl/d5JdbCkFQbwlM+/M+2QyHYyt1tJUDoq3DpbI50aVzx6pnchGLreyxkECRQcpEQ8rJKesgeJKwC1ZncofpUYoYCtBwJT7NCyFe4Ukqdy2FzfOqY3RaBrHgpe2ZnEW1oJtd1g2qcXY7rw20WH6VRO63oTJrKcSF/hxuPROIQiYk62RkhvhhiveVQUcH3jOElweKzuYoXSe8O/GB5OF3btf3U/lPIUnqpBGbRrDRBFPJCHk4oToH0cUwppzI2UqZTaxbE5Ky/6H78j6msP9ZnD9Z08U75nI16k07sgCKz+wdimwioDsfS2O+72yi933D/CGfzvPsixEtp9dykN8K5Y+dpthQ6p0DypuXh5JvwGUg6F+rQIAAA==",
+          "width": 590.00,
+          "x": 650.00,
+          "y": 190.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"school_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}},\"Name\":\"Hierarchy Assignments.school_id\"},{\"Name\":\"Hierarchy Assignments.Hierarchy Rows\",\"Measure\":{\"Property\":\"Hierarchy Rows\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Assignments\",\"Type\":0,\"Name\":\"ha\"}]},\"projections\":{\"Y\":[{\"queryRef\":\"Hierarchy Assignments.Hierarchy Rows\"}],\"Category\":[{\"queryRef\":\"Hierarchy Assignments.school_id\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":260,\"x\":20,\"tabOrder\":0,\"y\":190}}],\"name\":\"36dd7cd4-3472-4158-9da5-bd678472323a\"}",
+          "filters": "[]",
+          "height": 260.00,
+          "queryBinary": "H4sIAAAAAAAEAK2STUsDMRCG/4rMOciueNqb/VBBqrWVepAiYXfsRppkmWyoy5L/7iRbbCkFQbwlM+/M82YyPYyt1tJUDoq3HpbI51aVzx6pm8hWLmvZ4F4CRQ8pEQ8rJKesgeJKwC1ZncofpUYooJYgYMp9WpbCvUKSVNbdxY1zamM0mtax4KVrWJyFtWDsFss2tRjbrdcmEqZfDaEbIOzMeipxgR+Hy0AKQcCcbIOUaK6srd2+qwo4vvdz1sHlsbKHGUrnCf8OPkAWdud+pZ/KeQpPVCGNujSGiSKeSLKQixNH/ziiENacGylTKbOJZXNSWg4/fEfWNxweNoPrPwdH8Z6JfJ1K444ssPJ7r30KrKJBZl+L436vTLG74QHe8G/nWZaF6O1nl/IQ34qlj91m2JIq3YOKm5dHp99M7aACrQIAAA==",
+          "width": 610.00,
+          "x": 20.00,
+          "y": 190.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.Assigned Learners\",\"Measure\":{\"Property\":\"Assigned Learners\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Assignments\",\"Type\":0,\"Name\":\"ha\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Assignments.Assigned Learners\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":290,\"z\":0,\"height\":100,\"x\":640,\"tabOrder\":0,\"y\":75}}],\"name\":\"8efff9c9-ab3c-4ad3-a3dd-b8842182c580\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "queryBinary": "H4sIAAAAAAAEAG1QyU7DMBD9lWrOEWrhlhtLKBIUlbbqBfVgOUNjVC8a21KjKP/OjFMBh57sWd4yb4BHb61ybYT6c4At8j8Z/ZGR+ieV1LZTAS8rUA9QBvLZI0XjHdS3FTyTtwX+rixCDZ2CChrmSbwKLwZJke762X2M5ugsuhR5YdcHXp6Ph4plT6hToVihiplQJJpzIIyTClvzmTRu8OuvmKTGsYI1+YBU5CYRbGdvqMixS+D5xdhVKzdXEAfGPBjXGncUuTUZq6a7l+Rz4PaUF+t+s3O2KPX8UICS2wbbXPqCkcben7J4uKv+s+184GeUE34DXXDRnFFnga8wkdHx1Uj8i5H5fwB7g9yasgEAAA==",
+          "width": 290.00,
+          "x": 640.00,
+          "y": 75.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\",\"Measure\":{\"Property\":\"Open Hierarchy Exceptions\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Exceptions\",\"Type\":0,\"Name\":\"he\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":290,\"z\":0,\"height\":100,\"x\":950,\"tabOrder\":0,\"y\":75}}],\"name\":\"094632c3-4d13-4c09-b99d-f80ba7e8b5ac\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "queryBinary": "H4sIAAAAAAAEAH1Ry07DMBD8lWrPEWrhliMQQEKF0la9VDlYzpYY1Q+tbSlR5H9n7VTAoeLkfczszK4neLBaC9N5qI8T7JDjoORHRBofRRC7Xji8QKCeoDRycEDyyhqobyt4IqsL/U1ohBp6hAoanhMYCi8KSZDsx0UzSHSBWZ77+9ExdpnailXPKEOZsEbhI2FWaAZH6GcRdmYjSdzi6TeZlVKqYEPWIRW1d4dmcVWScRd/19o3/xBbpt4r0ynzmdU3pLSYr/BMNjouz9djG1+8SCHVx2VbiPmKW+xiqWdOLhzsOWYrd9XfaXvr+El5o5/zrjhpBpQx09cYSEn/qvJnrBLP/wbSI3fPwAEAAA==",
+          "width": 290.00,
+          "x": 950.00,
+          "y": 75.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Reporting Scope.Active Scope Grants\",\"Measure\":{\"Property\":\"Active Scope Grants\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Reporting Scope\",\"Type\":0,\"Name\":\"rs\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Reporting Scope.Active Scope Grants\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":290,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":75}}],\"name\":\"ced54d4d-54aa-4d4b-bf88-335aaac4833c\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "queryBinary": "H4sIAAAAAAAEAG1QS0/DMAz+K5PPEdrglhuPsgMaGu20C+ohSj0IWpvISdCmqv8dO+UlxCmx/b3sEW5935uhi6CfR2iQ/8nZp4x0vjPJNK8m4CcE9AhlIJ89UnR+AH2p4J58X+iPpkfQQBEUVKyTGAo1Bk/JDS+LxvqAPNqd+dHLqVVseESbCnmDJmZCEa9OgTDO+hzKZ7JY4+GnmE2mScGWWJOK0bVN7h1nl8WaeBGGqK9Qf2Jc/ItuGX/jho5hYrYl15t53zX5HLg934ld3zg3B5R62Rai3KvGLpe+cKSx98cs/lfqt9rOB34mWeD7kCsuqhPaLPQNJnI2Pjg5+2pi/Q8DMMkSqgEAAA==",
+          "width": 290.00,
+          "x": 20.00,
+          "y": 75.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Reporting Scope.Directors With Scope\",\"Measure\":{\"Property\":\"Directors With Scope\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Reporting Scope\",\"Type\":0,\"Name\":\"rs\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Reporting Scope.Directors With Scope\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":290,\"z\":0,\"height\":100,\"x\":330,\"tabOrder\":0,\"y\":75}}],\"name\":\"e2a5816a-fec3-454e-ab4e-9f4ed54528cb\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "queryBinary": "H4sIAAAAAAAEAG1QO0/DMBD+K9XNUdXC5hEaGFCrklRlQBks50qNmtg621KrKP+dOycChJju4e/lG+DRdZ3u2wDqfYAauY/WvCak20ZHXZ+1xxkCaoD8IM0RKVjXg7or4Ilcl+k73SEooAAFlKwTGQoVekfR9h+L2jiP/HS4cVGrsSnY8IImZvIWdUiEIl5ePWGY9DmUS2SwwtPPMJmMYwF7Yk3KRhtLrOUoLN5sPM9uDJlT/cmx/B/eMOHB9i3jxG5PttPTj5/JJc/r6VLs+8l0jijzqslEuViFbcp74cji6C5JAtwXv9UOznMZ5Qvfp1zzUF7RJKFvMZI14cXK4dcj638Bxm7hrqwBAAA=",
+          "width": 290.00,
+          "x": 330.00,
+          "y": 75.00,
+          "z": 0.00
+        }
+      ],
+      "width": 1280.00
+    },
+    {
+      "displayName": "Coverage and Exceptions",
+      "displayOption": 1,
+      "height": 720.00,
+      "name": "page2",
+      "visualContainers": [
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"value\":\"Hierarchy Exceptions and Director Coverage\",\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"}}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":700,\"z\":9999,\"height\":50,\"x\":20,\"tabOrder\":0,\"y\":12}}],\"name\":\"c52ee57c-3f74-4daf-8763-67e9ea9206c3\"}",
+          "filters": "[]",
+          "height": 50.00,
+          "width": 700.00,
+          "x": 20.00,
+          "y": 12.00,
+          "z": 9999.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"learner_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}},\"Name\":\"Hierarchy Exceptions.learner_id\"},{\"Column\":{\"Property\":\"issue_type\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}},\"Name\":\"Hierarchy Exceptions.issue_type\"},{\"Column\":{\"Property\":\"severity\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}},\"Name\":\"Hierarchy Exceptions.severity\"},{\"Column\":{\"Property\":\"status\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}},\"Name\":\"Hierarchy Exceptions.status\"}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Exceptions\",\"Type\":0,\"Name\":\"he\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Exceptions.learner_id\"},{\"queryRef\":\"Hierarchy Exceptions.issue_type\"},{\"queryRef\":\"Hierarchy Exceptions.severity\"},{\"queryRef\":\"Hierarchy Exceptions.status\"}]},\"visualType\":\"tableEx\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":1220,\"z\":0,\"height\":250,\"x\":20,\"tabOrder\":0,\"y\":470}}],\"name\":\"94f7b755-08ec-4ecd-bb91-8349db4e13e8\"}",
+          "filters": "[]",
+          "height": 250.00,
+          "width": 1220.00,
+          "x": 20.00,
+          "y": 470.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"primary_region_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"dp\"}}},\"Name\":\"Director Profiles.primary_region_id\"},{\"Name\":\"Reporting Scope.Directors With Scope\",\"Measure\":{\"Property\":\"Directors With Scope\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Director Profiles\",\"Type\":0,\"Name\":\"dp\"},{\"Entity\":\"Reporting Scope\",\"Type\":0,\"Name\":\"rs\"}]},\"projections\":{\"Y\":[{\"queryRef\":\"Reporting Scope.Directors With Scope\"}],\"Category\":[{\"queryRef\":\"Director Profiles.primary_region_id\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":260,\"x\":20,\"tabOrder\":0,\"y\":190}}],\"name\":\"3a3a7618-d5da-4432-bfd2-4c1633e51698\"}",
+          "filters": "[]",
+          "height": 260.00,
+          "width": 610.00,
+          "x": 20.00,
+          "y": 190.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Column\":{\"Property\":\"primary_school_id\",\"Expression\":{\"SourceRef\":{\"Source\":\"dp\"}}},\"Name\":\"Director Profiles.primary_school_id\"},{\"Name\":\"Reporting Scope.Active Scope Grants\",\"Measure\":{\"Property\":\"Active Scope Grants\",\"Expression\":{\"SourceRef\":{\"Source\":\"rs\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Director Profiles\",\"Type\":0,\"Name\":\"dp\"},{\"Entity\":\"Reporting Scope\",\"Type\":0,\"Name\":\"rs\"}]},\"projections\":{\"Y\":[{\"queryRef\":\"Reporting Scope.Active Scope Grants\"}],\"Category\":[{\"queryRef\":\"Director Profiles.primary_school_id\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":590,\"z\":0,\"height\":260,\"x\":650,\"tabOrder\":0,\"y\":190}}],\"name\":\"1ff6db17-e2ef-429c-9413-55a152d2439c\"}",
+          "filters": "[]",
+          "height": 260.00,
+          "width": 590.00,
+          "x": 650.00,
+          "y": 190.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Assignments.Hierarchy Exception Rate\",\"Measure\":{\"Property\":\"Hierarchy Exception Rate\",\"Expression\":{\"SourceRef\":{\"Source\":\"ha\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Assignments\",\"Type\":0,\"Name\":\"ha\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Assignments.Hierarchy Exception Rate\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":400,\"z\":0,\"height\":100,\"x\":840,\"tabOrder\":0,\"y\":75}}],\"name\":\"3028ca71-d6bd-43c9-9726-968f5ea9f01e\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "width": 400.00,
+          "x": 840.00,
+          "y": 75.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Exceptions.High Severity Exceptions\",\"Measure\":{\"Property\":\"High Severity Exceptions\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Exceptions\",\"Type\":0,\"Name\":\"he\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Exceptions.High Severity Exceptions\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":390,\"z\":0,\"height\":100,\"x\":430,\"tabOrder\":0,\"y\":75}}],\"name\":\"73b2c866-bf97-44eb-a437-23ec60a80a6a\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "width": 390.00,
+          "x": 430.00,
+          "y": 75.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\",\"Measure\":{\"Property\":\"Open Hierarchy Exceptions\",\"Expression\":{\"SourceRef\":{\"Source\":\"he\"}}}}],\"Version\":2,\"From\":[{\"Entity\":\"Hierarchy Exceptions\",\"Type\":0,\"Name\":\"he\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Hierarchy Exceptions.Open Hierarchy Exceptions\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":390,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":75}}],\"name\":\"3bc42494-5400-4a33-9fc0-a2e5ed4def3f\"}",
+          "filters": "[]",
+          "height": 100.00,
+          "width": 390.00,
+          "x": 20.00,
+          "y": 75.00,
+          "z": 0.00
+        }
+      ],
+      "width": 1280.00
+    }
+  ]
+}
