@@ -107,3 +107,19 @@ function New-FabricReport {
   $body = @{ displayName = $DisplayName; definition = @{ parts = $parts } }
   return Invoke-FabricLRO -Method Post -Path "/workspaces/$script:WS/reports" -Body $body
 }
+
+function New-FabricSemanticModel {
+  param(
+    [Parameter(Mandatory)][string]$DisplayName,
+    [Parameter(Mandatory)][string]$Dir
+  )
+  $parts = Build-FabricParts -Dir $Dir
+  $body = @{ displayName = $DisplayName; definition = @{ parts = $parts } }
+  return Invoke-FabricLRO -Method Post -Path "/workspaces/$script:WS/semanticModels" -Body $body
+}
+
+# List items of a given type (e.g. reports, semanticModels) in the EULearn workspace.
+function Get-FabricItems {
+  param([string]$Type = 'items')
+  return Invoke-FabricApi -Method Get -Path "/workspaces/$script:WS/$Type"
+}

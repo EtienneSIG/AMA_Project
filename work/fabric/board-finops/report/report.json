@@ -1,0 +1,223 @@
+{
+  "config": "{\"publicCustomVisuals\":[],\"themeCollection\":{\"baseTheme\":{\"reportVersionAtImport\":\"5.53\",\"type\":2,\"name\":\"CY24SU06\"}},\"defaultDrillFilterOtherVisuals\":true,\"activeSectionIndex\":0,\"version\":\"5.53\",\"objects\":{\"page\":[{\"properties\":{\"background\":{\"solid\":{\"color\":{\"expr\":{\"Literal\":{\"Value\":\"'#F0F4F8'\"}}}}}}}]}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "displayName": "Board FinOps & Governance",
+      "displayOption": 1,
+      "height": 1180,
+      "name": "page1",
+      "visualContainers": [
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"20px\",\"color\":\"#00314A\"},\"value\":\"Board FinOps & Governance - LearnEU (EU . Fabric . aggregated, non-personal)\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":1240,\"z\":9999,\"height\":40,\"x\":20,\"tabOrder\":0,\"y\":12}}],\"name\":\"vc1-d5c9179e9bf6\"}",
+          "filters": "[]",
+          "height": 40,
+          "width": 1240,
+          "x": 20,
+          "y": 12,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Latest Cost per Active User (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}},\"Name\":\"Monthly FinOps.Latest Cost per Active User (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mf\",\"Type\":0,\"Entity\":\"Monthly FinOps\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Monthly FinOps.Latest Cost per Active User (EUR)\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc2-64766c1c6284\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 20,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Latest Monthly Cost (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}},\"Name\":\"Monthly FinOps.Latest Monthly Cost (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mf\",\"Type\":0,\"Entity\":\"Monthly FinOps\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Monthly FinOps.Latest Monthly Cost (EUR)\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":266,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc3-47a7aabcb975\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 266,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Latest Active Users\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}},\"Name\":\"Monthly FinOps.Latest Active Users\"}],\"Version\":2,\"From\":[{\"Name\":\"mf\",\"Type\":0,\"Entity\":\"Monthly FinOps\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Monthly FinOps.Latest Active Users\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":512,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc4-e0616c34fffe\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 512,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Overdue Reviews\",\"Expression\":{\"SourceRef\":{\"Source\":\"gr\"}}},\"Name\":\"Governance Register.Overdue Reviews\"}],\"Version\":2,\"From\":[{\"Name\":\"gr\",\"Type\":0,\"Entity\":\"Governance Register\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Governance Register.Overdue Reviews\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":758,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc5-dd0d37881061\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 758,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Days Since Review\",\"Expression\":{\"SourceRef\":{\"Source\":\"gr\"}}},\"Name\":\"Governance Register.Days Since Review\"}],\"Version\":2,\"From\":[{\"Name\":\"gr\",\"Type\":0,\"Entity\":\"Governance Register\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Governance Register.Days Since Review\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":1004,\"tabOrder\":0,\"y\":70}}],\"name\":\"vc6-ce441688dea7\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 1004,
+          "y": 70,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Latest Teacher Hours Saved\",\"Expression\":{\"SourceRef\":{\"Source\":\"tt\"}}},\"Name\":\"Teacher Time.Latest Teacher Hours Saved\"}],\"Version\":2,\"From\":[{\"Name\":\"tt\",\"Type\":0,\"Entity\":\"Teacher Time\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Teacher Time.Latest Teacher Hours Saved\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":20,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc7-3c06578c43af\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 20,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Avg Response Hours\",\"Expression\":{\"SourceRef\":{\"Source\":\"tt\"}}},\"Name\":\"Teacher Time.Avg Response Hours\"}],\"Version\":2,\"From\":[{\"Name\":\"tt\",\"Type\":0,\"Entity\":\"Teacher Time\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Teacher Time.Avg Response Hours\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":266,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc8-f9db315f1721\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 266,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Latest Localisation Velocity\",\"Expression\":{\"SourceRef\":{\"Source\":\"lo\"}}},\"Name\":\"Localisation.Latest Localisation Velocity\"}],\"Version\":2,\"From\":[{\"Name\":\"lo\",\"Type\":0,\"Entity\":\"Localisation\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Localisation.Latest Localisation Velocity\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":512,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc9-4c22e031a617\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 512,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Model Cost (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mr\"}}},\"Name\":\"Model Routing.Model Cost (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mr\",\"Type\":0,\"Entity\":\"Model Routing\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Model Routing.Model Cost (EUR)\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":758,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc10-0c82a06dcea8\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 758,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Measure\":{\"Property\":\"Registered Artefacts\",\"Expression\":{\"SourceRef\":{\"Source\":\"gr\"}}},\"Name\":\"Governance Register.Registered Artefacts\"}],\"Version\":2,\"From\":[{\"Name\":\"gr\",\"Type\":0,\"Entity\":\"Governance Register\"}]},\"projections\":{\"Values\":[{\"queryRef\":\"Governance Register.Registered Artefacts\"}]},\"visualType\":\"card\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":236,\"z\":0,\"height\":100,\"x\":1004,\"tabOrder\":0,\"y\":180}}],\"name\":\"vc11-61bf824b1d23\"}",
+          "filters": "[]",
+          "height": 100,
+          "width": 236,
+          "x": 1004,
+          "y": 180,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Cost per active user (EUR / month)\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":20,\"tabOrder\":0,\"y\":300}}],\"name\":\"vc12-74245ed9e636\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 20,
+          "y": 300,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Monthly FinOps.Month\",\"Column\":{\"Property\":\"Month\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}}},{\"Measure\":{\"Property\":\"Cost per Active User (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}},\"Name\":\"Monthly FinOps.Cost per Active User (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mf\",\"Type\":0,\"Entity\":\"Monthly FinOps\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Monthly FinOps.Month\"}],\"Y\":[{\"queryRef\":\"Monthly FinOps.Cost per Active User (EUR)\"}]},\"visualType\":\"lineChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":230,\"x\":20,\"tabOrder\":0,\"y\":330}}],\"name\":\"vc13-cf991e4fbc18\"}",
+          "filters": "[]",
+          "height": 230,
+          "width": 610,
+          "x": 20,
+          "y": 330,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Recurring FinOps - monthly platform cost\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":650,\"tabOrder\":0,\"y\":300}}],\"name\":\"vc14-11769f78d5ce\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 650,
+          "y": 300,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Monthly FinOps.Month\",\"Column\":{\"Property\":\"Month\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}}},{\"Measure\":{\"Property\":\"Total Cost (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mf\"}}},\"Name\":\"Monthly FinOps.Total Cost (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mf\",\"Type\":0,\"Entity\":\"Monthly FinOps\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Monthly FinOps.Month\"}],\"Y\":[{\"queryRef\":\"Monthly FinOps.Total Cost (EUR)\"}]},\"visualType\":\"columnChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":230,\"x\":650,\"tabOrder\":0,\"y\":330}}],\"name\":\"vc15-e3842013ea25\"}",
+          "filters": "[]",
+          "height": 230,
+          "width": 610,
+          "x": 650,
+          "y": 330,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Model routing - cost by model\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":20,\"tabOrder\":0,\"y\":580}}],\"name\":\"vc16-4b773c89b206\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 20,
+          "y": 580,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Model Routing.Model\",\"Column\":{\"Property\":\"Model\",\"Expression\":{\"SourceRef\":{\"Source\":\"mr\"}}}},{\"Measure\":{\"Property\":\"Model Cost (EUR)\",\"Expression\":{\"SourceRef\":{\"Source\":\"mr\"}}},\"Name\":\"Model Routing.Model Cost (EUR)\"}],\"Version\":2,\"From\":[{\"Name\":\"mr\",\"Type\":0,\"Entity\":\"Model Routing\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Model Routing.Model\"}],\"Y\":[{\"queryRef\":\"Model Routing.Model Cost (EUR)\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":230,\"x\":20,\"tabOrder\":0,\"y\":610}}],\"name\":\"vc17-f0fa87790241\"}",
+          "filters": "[]",
+          "height": 230,
+          "width": 610,
+          "x": 20,
+          "y": 610,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Localisation velocity - terms / month\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":650,\"tabOrder\":0,\"y\":580}}],\"name\":\"vc18-555e49df5a01\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 650,
+          "y": 580,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Localisation.Month\",\"Column\":{\"Property\":\"Month\",\"Expression\":{\"SourceRef\":{\"Source\":\"lo\"}}}},{\"Measure\":{\"Property\":\"Terms Localised\",\"Expression\":{\"SourceRef\":{\"Source\":\"lo\"}}},\"Name\":\"Localisation.Terms Localised\"}],\"Version\":2,\"From\":[{\"Name\":\"lo\",\"Type\":0,\"Entity\":\"Localisation\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Localisation.Month\"}],\"Y\":[{\"queryRef\":\"Localisation.Terms Localised\"}]},\"visualType\":\"clusteredColumnChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":230,\"x\":650,\"tabOrder\":0,\"y\":610}}],\"name\":\"vc19-eff881675a56\"}",
+          "filters": "[]",
+          "height": 230,
+          "width": 610,
+          "x": 650,
+          "y": 610,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Governance & DPIA freshness - days since last review\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":20,\"tabOrder\":0,\"y\":860}}],\"name\":\"vc20-af7eb8ee240d\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 20,
+          "y": 860,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Governance Register.Artefact\",\"Column\":{\"Property\":\"Artefact\",\"Expression\":{\"SourceRef\":{\"Source\":\"gr\"}}}},{\"Measure\":{\"Property\":\"Days Since Review\",\"Expression\":{\"SourceRef\":{\"Source\":\"gr\"}}},\"Name\":\"Governance Register.Days Since Review\"}],\"Version\":2,\"From\":[{\"Name\":\"gr\",\"Type\":0,\"Entity\":\"Governance Register\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Governance Register.Artefact\"}],\"Y\":[{\"queryRef\":\"Governance Register.Days Since Review\"}]},\"visualType\":\"clusteredBarChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":250,\"x\":20,\"tabOrder\":0,\"y\":890}}],\"name\":\"vc21-47c9d5c5e2a6\"}",
+          "filters": "[]",
+          "height": 250,
+          "width": 610,
+          "x": 20,
+          "y": 890,
+          "z": 0
+        },
+        {
+          "config": "{\"singleVisual\":{\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"textStyle\":{\"fontWeight\":\"bold\",\"fontFamily\":\"Poppins\",\"fontSize\":\"14px\",\"color\":\"#00314A\"},\"value\":\"Teacher hours saved / month\"}]}]}}]},\"visualType\":\"textbox\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":9999,\"height\":26,\"x\":650,\"tabOrder\":0,\"y\":860}}],\"name\":\"vc22-97cbf6809ca1\"}",
+          "filters": "[]",
+          "height": 26,
+          "width": 610,
+          "x": 650,
+          "y": 860,
+          "z": 9999
+        },
+        {
+          "config": "{\"singleVisual\":{\"prototypeQuery\":{\"Select\":[{\"Name\":\"Teacher Time.Month\",\"Column\":{\"Property\":\"Month\",\"Expression\":{\"SourceRef\":{\"Source\":\"tt\"}}}},{\"Measure\":{\"Property\":\"Teacher Hours Saved\",\"Expression\":{\"SourceRef\":{\"Source\":\"tt\"}}},\"Name\":\"Teacher Time.Teacher Hours Saved\"}],\"Version\":2,\"From\":[{\"Name\":\"tt\",\"Type\":0,\"Entity\":\"Teacher Time\"}]},\"projections\":{\"Category\":[{\"queryRef\":\"Teacher Time.Month\"}],\"Y\":[{\"queryRef\":\"Teacher Time.Teacher Hours Saved\"}]},\"visualType\":\"lineChart\"},\"layouts\":[{\"id\":0,\"position\":{\"width\":610,\"z\":0,\"height\":250,\"x\":650,\"tabOrder\":0,\"y\":890}}],\"name\":\"vc23-a8dbfbebdc44\"}",
+          "filters": "[]",
+          "height": 250,
+          "width": 610,
+          "x": 650,
+          "y": 890,
+          "z": 0
+        }
+      ],
+      "width": 1280
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+table 'Localisation'
+
+	measure 'Terms Localised' = SUM('Localisation'[Terms Localised col])
+		formatString: #,0
+
+	measure 'Localisation Velocity (terms/mo)' = DIVIDE([Terms Localised], DISTINCTCOUNT('Localisation'[Month]))
+		formatString: #,0
+
+	measure 'Latest Localisation Velocity' =
+			VAR latestMonth = CALCULATE(MAX('Localisation'[Month]), ALL('Localisation'))
+			RETURN CALCULATE([Terms Localised], 'Localisation'[Month] = latestMonth)
+		formatString: #,0
+
+	column Month
+		dataType: dateTime
+		formatString: yyyy-mm
+		summarizeBy: none
+		sourceColumn: Month
+
+	column Language
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Language
+
+	column 'Terms Localised col'
+		dataType: int64
+		isHidden
+		summarizeBy: sum
+		sourceColumn: Terms Localised
+
+	partition localisation = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Month = DateTime.Type, Language = text, #"Terms Localised" = Int64.Type],
+				        {
+				            {#datetime(2026,2,1,0,0,0), "nl-NL", 120},
+				            {#datetime(2026,2,1,0,0,0), "de-DE", 95},
+				            {#datetime(2026,3,1,0,0,0), "nl-NL", 140},
+				            {#datetime(2026,3,1,0,0,0), "de-DE", 130},
+				            {#datetime(2026,4,1,0,0,0), "nl-NL", 165},
+				            {#datetime(2026,4,1,0,0,0), "de-DE", 150},
+				            {#datetime(2026,5,1,0,0,0), "nl-NL", 180},
+				            {#datetime(2026,5,1,0,0,0), "de-DE", 175},
+				            {#datetime(2026,6,1,0,0,0), "nl-NL", 210},
+				            {#datetime(2026,6,1,0,0,0), "de-DE", 190},
+				            {#datetime(2026,7,1,0,0,0), "nl-NL", 235},
+				            {#datetime(2026,7,1,0,0,0), "de-DE", 220}
+				        }
+				    )
+				in
+				    Source

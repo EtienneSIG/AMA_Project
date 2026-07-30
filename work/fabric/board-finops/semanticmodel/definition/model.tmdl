@@ -1,0 +1,11 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+
+annotation PBI_Description = Board FinOps & Governance semantic model. Aggregated, non-personal board fixtures (import mode, inline tables). Additive to the EULearn director reporting stack; does not modify any existing item.
+
+ref table 'Monthly FinOps'
+ref table 'Model Routing'
+ref table 'Teacher Time'
+ref table 'Localisation'
+ref table 'Governance Register'

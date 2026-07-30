@@ -1,0 +1,56 @@
+table 'Teacher Time'
+
+	measure 'Teacher Hours Saved' = SUM('Teacher Time'[Hours Saved])
+		formatString: #,0
+
+	measure 'Avg Response Hours' = AVERAGE('Teacher Time'[Avg Response Hours col])
+		formatString: 0.0
+
+	measure 'Questions Answered' = SUM('Teacher Time'[Questions Answered col])
+		formatString: #,0
+
+	measure 'Latest Teacher Hours Saved' =
+			VAR latestMonth = CALCULATE(MAX('Teacher Time'[Month]), ALL('Teacher Time'))
+			RETURN CALCULATE([Teacher Hours Saved], 'Teacher Time'[Month] = latestMonth)
+		formatString: #,0
+
+	column Month
+		dataType: dateTime
+		formatString: yyyy-mm
+		summarizeBy: none
+		sourceColumn: Month
+
+	column 'Hours Saved'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Hours Saved
+
+	column 'Avg Response Hours col'
+		dataType: double
+		isHidden
+		summarizeBy: average
+		sourceColumn: Avg Response Hours
+
+	column 'Questions Answered col'
+		dataType: int64
+		isHidden
+		summarizeBy: sum
+		sourceColumn: Questions Answered
+
+	partition teacher-time = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Month = DateTime.Type, #"Hours Saved" = number, #"Avg Response Hours" = number, #"Questions Answered" = Int64.Type],
+				        {
+				            {#datetime(2026,2,1,0,0,0), 640, 6.2, 1180},
+				            {#datetime(2026,3,1,0,0,0), 720, 5.5, 1310},
+				            {#datetime(2026,4,1,0,0,0), 810, 4.8, 1460},
+				            {#datetime(2026,5,1,0,0,0), 905, 4.1, 1620},
+				            {#datetime(2026,6,1,0,0,0), 1010, 3.6, 1785},
+				            {#datetime(2026,7,1,0,0,0), 1140, 3.1, 1970}
+				        }
+				    )
+				in
+				    Source
