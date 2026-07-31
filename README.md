@@ -233,11 +233,11 @@ azd up
 ## Status
 - ✅ Specialist agents drafted (12 chat modes in [agents/](agents/))
 - ✅ Plan documents drafted (charter → governance) in [plan/](plan/)
-- ✅ **22 feature specs** authored, planned and tasked ([specs/INDEX.md](specs/INDEX.md)) — all constitution-gated
+- ✅ **23 feature specs** authored, planned and tasked ([specs/INDEX.md](specs/INDEX.md)) — all constitution-gated
 - ✅ **Demo fully deployed on Azure** ([demo/DEPLOYMENT-REPORT.md](demo/DEPLOYMENT-REPORT.md)) — 5 apps live, Postgres seeded (6 curricula, 50 synthetic learners), APIM → Azure OpenAI chat path verified, ONNX adaptive model running client-side
 - ✅ Architecture documented ([demo/ARCHITECTURE.md](demo/ARCHITECTURE.md)) and restitution deck drafted ([restitution/](restitution/))
-- ⏳ DPIAs per market — owner: DPO
-- ⏳ AI Act Annex IV conformity dossier — owner: AI Act CO
-- ⏳ Production hardening (Premium APIM, PTU, multi-region) beyond demo SKUs
+- 🟡 **DPIAs per market** — owner: DPO — per-market skeletons drafted in [compliance/dpia/](compliance/dpia/) (NL/BE/DE/PL/RO); per-feature DPIA deltas already in each `specs/<NNN>/plan.md`. Pending DPO + local-counsel sign-off.
+- 🟡 **AI Act Annex IV conformity dossier** — owner: AI Act CO — consolidated index in [compliance/annex-iv/](compliance/annex-iv/) over the per-feature fragments (007/008/010 complete; 005/015/016 to extract). CE-marking package pending.
+- 🟡 **Production hardening** (Premium APIM, PTU, multi-region) — documented in [compliance/production-hardening-plan.md](compliance/production-hardening-plan.md); demo runs on demo SKUs by design, not yet executed.
 
 > The plan is intentionally **opinionated** but **revisable**. Update the plan documents after each phase gate.
