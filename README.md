@@ -86,7 +86,7 @@ AMA_Project/
 │   ├── copilot-instructions.md  ← LearnEU agent guidance & hard constraints
 │   └── prompts/             ← installed /speckit.* slash-command prompts
 ├── Subject/                 ← the source case study + AMA rubric & evaluation
-├── specs/                   ← 22 feature specs (NNN-short-name/spec.md, plan.md, tasks.md) + INDEX.md
+├── specs/                   ← 23 feature specs (NNN-short-name/spec.md, plan.md, tasks.md) + INDEX.md
 ├── agents/                  ← 11 specialist Copilot chat modes for this case
 ├── plan/                    ← end-to-end transformation plan (charter → governance)
 │   ├── 00-program-charter.md
@@ -103,7 +103,7 @@ AMA_Project/
 │   ├── ARCHITECTURE.md          ← Mermaid architecture of the live rg-learneu-demo
 │   ├── azure.yaml               ← azd entrypoint (5 app services)
 │   ├── infra/                   ← Bicep (single-subscription deployment)
-│   ├── apps/                    ← learner-web / parent-portal / teacher-console / admin / director-portal (+ _shared)
+│   ├── apps/                    ← learner-web / parent-portal / teacher-console / admin / director-portal / director-fabric-app / director-rayfin (+ _shared)
 │   ├── ml/                      ← adaptive + assessment models (ONNX client-side)
 │   ├── data/                    ← synthetic personas, curricula, glossaries
 │   ├── pipelines/               ← localisation, content-safety, continuous-eval
@@ -175,20 +175,20 @@ Each agent is a Copilot chat mode tuned for one role. To use them, copy/symlink 
 
 ---
 
-## Feature specifications (22)
+## Feature specifications (23)
 
-The platform roadmap is expressed as **22 Spec Kit features** under [specs/](specs/). Each folder is the single source of truth for its feature (spec + plan + tasks + compliance checklists). See [specs/INDEX.md](specs/INDEX.md) for the full catalog, backlog-coverage map and cross-spec dependencies.
+The platform roadmap is expressed as **23 Spec Kit features** under [specs/](specs/). Each folder is the single source of truth for its feature (spec + plan + tasks + compliance checklists). See [specs/INDEX.md](specs/INDEX.md) for the full catalog, backlog-coverage map and cross-spec dependencies.
 
 | Role | Specs |
 |---|---|
 | **Learner (Student)** | 001 Tabbed Workspace · 003 Gamification · 007 Adaptive Learning · 013 Sheet & Item Sharing · 014 Age-Adaptive Theming · 015 AI Tutor Video Links · 016 AI Tutor Voice Mode · 021 Rubric Readiness Gate |
 | **Parent** | 006 Parent Portal + Digest |
 | **Teacher** | 008 Assessment + Shared Library |
-| **Director** | 004 Hierarchy Portal · 005 Reporting Benchmarks · 011 Multi-School Hierarchy · 018 Fabric (Rayfin) App · 022 Fabric App Dashboard (EULearn) |
+| **Director / Board** | 004 Hierarchy Portal · 005 Reporting Benchmarks · 011 Multi-School Hierarchy · 018 Fabric (Rayfin) App · 022 Fabric App Dashboard (EULearn) · 023 Board FinOps & Governance (EULearn) |
 | **Well-being (cross-role)** | 017 Learner Mood Check-In |
 | **Platform / cross-cutting** | 002 Postgres Wake-Up · 009 Interoperability (SCORM/xAPI/SIS) · 010 CMS Versioning · 012 A/B Testing · 019 Three-Column App Shell · 020 UX Editorial Toggle & Left Menu |
 
-All 22 specs are gated against the seven [constitution](.specify/memory/constitution.md) principles (EU-resident · GDPR Art. 8 · AI Act high-risk · teacher-in-the-loop · pedagogical sign-off · outcome-contract · spec-driven).
+All 23 specs are gated against the seven [constitution](.specify/memory/constitution.md) principles (EU-resident · GDPR Art. 8 · AI Act high-risk · teacher-in-the-loop · pedagogical sign-off · outcome-contract · spec-driven).
 
 ---
 
@@ -204,6 +204,9 @@ The [demo/](demo/) folder is **fully deployed** to `rg-learneu-demo` (`westeurop
 | Parent Portal | <https://app-parent-portal-learneu-demo.azurewebsites.net> |
 | Teacher Console | <https://app-teacher-console-learneu-demo.azurewebsites.net> |
 | Admin Console | <https://app-admin-learneu-demo.azurewebsites.net> |
+| Director Portal | <https://app-director-portal-learneu-demo.azurewebsites.net> |
+
+> The **Director Fabric app** (`director-fabric-app` / Rayfin, spec 018/022) runs natively inside the **EULearn** Fabric workspace (F16) rather than as a public App Service; the board-facing **Board FinOps & Governance** report (spec 023) is also an EULearn Fabric item.
 
 Seed users (password `DemoPass2026!`): `admin@learneu.demo` · `teacher@learneu.demo` · `parent@learneu.demo` · `student@learneu.demo`.
 
