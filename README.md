@@ -210,7 +210,7 @@ The [demo/](demo/) folder is **fully deployed** to `rg-learneu-demo` (`westeurop
 
 Seed users (password `DemoPass2026!`): `admin@learneu.demo` · `teacher@learneu.demo` · `parent@learneu.demo` · `student@learneu.demo`.
 
-**Runtime shape:** five App Services front an **APIM** (internal VNet) that fronts **Azure OpenAI** (`gpt-5.4-nano`), **Content Safety** and **AI Search**; **PostgreSQL Flexible Server** (private endpoint) is the app data store and mirrors to **Fabric F2** → **Power BI Embedded**; **Azure ML** (HBI) backs the adaptive/assessment models. Public network access is disabled on every backend — only APIM has ingress. Identity is split: workforce tenant for staff, **CIAM `learneu`** for learners/parents.
+**Runtime shape:** five App Services front an **APIM** (internal VNet) that fronts **Azure OpenAI** (`gpt-5.4-nano`), **Content Safety** and **AI Search**; **PostgreSQL Flexible Server** (private endpoint) is the app data store and mirrors to **Fabric** (OneLake), where **director** reporting runs as a native **Rayfin Fabric app** and the **board** consumes a dedicated **Power BI report**; **Azure ML** (HBI) backs the adaptive/assessment models. Public network access is disabled on every backend — only APIM has ingress. Identity is split: workforce tenant for staff, **CIAM `learneu`** for learners/parents.
 
 ```powershell
 # Redeploy from scratch
