@@ -10,6 +10,7 @@ Use: oral preparation only. The PowerPoint slides and speaker notes are not modi
 - **Format**: 20-25 minutes narrative pitch, then 10 minutes demo, then Q&A.
 - **Presenter need**: short oral anchors, not a long script to memorize.
 - **Thesis**: LearnEU is a European operating model to personalize learning at scale with trust, evidence, and governance.
+- **Update**: aligned to the current 35-slide deck, including Four decisions, human feedback, special thanks, Fraud IQ, and data flows as final appendix.
 
 ## ANCRE method
 
@@ -29,6 +30,16 @@ Anchor sentence:
 
 > Personalization, trust, and scale are not three separate topics. They are one operating model.
 
+## Suggested timing
+
+| Block | Slides | Time | Intent |
+| --- | --- | --- | --- |
+| Decision and contrast | 1-6 | 4 min | Set the CXO stakes. |
+| Contract and trust | 7-14 | 7 min | Prove value, control, and adoption. |
+| Delivery and demo | 15-17 | 4 min | Show gates, then start the demo. |
+| Decision wrap | 18-20 | 3 min | Return to board scorecard and four decisions. |
+| Appendix / scale / making-of | 21-35 | Q&A-driven | Use only if the audience pulls the topic. |
+
 ---
 
 ## Slide 1 - With great power comes great responsibility
@@ -47,13 +58,13 @@ Anchor sentence:
 
 1. **Narrative function**: vision.
 2. **Oral message**: LearnEU carries a simple promise: every learner, every language, one Europe.
-3. **Proof to cite**: The deck subtitle.
+3. **Proof to cite**: Deck subtitle and presenter contact now visible.
 4. **Anchor word**: Promise.
 5. **Transition**: But for a CXO audience, a promise must become a decision.
 6. **Pause**: Look at the room after the title.
 7. **Likely CXO question**: What decision do you expect?
-8. **Answer-Evidence-Stop**: A governed pilot, funded by stages, with named owners and KPIs. The final slides make that ask explicit. Stop.
-9. **Say / don't say / keep for Q&A**: State the ask early. Do not start with technology. Keep budget detail for Q&A.
+8. **Answer-Evidence-Stop**: A governed pilot, funded by stages, with named owners and KPIs. The final ask makes that explicit. Stop.
+9. **Say / don't say / keep for Q&A**: State the ask early. Do not start with technology. Treat the contact as professional context only.
 
 ## Slide 3 - 4.1 million kids. One promise.
 
@@ -65,7 +76,7 @@ Anchor sentence:
 6. **Pause**: Say 4.1 million slowly.
 7. **Likely CXO question**: Why does Europe change the problem?
 8. **Answer-Evidence-Stop**: Because we must combine languages, school systems, children's data, and trust requirements. The deck addresses them together. Stop.
-9. **Say / don't say / keep for Q&A**: State the scale. Keep the country sequence for slide 15.
+9. **Say / don't say / keep for Q&A**: State the scale. Keep country execution details for Q&A.
 
 ## Slide 4 - What we sign for
 
@@ -107,7 +118,7 @@ Anchor sentence:
 
 1. **Narrative function**: scorecard.
 2. **Oral message**: LearnEU turns the vision into a measurable operating contract.
-3. **Proof to cite**: Learning impact, teacher trust, compliance freshness, incident posture.
+3. **Proof to cite**: 6-week localization, CE-marked compliance, <=10% override rate, 0 serious AI incidents.
 4. **Anchor word**: Scorecard.
 5. **Transition**: For that contract to be credible, it must show up in human experiences.
 6. **Pause**: One breath between the four outcomes.
@@ -191,27 +202,15 @@ Anchor sentence:
 
 1. **Narrative function**: adoption.
 2. **Oral message**: Teachers are not the test audience. They are co-designers of the adoption model.
-3. **Proof to cite**: Teachers are the product team.
+3. **Proof to cite**: Teachers are the product team, not the test cohort.
 4. **Anchor word**: Adoption.
-5. **Transition**: That principle makes country-by-country rollout credible.
+5. **Transition**: That principle makes governed delivery credible.
 6. **Pause**: Pause after the quote.
 7. **Likely CXO question**: How do we avoid resistance?
 8. **Answer-Evidence-Stop**: Keep teacher authority, explain recommendations, and co-design the workflows. Stop.
 9. **Say / don't say / keep for Q&A**: Say co-design. Do not imply teacher replacement.
 
-## Slide 15 - Five markets. One pipeline. Six weeks each.
-
-1. **Narrative function**: controlled scale.
-2. **Oral message**: Scale is sequential, measured, and conditioned by local traction.
-3. **Proof to cite**: NL, DE, BE/PL/RO, six-week localization.
-4. **Anchor word**: Sequence.
-5. **Transition**: To keep that sequence, delivery governance must be explicit.
-6. **Pause**: Pause after sequential.
-7. **Likely CXO question**: Why these markets?
-8. **Answer-Evidence-Stop**: Start where foundations and DPIA readiness are strongest, then scale based on evidence and traction. Stop.
-9. **Say / don't say / keep for Q&A**: Say gated rollout. Do not promise every country at once.
-
-## Slide 16 - Two councils. Nine agents. One chain.
+## Slide 15 - Two councils. Nine agents. One chain.
 
 1. **Narrative function**: governance.
 2. **Oral message**: Quality is governed through roles, gates, and independent verification.
@@ -223,7 +222,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Steering owns phase gates; Responsible AI owns model gates; QA verifies before synthesis. Stop.
 9. **Say / don't say / keep for Q&A**: Say accountability. Keep agent detail for appendix.
 
-## Slide 17 - Five phases. Twelve months.
+## Slide 16 - Five phases. Twelve months.
 
 1. **Narrative function**: roadmap.
 2. **Oral message**: The roadmap funds successive proofs, not a big-bang bet.
@@ -235,7 +234,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Approve P0/P1 and the NL pilot, with DPIA, architecture, KPI, and release-owner gates. Stop.
 9. **Say / don't say / keep for Q&A**: Say staged funding. Do not ask for scale funding without gates.
 
-## Slide 18 - The demo starts with a locked door
+## Slide 17 - The demo starts with a locked door
 
 1. **Narrative function**: demo transition.
 2. **Oral message**: The demo is not a feature tour. It is a proof path for control.
@@ -247,7 +246,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Look for controls: access, consent, teacher oversight, audit, and operational health. Stop.
 9. **Say / don't say / keep for Q&A**: Say proof path. Do not show every feature.
 
-## Slide 19 - What the board sees. Every month.
+## Slide 18 - What the board sees. Every month.
 
 1. **Narrative function**: board governance.
 2. **Oral message**: If the board cannot measure it every month, we should not scale it.
@@ -259,67 +258,31 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Cost per active learner per month, model routing, and recurring FinOps review. Stop.
 9. **Say / don't say / keep for Q&A**: Say scorecard. Keep unit economics for Q&A.
 
-## Slide 20 - Three decisions. Today.
+## Slide 19 - Four decisions. Today.
 
 1. **Narrative function**: decision ask.
 2. **Oral message**: The decision is not "let us keep discussing." It is mandate, funding, owners, and KPIs.
-3. **Proof to cite**: Pilot path, funding, owners, five KPIs.
+3. **Proof to cite**: Approve pilot path, fund landing zone/runtime/evidence, name owners/leads, adopt five KPIs.
 4. **Anchor word**: Decision.
 5. **Transition**: The closing thesis is simple: this is not slideware.
 6. **Pause**: Pause before the decisions.
 7. **Likely CXO question**: What is the minimum fundable scope?
 8. **Answer-Evidence-Stop**: P0/P1: foundations, runtime, compliance dossier, and hardened demo. Scale waits for gates. Stop.
-9. **Say / don't say / keep for Q&A**: State the ask clearly. Do not apologize for asking.
+9. **Say / don't say / keep for Q&A**: State the ask clearly. Do not say three decisions: the slide now shows four.
 
-## Slide 21 - This is not slideware
+## Slide 20 - This is not slideware
 
 1. **Narrative function**: conclusion.
 2. **Oral message**: LearnEU is a governed path to European EdTech AI, not a presentation promise.
 3. **Proof to cite**: Closing thesis.
 4. **Anchor word**: Path.
-5. **Transition**: If useful, the appendix shows scale, data flows, and build method.
+5. **Transition**: If useful, the appendix shows product scope, scale, data flows, and build method.
 6. **Pause**: Final 2-second pause.
 7. **Likely CXO question**: Why proceed now?
 8. **Answer-Evidence-Stop**: Because the next step is a gated pilot with evidence, not uncontrolled deployment. Stop.
 9. **Say / don't say / keep for Q&A**: End on the thesis. Do not restart a long explanation.
 
-## Slide 22 - Scale plan to 4.1M learners
-
-1. **Narrative function**: scale appendix.
-2. **Oral message**: Scale is treated as capacity, resilience, cost discipline, and EU residency.
-3. **Proof to cite**: EU regions, peaks, FinOps, privacy on-device.
-4. **Anchor word**: Capacity.
-5. **Transition**: If the question is how we built it, the next slide shows the production model.
-6. **Pause**: Short, only if called.
-7. **Likely CXO question**: How does it remain affordable?
-8. **Answer-Evidence-Stop**: Cost per learner, bi-weekly FinOps, caching, autoscale, and model routing. Stop.
-9. **Say / don't say / keep for Q&A**: Use if asked. Do not include in main flow unless CIO/CFO asks.
-
-## Slide 23 - How the platform was created
-
-1. **Narrative function**: method appendix.
-2. **Oral message**: Production was accelerated by agents, but controlled by verification and traceability.
-3. **Proof to cite**: 9 agents, 1 chain, QA gate, traceable decisions.
-4. **Anchor word**: Method.
-5. **Transition**: For data-risk questions, the next slide separates the flows.
-6. **Pause**: Do not dwell.
-7. **Likely CXO question**: Was everything automated?
-8. **Answer-Evidence-Stop**: No. Agents accelerate; gates, QA, and human decisions control. Stop.
-9. **Say / don't say / keep for Q&A**: Say controlled acceleration. Do not say agents replace experts.
-
-## Slide 24 - Three data flows. Three privacy regimes.
-
-1. **Narrative function**: trust appendix.
-2. **Oral message**: Each AI flow has its own risk level and control regime.
-3. **Proof to cite**: On-device personalization, teacher review, reviewer publish, audit.
-4. **Anchor word**: Flows.
-5. **Transition**: If the question becomes product scope, the next slide explains what is intentionally not in the demo.
-6. **Pause**: Pause after the three flows.
-7. **Likely CXO question**: Which flow is highest risk?
-8. **Answer-Evidence-Stop**: Assessment and content access are treated as high-risk by default, with teacher review and audit. Stop.
-9. **Say / don't say / keep for Q&A**: Say regime by flow. Do not merge all AI cases.
-
-## Slide 25 - Feature inventory, intentionally not the demo
+## Slide 21 - Feature inventory, intentionally not the demo
 
 1. **Narrative function**: focus appendix.
 2. **Oral message**: The deck chooses executive proof over a full feature inventory.
@@ -331,7 +294,19 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: A CXO demo must prove the thesis, not exhaust the catalog. Extras belong in Q&A. Stop.
 9. **Say / don't say / keep for Q&A**: Say focus. Do not open a product tour.
 
-## Slide 26 - Scaling the AMA demo
+## Slide 22 - Scale plan to 4.1M learners
+
+1. **Narrative function**: scale appendix.
+2. **Oral message**: Scale is treated as capacity, resilience, cost discipline, and EU residency.
+3. **Proof to cite**: EU regions, peaks, FinOps, privacy on-device.
+4. **Anchor word**: Capacity.
+5. **Transition**: If the question is how we built it, the later appendix shows the production model.
+6. **Pause**: Short, only if called.
+7. **Likely CXO question**: How does it remain affordable?
+8. **Answer-Evidence-Stop**: Cost per learner, bi-weekly FinOps, caching, autoscale, and model routing. Stop.
+9. **Say / don't say / keep for Q&A**: Use if asked. Do not include in main flow unless CIO/CFO asks.
+
+## Slide 23 - Scaling the AMA demo
 
 1. **Narrative function**: scale motion.
 2. **Oral message**: We should not fund a clip. We should fund a governed, reusable demo capability.
@@ -343,7 +318,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Story, golden tenant, data pack, runbook, localization packs, enablement, and impact measurement. Stop.
 9. **Say / don't say / keep for Q&A**: Say reusable capability. Do not say better video.
 
-## Slide 27 - At-scale demo architecture
+## Slide 24 - At-scale demo architecture
 
 1. **Narrative function**: scale architecture.
 2. **Oral message**: At scale, the demo becomes a commercial operating system: product truth, trust, enablement, and evidence.
@@ -355,7 +330,19 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Central locks product truth and trust narrative; regions localize examples, language, and context. Stop.
 9. **Say / don't say / keep for Q&A**: Say centralize / modularize / measure. Do not lose the board in organization detail.
 
-## Slide 28 - How I built LearnEU
+## Slide 25 - How the platform was created
+
+1. **Narrative function**: method appendix.
+2. **Oral message**: Production was accelerated by agents, but controlled by verification and traceability.
+3. **Proof to cite**: 12 compliance agents, 1 chain, QA gate, traceable decisions.
+4. **Anchor word**: Method.
+5. **Transition**: The next section explains the build journey behind that operating model.
+6. **Pause**: Do not dwell.
+7. **Likely CXO question**: Was everything automated?
+8. **Answer-Evidence-Stop**: No. Agents accelerate; gates, QA, and human decisions control. Stop.
+9. **Say / don't say / keep for Q&A**: Say controlled acceleration. Do not say agents replace experts.
+
+## Slide 26 - How I built LearnEU
 
 1. **Narrative function**: making-of transition.
 2. **Oral message**: The way LearnEU was built is also evidence of fast learning and progressive control.
@@ -367,7 +354,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Because the ability to iterate fast and govern better is central to scale. Stop.
 9. **Say / don't say / keep for Q&A**: Optional. Do not force it if the decision is already clear.
 
-## Slide 29 - Phase 1
+## Slide 27 - Phase 1
 
 1. **Narrative function**: MVP learning.
 2. **Oral message**: Phase one proved the direction, and also the limits of a fast MVP.
@@ -379,7 +366,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Because it shows learning: prove fast, then identify what must be industrialized. Stop.
 9. **Say / don't say / keep for Q&A**: Say learning. Do not over-justify defects.
 
-## Slide 30 - Phase 2
+## Slide 28 - Phase 2
 
 1. **Narrative function**: progression.
 2. **Oral message**: Agents helped move from MVP to a richer, more usable, more market-aware proposal.
@@ -391,7 +378,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Iteration speed, specialization, market confrontation, and measurable improvement. Stop.
 9. **Say / don't say / keep for Q&A**: Say controlled acceleration. Do not say magic.
 
-## Slide 31 - Control Squad
+## Slide 29 - Control Squad
 
 1. **Narrative function**: method governance.
 2. **Oral message**: Control was not a final layer. It was distributed by specialty from the beginning.
@@ -403,7 +390,7 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: Through orchestration, named deliverables, independent QA, and cross-agent consistency before synthesis. Stop.
 9. **Say / don't say / keep for Q&A**: Use three roles max. Keep the table for Q&A.
 
-## Slide 32 - Dev Squad
+## Slide 30 - Dev Squad
 
 1. **Narrative function**: repeatable delivery.
 2. **Oral message**: Delivery was structured as a chain: specify, clarify, plan, task, analyze, implement.
@@ -415,29 +402,65 @@ Anchor sentence:
 8. **Answer-Evidence-Stop**: It makes iteration repeatable, auditable, and transferable, not dependent on one person. Stop.
 9. **Say / don't say / keep for Q&A**: Say repeatable. Keep tooling for technical discussion.
 
-## Slide 33 - V3 Autonomous Agent
+## Slide 31 - V3 Autonomous Agent
 
 1. **Narrative function**: maturity.
 2. **Oral message**: V3 shows the move to continuous improvement, not just a better version.
-3. **Proof to cite**: Daily rubric, remediation plans, score 60/60.
+3. **Proof to cite**: Daily rubric, remediation plans, demo video, slide assistant, score 60/60.
 4. **Anchor word**: Loop.
-5. **Transition**: The last point is that knowledge tooling supported that speed.
+5. **Transition**: But the next slide is the key caveat: human feedback remains the compass.
 6. **Pause**: Pause before 60/60.
 7. **Likely CXO question**: Is it truly autonomous?
 8. **Answer-Evidence-Stop**: Autonomous to propose and accelerate; human to frame, validate, and own. Stop.
 9. **Say / don't say / keep for Q&A**: Say loop. Do not say total autonomy.
 
+## Slide 32 - Human feedback is their compass
+
+1. **Narrative function**: maturity / humility proof.
+2. **Oral message**: Human feedback is not a feature of agentic systems. It is their compass.
+3. **Proof to cite**: Mentor, account team, colleagues and family as feedback loops against drift.
+4. **Anchor word**: Compass.
+5. **Transition**: That is why the thank-you slide matters: it shows the human system around the agentic system.
+6. **Pause**: Pause after compass.
+7. **Likely CXO question**: Why talk about human feedback in an AI pitch?
+8. **Answer-Evidence-Stop**: Because powerful agents drift without business, trust, and real-world guidance. Human feedback keeps relevance. Stop.
+9. **Say / don't say / keep for Q&A**: Say humility and control. Do not make it a long emotional slide.
+
+## Slide 33 - Special thanks
+
+1. **Narrative function**: acknowledgment / human proof.
+2. **Oral message**: This was not built by a tool alone. It was shaped by a human network of expertise, challenge, and support.
+3. **Proof to cite**: Mentor, colleagues, account team, family, named contributors.
+4. **Anchor word**: Network.
+5. **Transition**: The final build slides show the knowledge tools and reusable assets behind the work.
+6. **Pause**: Short pause, smile, then move on.
+7. **Likely CXO question**: Why keep a thank-you slide for CXOs?
+8. **Answer-Evidence-Stop**: Because transformation is social as well as technical. Adoption needs experts, sponsors, challengers, and users. Stop.
+9. **Say / don't say / keep for Q&A**: Keep it short and sincere. Do not read every name if time is tight.
+
 ## Slide 34 - Markdown and customer knowledge tools
 
-1. **Narrative function**: method conclusion.
-2. **Oral message**: The speed also came from usable knowledge, not just content generation.
-3. **Proof to cite**: WYSIWYG Markdown editor, wiki viewer, GitHub links.
+1. **Narrative function**: method conclusion / asset.
+2. **Oral message**: The speed also came from usable knowledge and reusable assets, not just content generation.
+3. **Proof to cite**: WYSIWYG Markdown editor, wiki viewer, Markdit, Fraud IQ asset.
 4. **Anchor word**: Knowledge.
-5. **Transition**: Back to the thesis: LearnEU is an operating model, not just an artifact.
+5. **Transition**: The final appendix returns to trust by separating the three data flows.
 6. **Pause**: Final pause if used.
-7. **Likely CXO question**: Why mention internal tools?
-8. **Answer-Evidence-Stop**: Because at scale, customer knowledge and traceability condition pitch quality and product quality. Stop.
-9. **Say / don't say / keep for Q&A**: Do not end on the tool; end on LearnEU.
+7. **Likely CXO question**: Why mention Fraud IQ here?
+8. **Answer-Evidence-Stop**: It shows the pattern is reusable: turn signals into governed, actionable assets beyond one demo. Stop.
+9. **Say / don't say / keep for Q&A**: Say usable knowledge. Do not end on tooling; return to LearnEU.
+
+## Slide 35 - Three data flows. Three privacy regimes.
+
+1. **Narrative function**: trust appendix.
+2. **Oral message**: Each AI flow has its own risk level and control regime.
+3. **Proof to cite**: On-device personalization, teacher review, reviewer publish, audit.
+4. **Anchor word**: Flows.
+5. **Transition**: This closes the loop: personalization only scales when each flow is governed explicitly.
+6. **Pause**: Pause after the three flows.
+7. **Likely CXO question**: Which flow is highest risk?
+8. **Answer-Evidence-Stop**: Assessment and content access are treated as high-risk by default, with teacher review and audit. Stop.
+9. **Say / don't say / keep for Q&A**: Say regime by flow. Do not merge all AI cases.
 
 ---
 
@@ -454,8 +477,6 @@ If the demo slows down:
 ## Q&A - Answer-Evidence-Stop rule
 
 Format: direct answer, one evidence, stop.
-
-Example:
 
 > Yes, the model can scale, but only through gates. The evidence is the P0-P4 roadmap, board scorecard, and demo factory. Stop.
 

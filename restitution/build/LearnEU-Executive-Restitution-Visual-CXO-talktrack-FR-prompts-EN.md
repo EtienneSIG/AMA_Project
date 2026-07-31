@@ -10,6 +10,7 @@ Usage : préparation orale uniquement. Les slides et les notes PowerPoint ne son
 - **Format** : 20-25 minutes de pitch narratif, puis 10 minutes de démo, puis Q&A.
 - **Besoin présentateur** : repères courts, mémorisables, pas de script long.
 - **Thèse** : LearnEU est un modèle opératoire européen pour personnaliser l'apprentissage à grande échelle avec confiance, preuve et gouvernance.
+- **Mise à jour** : aligné sur le deck actuel de 35 slides, incluant Four decisions, human feedback, special thanks, Fraud IQ et les data flows en appendix final.
 
 ## Méthode ANCRE
 
@@ -29,6 +30,16 @@ Phrase d'ancrage à répéter :
 
 > Personalization, trust, and scale are not three separate topics. They are one operating model.
 
+## Timing conseillé
+
+| Bloc | Slides | Temps | Intention |
+| --- | --- | --- | --- |
+| Décision et contraste | 1-6 | 4 min | Installer l'enjeu CXO. |
+| Contrat et confiance | 7-14 | 7 min | Prouver valeur, contrôle et adoption. |
+| Delivery et démo | 15-17 | 4 min | Montrer gates puis lancer la démo. |
+| Wrap décisionnel | 18-20 | 3 min | Revenir au board scorecard et aux quatre décisions. |
+| Appendix / scale / making-of | 21-35 | selon Q&A | Utiliser seulement si l'audience tire le sujet. |
+
 ---
 
 ## Slide 1 - With great power comes great responsibility
@@ -47,13 +58,13 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : vision.
 2. **Phrase à dire** : "LearnEU carries a simple promise: every learner, every language, one Europe."
-3. **Preuve** : sous-titre du deck.
+3. **Preuve** : sous-titre du deck et email du présentateur ajouté.
 4. **Mot-clé** : Promise.
 5. **Transition** : "But for a CXO audience, a promise must become a decision."
 6. **Respiration** : regarder la salle après le titre.
 7. **Question CXO probable** : Quelle décision ?
-8. **Réponse AES** : "A governed pilot, funded by stages, with named owners and KPIs. The final slides make that ask explicit. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire l'ask tôt. Ne pas démarrer par la techno. Garder le détail budget pour Q&A.
+8. **Réponse AES** : "A governed pilot, funded by stages, with named owners and KPIs. The final ask makes that explicit. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire l'ask tôt. Ne pas démarrer par la techno. Utiliser le contact seulement comme repère professionnel.
 
 ## Slide 3 - 4.1 million kids. One promise.
 
@@ -65,7 +76,7 @@ Phrase d'ancrage à répéter :
 6. **Respiration** : dire 4.1 million lentement.
 7. **Question CXO probable** : Pourquoi l'Europe change tout ?
 8. **Réponse AES** : "Because we must combine languages, school systems, children's data, and trust requirements. The deck addresses them together. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire l'ampleur. Garder les pays pour slide 15.
+9. **Dire / ne pas dire / Q&A** : Dire l'ampleur. Garder les pays pour discussion d'exécution.
 
 ## Slide 4 - What we sign for
 
@@ -95,7 +106,7 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : confiance.
 2. **Phrase à dire** : "For children's education, compliance is not external cost. It is adoption permission."
-3. **Preuve** : quote programme thesis.
+3. **Preuve** : programme thesis quote.
 4. **Mot-clé** : Trust.
 5. **Transition** : "So our outcomes must be measurable and governable."
 6. **Respiration** : pause avant et après la citation.
@@ -107,7 +118,7 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : scorecard.
 2. **Phrase à dire** : "LearnEU turns the vision into a measurable operating contract."
-3. **Preuve** : learning impact, teacher trust, compliance freshness, incident posture.
+3. **Preuve** : 6 weeks localisation, CE-marked compliance, <=10% override rate, 0 serious AI incidents.
 4. **Mot-clé** : Scorecard.
 5. **Transition** : "For that contract to be credible, it must show up in human experiences."
 6. **Respiration** : une respiration entre les quatre outcomes.
@@ -143,7 +154,7 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : confiance / gate.
 2. **Phrase à dire** : "Every release must pass evidence, not intention."
-3. **Preuve** : compliance is a release gate.
+3. **Preuve** : Compliance is a release gate.
 4. **Mot-clé** : Gate.
 5. **Transition** : "The most important gate is human responsibility over learner-impacting decisions."
 6. **Respiration** : pause après release gate.
@@ -155,7 +166,7 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : principe de confiance.
 2. **Phrase à dire** : "The red line is clear: no autonomous decision directly touches a learner."
-3. **Preuve** : teacher review, override, RAI Council.
+3. **Preuve** : Teacher review, override, Responsible AI Council.
 4. **Mot-clé** : Human.
 5. **Transition** : "This human principle needs a minimized and auditable data architecture."
 6. **Respiration** : pause après ever.
@@ -179,7 +190,7 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : architecture de contrôle.
 2. **Phrase à dire** : "Trust is both contractual and technical: private, auditable, and stoppable."
-3. **Preuve** : private endpoints, APIM, WORM audit, kill switch.
+3. **Preuve** : Private endpoints, APIM, WORM audit, kill switch.
 4. **Mot-clé** : Control.
 5. **Transition** : "A controlled architecture is necessary, but adoption depends on teachers."
 6. **Respiration** : pause après stoppable.
@@ -191,27 +202,15 @@ Phrase d'ancrage à répéter :
 
 1. **Fonction narrative** : adoption.
 2. **Phrase à dire** : "Teachers are not the test audience. They are co-designers of the adoption model."
-3. **Preuve** : teachers are the product team.
+3. **Preuve** : Teachers are the product team, not the test cohort.
 4. **Mot-clé** : Adoption.
-5. **Transition** : "That principle makes country-by-country rollout credible."
+5. **Transition** : "That principle makes governed delivery credible."
 6. **Respiration** : pause après citation.
 7. **Question CXO probable** : Comment éviter la résistance ?
 8. **Réponse AES** : "Keep teacher authority, explain recommendations, and co-design the workflows. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire co-design. Ne pas dire remplacement enseignant.
 
-## Slide 15 - Five markets. One pipeline. Six weeks each.
-
-1. **Fonction narrative** : scale contrôlé.
-2. **Phrase à dire** : "Scale is sequential, measured, and conditioned by local traction."
-3. **Preuve** : NL, DE, BE/PL/RO, six-week localization.
-4. **Mot-clé** : Sequence.
-5. **Transition** : "To keep that sequence, delivery governance must be explicit."
-6. **Respiration** : pause après sequential.
-7. **Question CXO probable** : Pourquoi ces marchés ?
-8. **Réponse AES** : "Start where foundations and DPIA readiness are strongest, then scale based on evidence and traction. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire gated rollout. Ne pas promettre tous les pays.
-
-## Slide 16 - Two councils. Nine agents. One chain.
+## Slide 15 - Two councils. Nine agents. One chain.
 
 1. **Fonction narrative** : gouvernance.
 2. **Phrase à dire** : "Quality is governed through roles, gates, and independent verification."
@@ -223,7 +222,7 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Steering owns phase gates; Responsible AI owns model gates; QA verifies before synthesis. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire accountability. Garder détail agents pour appendix.
 
-## Slide 17 - Five phases. Twelve months.
+## Slide 16 - Five phases. Twelve months.
 
 1. **Fonction narrative** : roadmap.
 2. **Phrase à dire** : "The roadmap funds successive proofs, not a big-bang bet."
@@ -235,11 +234,11 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Approve P0/P1 and the NL pilot, with DPIA, architecture, KPI, and release-owner gates. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire staged funding. Ne pas demander scale funding sans gates.
 
-## Slide 18 - The demo starts with a locked door
+## Slide 17 - The demo starts with a locked door
 
 1. **Fonction narrative** : transition demo.
 2. **Phrase à dire** : "The demo is not a feature tour. It is a proof path for control."
-3. **Preuve** : locked door, roles, trust before personalization.
+3. **Preuve** : Locked door, roles, trust before personalization.
 4. **Mot-clé** : Proof.
 5. **Transition** : "After the demo, we will return to what the board should see every month."
 6. **Respiration** : pause avant lancement.
@@ -247,7 +246,7 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Look for controls: access, consent, teacher oversight, audit, and operational health. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire proof path. Ne pas montrer toutes les features.
 
-## Slide 19 - What the board sees. Every month.
+## Slide 18 - What the board sees. Every month.
 
 1. **Fonction narrative** : gouvernance board.
 2. **Phrase à dire** : "If the board cannot measure it every month, we should not scale it."
@@ -259,71 +258,35 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Cost per active learner per month, model routing, and recurring FinOps review. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire scorecard. Garder unit economics pour Q&A.
 
-## Slide 20 - Three decisions. Today.
+## Slide 19 - Four decisions. Today.
 
 1. **Fonction narrative** : ask décisionnel.
-2. **Phrase à dire** : "The decision is not 'let us keep discussing.' It is mandate, funding, owners, and KPIs."
-3. **Preuve** : pilot path, funding, owners, five KPIs.
+2. **Phrase à dire** : "The decision is not "let us keep discussing." It is mandate, funding, owners, and KPIs."
+3. **Preuve** : Approve pilot path, fund landing zone/runtime/evidence, name owners/leads, adopt five KPIs.
 4. **Mot-clé** : Decision.
 5. **Transition** : "The closing thesis is simple: this is not slideware."
 6. **Respiration** : pause avant les décisions.
 7. **Question CXO probable** : Minimum finançable ?
 8. **Réponse AES** : "P0/P1: foundations, runtime, compliance dossier, and hardened demo. Scale waits for gates. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire ask clairement. Ne pas s'excuser.
+9. **Dire / ne pas dire / Q&A** : Dire ask clairement. Ne pas dire three decisions : la slide en montre quatre.
 
-## Slide 21 - This is not slideware
+## Slide 20 - This is not slideware
 
 1. **Fonction narrative** : conclusion.
 2. **Phrase à dire** : "LearnEU is a governed path to European EdTech AI, not a presentation promise."
 3. **Preuve** : closing thesis.
 4. **Mot-clé** : Path.
-5. **Transition** : "If useful, the appendix shows scale, data flows, and build method."
+5. **Transition** : "If useful, the appendix shows product scope, scale, data flows, and build method."
 6. **Respiration** : pause finale 2 secondes.
 7. **Question CXO probable** : Pourquoi maintenant ?
 8. **Réponse AES** : "Because the next step is a gated pilot with evidence, not uncontrolled deployment. Stop."
 9. **Dire / ne pas dire / Q&A** : Finir sur la thèse. Ne pas repartir dans une explication longue.
 
-## Slide 22 - Scale plan to 4.1M learners
-
-1. **Fonction narrative** : appendix scale.
-2. **Phrase à dire** : "Scale is treated as capacity, resilience, cost discipline, and EU residency."
-3. **Preuve** : EU regions, peaks, FinOps, privacy on-device.
-4. **Mot-clé** : Capacity.
-5. **Transition** : "If the question is how we built it, the next slide shows the production model."
-6. **Respiration** : courte, seulement si appelée.
-7. **Question CXO probable** : Comment rester abordable ?
-8. **Réponse AES** : "Cost per learner, bi-weekly FinOps, caching, autoscale, and model routing. Stop."
-9. **Dire / ne pas dire / Q&A** : Répondre si demandé. Ne pas mettre dans main flow sauf CIO/CFO.
-
-## Slide 23 - How the platform was created
-
-1. **Fonction narrative** : appendix méthode.
-2. **Phrase à dire** : "Production was accelerated by agents, but controlled by verification and traceability."
-3. **Preuve** : 9 agents, 1 chain, QA gate, traceable decisions.
-4. **Mot-clé** : Method.
-5. **Transition** : "For data-risk questions, the next slide separates the flows."
-6. **Respiration** : ne pas s'attarder.
-7. **Question CXO probable** : Tout automatisé ?
-8. **Réponse AES** : "No. Agents accelerate; gates, QA, and human decisions control. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire accélération contrôlée. Ne pas dire agents remplacent experts.
-
-## Slide 24 - Three data flows. Three privacy regimes.
-
-1. **Fonction narrative** : appendix confiance.
-2. **Phrase à dire** : "Each AI flow has its own risk level and control regime."
-3. **Preuve** : on-device personalization, teacher review, reviewer publish, audit.
-4. **Mot-clé** : Flows.
-5. **Transition** : "If the question becomes product scope, the next slide explains what is intentionally not in the demo."
-6. **Respiration** : pause après trois flux.
-7. **Question CXO probable** : Flux le plus risqué ?
-8. **Réponse AES** : "Assessment and content access are treated as high-risk by default, with teacher review and audit. Stop."
-9. **Dire / ne pas dire / Q&A** : Dire régime par flux. Ne pas mélanger tous les cas IA.
-
-## Slide 25 - Feature inventory, intentionally not the demo
+## Slide 21 - Feature inventory, intentionally not the demo
 
 1. **Fonction narrative** : appendix focus.
 2. **Phrase à dire** : "The deck chooses executive proof over a full feature inventory."
-3. **Preuve** : learner, teacher, parent, ops inventory.
+3. **Preuve** : Learner, teacher, parent, ops inventory.
 4. **Mot-clé** : Focus.
 5. **Transition** : "To scale that proof, we need to move from a demo moment to a reusable capability."
 6. **Respiration** : brève.
@@ -331,11 +294,23 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "A CXO demo must prove the thesis, not exhaust the catalog. Extras belong in Q&A. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire focus. Ne pas ouvrir une visite produit.
 
-## Slide 26 - Scaling the AMA demo
+## Slide 22 - Scale plan to 4.1M learners
+
+1. **Fonction narrative** : appendix scale.
+2. **Phrase à dire** : "Scale is treated as capacity, resilience, cost discipline, and EU residency."
+3. **Preuve** : EU regions, peaks, FinOps, privacy on-device.
+4. **Mot-clé** : Capacity.
+5. **Transition** : "If the question is how we built it, the later appendix shows the production model."
+6. **Respiration** : courte, seulement si appelée.
+7. **Question CXO probable** : Comment rester abordable ?
+8. **Réponse AES** : "Cost per learner, bi-weekly FinOps, caching, autoscale, and model routing. Stop."
+9. **Dire / ne pas dire / Q&A** : Répondre si demandé. Ne pas mettre dans main flow sauf CIO/CFO.
+
+## Slide 23 - Scaling the AMA demo
 
 1. **Fonction narrative** : scale motion.
 2. **Phrase à dire** : "We should not fund a clip. We should fund a governed, reusable demo capability."
-3. **Preuve** : narrative spine, demo factory, scale motions, gates.
+3. **Preuve** : Narrative spine, demo factory, scale motions, gates.
 4. **Mot-clé** : Industrialize.
 5. **Transition** : "The next slide shows the operating architecture for that capability."
 6. **Respiration** : pause après capability.
@@ -343,11 +318,11 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Story, golden tenant, data pack, runbook, localization packs, enablement, and impact measurement. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire reusable capability. Ne pas dire meilleure vidéo.
 
-## Slide 27 - At-scale demo architecture
+## Slide 24 - At-scale demo architecture
 
 1. **Fonction narrative** : architecture scale.
 2. **Phrase à dire** : "At scale, the demo becomes a commercial operating system: product truth, trust, enablement, and evidence."
-3. **Preuve** : central demo factory, reusable motions, regional pods, evidence loop.
+3. **Preuve** : Central demo factory, reusable motions, regional pods, evidence loop.
 4. **Mot-clé** : Factory.
 5. **Transition** : "If the audience wants the build story, we can move to the making-of section."
 6. **Respiration** : pause après operating system.
@@ -355,11 +330,23 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Central locks product truth and trust narrative; regions localize examples, language, and context. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire centralize / modularize / measure. Ne pas perdre le board dans l'organisation.
 
-## Slide 28 - How I built LearnEU
+## Slide 25 - How the platform was created
+
+1. **Fonction narrative** : appendix méthode.
+2. **Phrase à dire** : "Production was accelerated by agents, but controlled by verification and traceability."
+3. **Preuve** : 12 compliance agents, 1 chain, QA gate, traceable decisions.
+4. **Mot-clé** : Method.
+5. **Transition** : "The next section explains the build journey behind that operating model."
+6. **Respiration** : ne pas s'attarder.
+7. **Question CXO probable** : Tout automatisé ?
+8. **Réponse AES** : "No. Agents accelerate; gates, QA, and human decisions control. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire accélération contrôlée. Ne pas dire agents remplacent experts.
+
+## Slide 26 - How I built LearnEU
 
 1. **Fonction narrative** : transition making-of.
 2. **Phrase à dire** : "The way LearnEU was built is also evidence of fast learning and progressive control."
-3. **Preuve** : fail fast, learn more.
+3. **Preuve** : Fail fast, learn more.
 4. **Mot-clé** : Learn.
 5. **Transition** : "Phase one was about moving fast to discover what was missing."
 6. **Respiration** : reset avant section.
@@ -367,23 +354,23 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Because the ability to iterate fast and govern better is central to scale. Stop."
 9. **Dire / ne pas dire / Q&A** : Optionnel. Ne pas l'imposer si la décision est déjà claire.
 
-## Slide 29 - Phase 1
+## Slide 27 - Phase 1
 
 1. **Fonction narrative** : apprentissage MVP.
 2. **Phrase à dire** : "Phase one proved the direction, and also the limits of a fast MVP."
-3. **Preuve** : score 50/60, first version, minimum UX.
+3. **Preuve** : Score 50/60, first version, minimum UX.
 4. **Mot-clé** : MVP.
 5. **Transition** : "Phase two turned the MVP into a richer, more market-aware experience."
-6. **Respiration** : pause après score.
+6. **Respiration** : pause après le score.
 7. **Question CXO probable** : Pourquoi montrer l'imparfait ?
 8. **Réponse AES** : "Because it shows learning: prove fast, then identify what must be industrialized. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire apprentissage. Ne pas justifier les défauts.
 
-## Slide 30 - Phase 2
+## Slide 28 - Phase 2
 
 1. **Fonction narrative** : progression.
 2. **Phrase à dire** : "Agents helped move from MVP to a richer, more usable, more market-aware proposal."
-3. **Preuve** : rich design, advanced UX, score 57/60.
+3. **Preuve** : Rich design, advanced UX, score 57/60.
 4. **Mot-clé** : Iteration.
 5. **Transition** : "To be credible, acceleration had to be organized into roles and controls."
 6. **Respiration** : respirer avant le score.
@@ -391,7 +378,7 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Iteration speed, specialization, market confrontation, and measurable improvement. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire accélération contrôlée. Ne pas dire magie.
 
-## Slide 31 - Control Squad
+## Slide 29 - Control Squad
 
 1. **Fonction narrative** : gouvernance méthode.
 2. **Phrase à dire** : "Control was not a final layer. It was distributed by specialty from the beginning."
@@ -403,11 +390,11 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "Through orchestration, named deliverables, independent QA, and cross-agent consistency before synthesis. Stop."
 9. **Dire / ne pas dire / Q&A** : Trois rôles max. Garder la table pour Q&A.
 
-## Slide 32 - Dev Squad
+## Slide 30 - Dev Squad
 
 1. **Fonction narrative** : delivery répétable.
 2. **Phrase à dire** : "Delivery was structured as a chain: specify, clarify, plan, task, analyze, implement."
-3. **Preuve** : speckit workflow.
+3. **Preuve** : Speckit workflow.
 4. **Mot-clé** : Chain.
 5. **Transition** : "That chain enabled a more autonomous improvement loop."
 6. **Respiration** : ne pas lire les commandes.
@@ -415,33 +402,69 @@ Phrase d'ancrage à répéter :
 8. **Réponse AES** : "It makes iteration repeatable, auditable, and transferable, not dependent on one person. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire répétable. Garder tooling pour technique.
 
-## Slide 33 - V3 Autonomous Agent
+## Slide 31 - V3 Autonomous Agent
 
 1. **Fonction narrative** : maturité.
 2. **Phrase à dire** : "V3 shows the move to continuous improvement, not just a better version."
-3. **Preuve** : daily rubric, remediation plans, score 60/60.
+3. **Preuve** : Daily rubric, remediation plans, demo video, assistant for slide, score 60/60.
 4. **Mot-clé** : Loop.
-5. **Transition** : "The last point is that knowledge tooling supported that speed."
+5. **Transition** : "But the next slide is the key caveat: human feedback remains the compass."
 6. **Respiration** : pause avant 60/60.
 7. **Question CXO probable** : Vraiment autonome ?
 8. **Réponse AES** : "Autonomous to propose and accelerate; human to frame, validate, and own. Stop."
 9. **Dire / ne pas dire / Q&A** : Dire boucle. Ne pas dire autonomie totale.
 
+## Slide 32 - Human feedback is their compass
+
+1. **Fonction narrative** : preuve maturité / humilité.
+2. **Phrase à dire** : "Human feedback is not a feature of agentic systems. It is their compass."
+3. **Preuve** : Mentor, account team, colleagues and family as feedback loops against drift.
+4. **Mot-clé** : Compass.
+5. **Transition** : "That is why the thank-you slide matters: it shows the human system around the agentic system."
+6. **Respiration** : pause après compass.
+7. **Question CXO probable** : Pourquoi parler feedback humain dans un pitch IA ?
+8. **Réponse AES** : "Because powerful agents drift without business, trust, and real-world guidance. Human feedback keeps relevance. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire humilité et contrôle. Ne pas en faire une slide émotionnelle trop longue.
+
+## Slide 33 - Special thanks
+
+1. **Fonction narrative** : reconnaissance / preuve humaine.
+2. **Phrase à dire** : "This was not built by a tool alone. It was shaped by a human network of expertise, challenge, and support."
+3. **Preuve** : Mentor, colleagues, account team, family, named contributors.
+4. **Mot-clé** : Network.
+5. **Transition** : "The final build slides show the knowledge tools and reusable assets behind the work."
+6. **Respiration** : pause courte, sourire, puis avancer.
+7. **Question CXO probable** : Pourquoi garder une slide de remerciements devant des CXO ?
+8. **Réponse AES** : "Because transformation is social as well as technical. Adoption needs experts, sponsors, challengers, and users. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire court et sincère. Ne pas lire tous les noms si le temps est serré.
+
 ## Slide 34 - Markdown and customer knowledge tools
 
-1. **Fonction narrative** : conclusion méthode.
-2. **Phrase à dire** : "The speed also came from usable knowledge, not just content generation."
-3. **Preuve** : WYSIWYG Markdown editor, wiki viewer, GitHub links.
+1. **Fonction narrative** : conclusion méthode / asset.
+2. **Phrase à dire** : "The speed also came from usable knowledge and reusable assets, not just content generation."
+3. **Preuve** : WYSIWYG Markdown editor, wiki viewer, Markdit, Fraud IQ asset.
 4. **Mot-clé** : Knowledge.
-5. **Transition** : "Back to the thesis: LearnEU is an operating model, not just an artifact."
+5. **Transition** : "The final appendix returns to trust by separating the three data flows."
 6. **Respiration** : pause finale si utilisée.
-7. **Question CXO probable** : Pourquoi parler outils ?
-8. **Réponse AES** : "Because at scale, customer knowledge and traceability condition pitch quality and product quality. Stop."
-9. **Dire / ne pas dire / Q&A** : Ne pas finir sur l'outil ; finir sur LearnEU.
+7. **Question CXO probable** : Pourquoi mentionner Fraud IQ ici ?
+8. **Réponse AES** : "It shows the pattern is reusable: turn signals into governed, actionable assets beyond one demo. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire connaissance exploitable. Ne pas finir sur l'outil ; revenir à LearnEU.
+
+## Slide 35 - Three data flows. Three privacy regimes.
+
+1. **Fonction narrative** : appendix confiance.
+2. **Phrase à dire** : "Each AI flow has its own risk level and control regime."
+3. **Preuve** : On-device personalization, teacher review, reviewer publish, audit.
+4. **Mot-clé** : Flows.
+5. **Transition** : "This closes the loop: personalization only scales when each flow is governed explicitly."
+6. **Respiration** : pause après les trois flux.
+7. **Question CXO probable** : Flux le plus risqué ?
+8. **Réponse AES** : "Assessment and content access are treated as high-risk by default, with teacher review and audit. Stop."
+9. **Dire / ne pas dire / Q&A** : Dire régime par flux. Ne pas mélanger tous les cas IA.
 
 ---
 
-## Enchaînement demo - phrases à dire en anglais
+## Enchaînement démo - phrases à dire en anglais
 
 Avant la démo :
 
@@ -454,8 +477,6 @@ Si la démo ralentit :
 ## Q&A - règle Answer-Evidence-Stop
 
 Format : answer direct, one evidence, stop.
-
-Exemple :
 
 > Yes, the model can scale, but only through gates. The evidence is the P0-P4 roadmap, board scorecard, and demo factory. Stop.
 
